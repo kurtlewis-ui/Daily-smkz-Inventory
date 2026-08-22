@@ -91,7 +91,7 @@ export default function BrandProductsPage() {
               <button
                 key={p.id}
                 onClick={() => setSelected(p)}
-                className={`relative flex flex-col overflow-hidden rounded-xl border bg-card-bg text-left shadow-sm transition hover:shadow-lg ${
+                className={`relative flex flex-col overflow-hidden rounded-xl border bg-card-bg text-left shadow-sm transition hover:shadow-lg hover:shadow-black/10 ${
                   isOutOfStock
                     ? 'border-accent-red/40 opacity-60 grayscale-[40%]'
                     : isLowStock
@@ -117,9 +117,9 @@ export default function BrandProductsPage() {
                     <span className="text-xs text-text-muted">No Image Available</span>
                   )}
                 </div>
-                <div className="px-3 py-3">
+                <div className="px-3 py-3 bg-surface-muted">
                   <p className="truncate text-sm font-semibold text-text-primary" title={p.name}>{p.name}</p>
-                  <p className="text-sm font-bold text-accent-green">{peso(p.sellingPrice)}</p>
+                  <p className="text-sm font-bold text-text-primary">{peso(p.sellingPrice)}</p>
                   <p className={`text-sm font-medium ${isOutOfStock ? 'text-accent-red' : isLowStock ? 'text-accent-orange' : 'text-text-secondary'}`}>
                     Stock: {p.totalQuantity}
                     {isOutOfStock && ' (Out of stock)'}
@@ -149,7 +149,7 @@ export default function BrandProductsPage() {
   );
 }
 
-type ItemPaymentMethod = 'Cash' | 'Gcash';
+type ItemPaymentMethod = 'Cash' | 'Gcash' | 'Split';
 
 function AddPurchaseModal({
   product,
@@ -163,6 +163,9 @@ function AddPurchaseModal({
   const [quantity, setQuantity] = useState('1');
   const [discount, setDiscount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<ItemPaymentMethod>('Cash');
+  const [splitCash, setSplitCash] = useState('');
+  const [splitGcash, setSplitGcash] = useState('');
+  const [lastSplitEdited, setLastSplitEdited] = useState<'cash' | 'gcash'>('cash');
   const [note, setNote] = useState('');
   const [disposalReason, setDisposalReason] = useState('');
   const [disposalNote, setDisposalNote] = useState('');
@@ -210,6 +213,14 @@ function AddPurchaseModal({
       setError('Discount can\'t be more than this item\'s total.');
       return;
     }
+    if (paymentMethod === 'Split') {
+      const cashAmt = Number(splitCash) || 0;
+      const gcashAmt = Number(splitGcash) || 0;
+      if (Math.abs(cashAmt + gcashAmt - discountedTotal) > 0.01) {
+        setError('Split amounts must equal the item total.');
+        return;
+      }
+    }
     addItem(
       {
         productId: product.id,
@@ -221,7 +232,10 @@ function AddPurchaseModal({
         paymentMethod,
         bankNote: null,
         note: note.trim() || null,
-        paymentSplit: null,
+        paymentSplit:
+          paymentMethod === 'Split'
+            ? { cash: Number(splitCash) || 0, gcash: Number(splitGcash) || 0, bankTransfer: 0, cashless: 0 }
+            : null,
       },
       qty,
     );
@@ -260,7 +274,7 @@ function AddPurchaseModal({
         </div>
 
         {/* Product Info Card */}
-        <div className="mb-6 flex items-center gap-4 p-4 rounded-lg border border-card-border bg-white/5">
+        <div className="mb-6 flex items-center gap-4 p-4 rounded-lg border border-card-border bg-surface-muted">
           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-white/10 flex items-center justify-center">
             {product.image ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -271,7 +285,7 @@ function AddPurchaseModal({
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-text-primary">{product.name}</p>
-            <p className="text-base font-bold text-accent-green">{peso(product.sellingPrice)}</p>
+            <p className="text-base font-bold text-text-primary">{peso(product.sellingPrice)}</p>
             <p className={`text-sm font-medium ${available <= 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
               Stock: {stock}
               {alreadyInCart > 0 && ` (${alreadyInCart} in cart, ${available} available)`}
@@ -315,7 +329,7 @@ function AddPurchaseModal({
           {/* Payment Method — Toggle Buttons */}
           <div>
             <label className="block text-sm font-medium text-text-primary mb-2">Payment Method</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <button
                 type="button"
                 onClick={() => setPaymentMethod('Cash')}
@@ -332,13 +346,64 @@ function AddPurchaseModal({
                 onClick={() => setPaymentMethod('Gcash')}
                 className={`py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   paymentMethod === 'Gcash'
-                    ? 'bg-btn-primary text-btn-primary-text shadow-md'
-                    : 'border-2 border-input-border text-text-primary hover:border-btn-primary'
+                    ? 'bg-accent-blue text-white shadow-md'
+                    : 'border-2 border-input-border text-text-primary hover:border-accent-blue'
                 }`}
               >
                 Gcash
               </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('Split')}
+                className={`py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  paymentMethod === 'Split'
+                    ? 'bg-btn-primary text-btn-primary-text shadow-md'
+                    : 'border-2 border-input-border text-text-primary hover:border-btn-primary'
+                }`}
+              >
+                Split
+              </button>
             </div>
+            {paymentMethod === 'Split' && (
+              <div className="mt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">Cash (₱)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={splitCash}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSplitCash(val);
+                      setLastSplitEdited('cash');
+                      const cashVal = Number(val) || 0;
+                      setSplitGcash(Math.max(0, discountedTotal - cashVal).toFixed(2));
+                    }}
+                    placeholder="0"
+                    className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm focus:outline-none focus:border-input-focus"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">Gcash (₱)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={splitGcash}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSplitGcash(val);
+                      setLastSplitEdited('gcash');
+                      const gcashVal = Number(val) || 0;
+                      setSplitCash(Math.max(0, discountedTotal - gcashVal).toFixed(2));
+                    }}
+                    placeholder="0"
+                    className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm focus:outline-none focus:border-input-focus"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Note */}
