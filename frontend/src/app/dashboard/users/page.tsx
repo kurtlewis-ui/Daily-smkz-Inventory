@@ -42,8 +42,8 @@ function AdminStaffView() {
   const updateUser = useUpdateUser();
 
   const users = data?.data ?? [];
-  // Admin cannot see Owner accounts
-  const visibleUsers = users.filter((u) => u.role.name !== 'Owner');
+  // Admin can only see Staff role users (not Owner or Admin accounts)
+  const visibleUsers = users.filter((u) => u.role.name === 'Staff');
 
   const [selectedUser, setSelectedUser] = useState<FullUser | null>(null);
   const [selectedBranchId, setSelectedBranchId] = useState('');
