@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Search, X, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Search, X, CheckCircle2, XCircle } from 'lucide-react';
 import { useBrands, useProducts } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { useDraftStore } from '@/lib/draft';
@@ -141,8 +141,8 @@ export default function BrandProductsPage() {
       )}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-accent-green/90 px-4 py-2 text-sm font-medium text-white shadow-lg flex items-center gap-2">
-          <CheckCircle2 size={16} /> {toast}
+        <div className="fixed bottom-24 left-1/2 z-50 toast-enter rounded-lg bg-btn-primary px-5 py-3 text-sm font-medium text-btn-primary-text shadow-lg flex items-center gap-2">
+          <CheckCircle2 size={16} className="text-accent-green shrink-0" /> {toast}
         </div>
       )}
     </div>
