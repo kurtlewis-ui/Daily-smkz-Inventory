@@ -149,7 +149,7 @@ export default function BrandProductsPage() {
   );
 }
 
-type ItemPaymentMethod = 'Cash' | 'Gcash' | 'BankTransfer' | 'Cashless' | 'Split';
+type ItemPaymentMethod = 'Cash' | 'Gcash';
 
 function AddPurchaseModal({
   product,
@@ -163,11 +163,7 @@ function AddPurchaseModal({
   const [quantity, setQuantity] = useState('1');
   const [discount, setDiscount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<ItemPaymentMethod>('Cash');
-  const [bankNote, setBankNote] = useState('');
   const [note, setNote] = useState('');
-  const [splitCash, setSplitCash] = useState('');
-  const [splitGcash, setSplitGcash] = useState('');
-  const [splitBankTransfer, setSplitBankTransfer] = useState('');
   const [disposalReason, setDisposalReason] = useState('');
   const [disposalNote, setDisposalNote] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -191,9 +187,6 @@ function AddPurchaseModal({
   const discountNumber = Number(discount) || 0;
   const discountTooHigh = discountNumber > lineTotal + 0.001;
   const discountedTotal = Math.max(0, lineTotal - discountNumber);
-  const allocated = (Number(splitCash) || 0) + (Number(splitGcash) || 0) + (Number(splitBankTransfer) || 0);
-  const splitCashless = Math.max(0, discountedTotal - allocated);
-  const splitOverAllocated = allocated > discountedTotal + 0.001;
 
   function validQty(): number | null {
     const qty = Number(quantity);
@@ -217,10 +210,6 @@ function AddPurchaseModal({
       setError('Discount can\'t be more than this item\'s total.');
       return;
     }
-    if (paymentMethod === 'Split' && splitOverAllocated) {
-      setError('Split amounts add up to more than the item total.');
-      return;
-    }
     addItem(
       {
         productId: product.id,
@@ -230,17 +219,9 @@ function AddPurchaseModal({
         image: product.image,
         discount: discountNumber,
         paymentMethod,
-        bankNote: paymentMethod === 'BankTransfer' || paymentMethod === 'Split' ? bankNote.trim() || null : null,
+        bankNote: null,
         note: note.trim() || null,
-        paymentSplit:
-          paymentMethod === 'Split'
-            ? {
-                cash: Number(splitCash) || 0,
-                gcash: Number(splitGcash) || 0,
-                bankTransfer: Number(splitBankTransfer) || 0,
-                cashless: splitCashless,
-              }
-            : null,
+        paymentSplit: null,
       },
       qty,
     );
@@ -272,14 +253,15 @@ function AddPurchaseModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-sm mx-4 rounded-lg border border-card-border bg-card-bg p-5 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="relative w-full max-w-md mx-4 rounded-xl border border-card-border bg-card-bg p-8 shadow-xl">
+        <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-bold text-text-primary">Add Purchase</h3>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
         </div>
 
-        <div className="mb-4 flex items-center gap-3">
-          <div className="h-14 w-14 shrink-0 overflow-hidden rounded bg-white/10 flex items-center justify-center">
+        {/* Product Info Card */}
+        <div className="mb-6 flex items-center gap-4 p-4 rounded-lg border border-card-border bg-white/5">
+          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-white/10 flex items-center justify-center">
             {product.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
@@ -288,138 +270,130 @@ function AddPurchaseModal({
             )}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-text-primary">{product.name}</p>
-            <p className="text-sm font-bold text-accent-purple-light">{peso(product.sellingPrice)}</p>
+            <p className="truncate text-sm font-bold text-text-primary">{product.name}</p>
+            <p className="text-base font-bold text-accent-green">{peso(product.sellingPrice)}</p>
             <p className={`text-xs ${available <= 0 ? 'text-accent-red' : 'text-text-muted'}`}>
-              Stock/s: {stock}
-              {alreadyInCart > 0 && ` (${alreadyInCart} in draft order, ${available} available)`}
+              Stock: {stock}
+              {alreadyInCart > 0 && ` (${alreadyInCart} in cart, ${available} available)`}
             </p>
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-text-primary mb-1">Quantity</label>
-          <input
-            type="number"
-            min="1"
-            max={available}
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            className="w-full rounded border border-input-border bg-input-bg px-3 py-2 text-sm focus:outline-none focus:border-input-focus"
-          />
-        </div>
+        <div className="space-y-5">
+          {/* Quantity */}
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Quantity</label>
+            <input
+              type="number"
+              min="1"
+              max={available}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2.5 text-sm focus:outline-none focus:border-input-focus"
+            />
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-text-primary mb-1">Discount (₱, if selling)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
-            placeholder="0"
-            className="w-full rounded border border-input-border bg-input-bg px-3 py-2 text-sm focus:outline-none focus:border-input-focus"
-          />
-          {discountNumber > 0 && (
-            <p className={`mt-1 text-xs ${discountTooHigh ? 'text-accent-red' : 'text-text-secondary'}`}>
-              {discountTooHigh ? "Discount exceeds this item's total." : `Total after discount: ${peso(discountedTotal)}`}
-            </p>
-          )}
-        </div>
+          {/* Discount */}
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Discount (₱)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              placeholder="0"
+              className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2.5 text-sm focus:outline-none focus:border-input-focus"
+            />
+            {discountNumber > 0 && (
+              <p className={`mt-1 text-xs ${discountTooHigh ? 'text-accent-red' : 'text-text-secondary'}`}>
+                {discountTooHigh ? "Discount exceeds this item's total." : `Total after discount: ${peso(discountedTotal)}`}
+              </p>
+            )}
+          </div>
 
-        <div className="mb-4 space-y-2 rounded-lg border border-card-border p-3">
-          <label className="block text-xs font-semibold uppercase tracking-wide text-text-muted">Payment (if selling)</label>
-          <select
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value as ItemPaymentMethod)}
-            className="w-full rounded border border-input-border bg-input-bg px-2 py-1.5 text-sm"
-          >
-            <option value="Cash">Cash</option>
-            <option value="Gcash">Gcash</option>
-            <option value="BankTransfer">Bank Transfer</option>
-            <option value="Cashless">Cashless (other)</option>
-            <option value="Split">Split Payment</option>
-          </select>
+          {/* Payment Method — Toggle Buttons */}
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-2">Payment Method</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('Cash')}
+                className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                  paymentMethod === 'Cash'
+                    ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-sm'
+                    : 'bg-white/5 text-text-secondary border-card-border hover:border-text-secondary'
+                }`}
+              >
+                Cash
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('Gcash')}
+                className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                  paymentMethod === 'Gcash'
+                    ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-sm'
+                    : 'bg-white/5 text-text-secondary border-card-border hover:border-text-secondary'
+                }`}
+              >
+                Gcash
+              </button>
+            </div>
+          </div>
 
-          {(paymentMethod === 'BankTransfer' || paymentMethod === 'Split') && (
+          {/* Note */}
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Note (optional)</label>
             <input
               type="text"
-              value={bankNote}
-              onChange={(e) => setBankNote(e.target.value)}
-              placeholder="Which bank? e.g. BDO, BPI"
-              className="w-full rounded border border-input-border bg-input-bg px-2 py-1.5 text-sm"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add a note..."
+              className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2.5 text-sm focus:outline-none focus:border-input-focus"
             />
-          )}
+          </div>
 
-          {paymentMethod === 'Split' && (
-            <div className="space-y-1.5 rounded border border-card-border p-2">
-              <div className="grid grid-cols-3 gap-1.5">
-                <div>
-                  <label className="block text-[11px] text-text-muted mb-0.5">Cash</label>
-                  <input type="number" min="0" step="0.01" value={splitCash} onChange={(e) => setSplitCash(e.target.value)} placeholder="0" className="w-full rounded border border-input-border bg-input-bg px-2 py-1 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-text-muted mb-0.5">Gcash</label>
-                  <input type="number" min="0" step="0.01" value={splitGcash} onChange={(e) => setSplitGcash(e.target.value)} placeholder="0" className="w-full rounded border border-input-border bg-input-bg px-2 py-1 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-text-muted mb-0.5">Bank Transfer</label>
-                  <input type="number" min="0" step="0.01" value={splitBankTransfer} onChange={(e) => setSplitBankTransfer(e.target.value)} placeholder="0" className="w-full rounded border border-input-border bg-input-bg px-2 py-1 text-sm" />
-                </div>
-              </div>
-              <p className={`text-xs ${splitOverAllocated ? 'text-accent-red' : 'text-text-secondary'}`}>
-                Cashless (remainder): {peso(splitCashless)} {splitOverAllocated && '— exceeds item total'}
-              </p>
-            </div>
-          )}
-
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Note / reminder (optional)"
-            className="w-full rounded border border-input-border bg-input-bg px-2 py-1.5 text-sm"
-          />
+          {/* Disposal Reason */}
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Disposal Reason (if disposing)</label>
+            <select
+              value={disposalReason}
+              onChange={(e) => setDisposalReason(e.target.value)}
+              className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2.5 text-sm focus:outline-none focus:border-input-focus"
+            >
+              <option value="">Select reason...</option>
+              <option value="Leak">Leak</option>
+              <option value="Damage">Damage</option>
+              <option value="Crack">Crack</option>
+              <option value="Expired">Expired</option>
+              <option value="Burned">Burned</option>
+              <option value="Not Working">Not Working</option>
+            </select>
+            <input
+              type="text"
+              value={disposalNote}
+              onChange={(e) => setDisposalNote(e.target.value)}
+              placeholder="Add note (optional)"
+              className="mt-2 w-full rounded-lg border border-input-border bg-input-bg px-3 py-2.5 text-sm focus:outline-none focus:border-input-focus"
+            />
+          </div>
         </div>
 
-        {error && <p className="mb-3 text-sm text-accent-red">{error}</p>}
+        {error && <p className="mt-4 text-sm text-accent-red">{error}</p>}
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-text-primary mb-1">Disposal Reason (if disposing)</label>
-          <select
-            value={disposalReason}
-            onChange={(e) => setDisposalReason(e.target.value)}
-            className="w-full rounded border border-input-border bg-input-bg px-3 py-2 text-sm focus:outline-none focus:border-input-focus"
-          >
-            <option value="">Select reason...</option>
-            <option value="Leak">Leak</option>
-            <option value="Damage">Damage</option>
-            <option value="Crack">Crack</option>
-            <option value="Expired">Expired</option>
-            <option value="Burned">Burned</option>
-            <option value="Not Working">Not Working</option>
-          </select>
-          <input
-            type="text"
-            value={disposalNote}
-            onChange={(e) => setDisposalNote(e.target.value)}
-            placeholder="Add note (optional)"
-            className="mt-2 w-full rounded border border-input-border bg-input-bg px-3 py-2 text-sm focus:outline-none focus:border-input-focus"
-          />
-        </div>
-
-        <div className="flex flex-col items-end gap-2">
+        {/* Action Buttons — Same Size */}
+        <div className="grid grid-cols-2 gap-3 mt-6">
           <button
             onClick={handleSaveRecords}
             disabled={available <= 0}
-            className="rounded-lg bg-btn-primary px-4 py-2 text-sm font-medium text-btn-primary-text hover:opacity-90 transition disabled:opacity-50"
+            className="w-full py-2.5 rounded-lg bg-btn-primary text-btn-primary-text text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
           >
             Save Records
           </button>
           <button
             onClick={handleDispose}
             disabled={available <= 0}
-            className="rounded-lg bg-accent-red px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition disabled:opacity-50"
+            className="w-full py-2.5 rounded-lg border border-accent-red text-accent-red text-sm font-medium hover:bg-accent-red/10 transition disabled:opacity-50"
           >
             Dispose
           </button>
