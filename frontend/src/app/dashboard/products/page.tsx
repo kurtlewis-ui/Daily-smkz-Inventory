@@ -553,19 +553,19 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
 
   return (
     <Modal title={title} onClose={onClose}>
-      <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+      <div className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Name</label>
           <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">Quantity</label>
-          <div className="space-y-2">
-            {branches.length === 0 && <p className="text-xs text-text-muted">No shops yet. Create a shop first.</p>}
+          <label className="block text-sm font-medium text-text-primary mb-2">Quantity</label>
+          <div className="divide-y divide-card-border border border-card-border rounded-lg overflow-hidden">
+            {branches.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No shops yet. Create a shop first.</p>}
             {branches.map((b) => (
-              <div key={b.id} className="flex items-center gap-2">
-                <span className="text-xs font-medium text-accent-primary bg-white/10 px-2 py-1.5 rounded min-w-[140px]">{b.name}</span>
-                <input type="number" min="0" value={formQuantities[b.id] ?? '0'} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="flex-1 border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+              <div key={b.id} className="flex items-center gap-3 px-3 py-2.5">
+                <span className="text-xs font-semibold text-text-primary bg-white/10 border-l-[3px] border-accent-blue px-2.5 py-1.5 rounded-r min-w-[140px] uppercase">{b.name}</span>
+                <input type="number" min="0" placeholder={`Quantity for ${b.name}`} value={formQuantities[b.id] ?? '0'} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="flex-1 border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
               </div>
             ))}
           </div>
@@ -579,23 +579,21 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
           {brands.length === 0 && <p className="text-xs text-text-muted mt-1">No brands yet. Create a brand first.</p>}
         </div>
         <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Cost Price (₱)</label>
+          <input type="number" step="0.01" min="0" value={formCostPrice} onChange={(e) => setFormCostPrice(e.target.value)} placeholder="0" className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+        </div>
+        <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Selling Price (₱)</label>
           <input type="number" step="0.01" min="0" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
         </div>
-        {isOwner && (
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Cost Price (₱) <span className="text-[10px] text-accent-primary font-normal">Owner Only — Confidential</span></label>
-            <input type="number" step="0.01" min="0" value={formCostPrice} onChange={(e) => setFormCostPrice(e.target.value)} placeholder="0" className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
-          </div>
-        )}
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Quantity Alert</label>
           <input type="number" min="0" value={formAlert} onChange={(e) => setFormAlert(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">Product Image</label>
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0">
+          <label className="block text-sm font-medium text-text-primary mb-2">Product Image</label>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0 border border-card-border">
               {formImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={formImage} alt="Product preview" className="w-full h-full object-cover" />
@@ -604,12 +602,14 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
               )}
             </div>
             {isAdmin ? (
-              <div className="flex-1 space-y-1">
-                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-btn-primary file:text-btn-primary-text file:text-xs" />
+              <div className="flex-1">
+                <div className="border border-input-border rounded-lg px-3 py-2 flex items-center gap-2 bg-input-bg">
+                  <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer" />
+                </div>
                 {formImage && (
-                  <button type="button" onClick={() => { setFormImage(null); setImageError(null); }} className="text-xs text-accent-red hover:underline">Remove image</button>
+                  <button type="button" onClick={() => { setFormImage(null); setImageError(null); }} className="text-xs text-accent-red hover:underline mt-1">Remove image</button>
                 )}
-                {imageError && <p className="text-xs text-accent-red">{imageError}</p>}
+                {imageError && <p className="text-xs text-accent-red mt-1">{imageError}</p>}
               </div>
             ) : (
               <p className="flex-1 text-xs text-text-muted">Only an admin can change the product image.</p>
@@ -617,8 +617,8 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
           </div>
         </div>
         {error && <p className="text-sm text-accent-red">{error}</p>}
-        <div className="flex justify-end">
-          <button onClick={onSubmit} disabled={disabled} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60">{buttonLabel}</button>
+        <div className="flex justify-end pt-2">
+          <button onClick={onSubmit} disabled={disabled} className="btn-grad px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60">{buttonLabel}</button>
         </div>
       </div>
     </Modal>
@@ -629,8 +629,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-card-bg border border-card-border rounded-lg shadow-xl w-full max-w-lg mx-4 p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="relative bg-card-bg border border-card-border rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6">
+        <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-bold text-text-primary">{title}</h3>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
         </div>
