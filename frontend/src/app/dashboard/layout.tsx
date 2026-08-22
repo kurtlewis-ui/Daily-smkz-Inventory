@@ -63,7 +63,6 @@ const ownerNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { label: 'Staff', href: '/dashboard/users', icon: <Users size={18} /> },
-  { label: 'Archived Staff', href: '/dashboard/archive/users', icon: <Archive size={18} /> },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
