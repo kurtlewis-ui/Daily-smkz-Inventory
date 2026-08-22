@@ -49,7 +49,7 @@ export default function BrandProductsPage() {
     <div>
       <button
         onClick={() => router.push('/staff')}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-text-primary hover:bg-white/15 transition"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-input-border px-3 py-1.5 text-sm text-text-primary hover:opacity-80 transition"
       >
         <ArrowLeft size={15} /> Back
       </button>
@@ -57,7 +57,7 @@ export default function BrandProductsPage() {
       {branchName && (
         <p className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-1">{branchName}</p>
       )}
-      <h1 className="text-2xl font-bold text-text-primary mb-4">{brand?.name ?? 'Products'}</h1>
+      <h1 className="text-2xl font-bold text-text-primary mb-5">{brand?.name ?? 'Products'}</h1>
 
       <div className="mb-6 flex max-w-2xl items-center gap-2">
         <div className="relative flex-1">
@@ -83,7 +83,7 @@ export default function BrandProductsPage() {
       ) : products.length === 0 ? (
         <div className="py-16 text-center text-text-muted">No products found for this brand.</div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {products.map((p) => {
             const isOutOfStock = p.totalQuantity <= 0;
             const isLowStock = !isOutOfStock && p.totalQuantity <= 5;
@@ -91,12 +91,12 @@ export default function BrandProductsPage() {
               <button
                 key={p.id}
                 onClick={() => setSelected(p)}
-                className={`relative flex flex-col overflow-hidden rounded-xl border bg-card-bg text-left shadow-sm transition hover:shadow-md hover:shadow-accent-primary/10 ${
+                className={`relative flex flex-col overflow-hidden rounded-xl border bg-card-bg text-left shadow-sm transition hover:shadow-lg ${
                   isOutOfStock
                     ? 'border-accent-red/40 opacity-60 grayscale-[40%]'
                     : isLowStock
-                    ? 'border-accent-orange/40 hover:border-accent-primary/50'
-                    : 'border-card-border hover:border-accent-primary/50'
+                    ? 'border-accent-orange/40 hover:border-input-focus'
+                    : 'border-card-border hover:border-input-focus'
                 }`}
               >
                 {isOutOfStock && (
@@ -117,11 +117,11 @@ export default function BrandProductsPage() {
                     <span className="text-xs text-text-muted">No Image Available</span>
                   )}
                 </div>
-                <div className="px-3 py-2">
+                <div className="px-3 py-3">
                   <p className="truncate text-sm font-semibold text-text-primary" title={p.name}>{p.name}</p>
-                  <p className="text-sm font-bold text-accent-purple-light">{peso(p.sellingPrice)}</p>
-                  <p className={`text-xs ${isOutOfStock ? 'text-accent-red font-medium' : isLowStock ? 'text-accent-orange font-medium' : 'text-text-muted'}`}>
-                    Stock/s: {p.totalQuantity}
+                  <p className="text-sm font-bold text-accent-green">{peso(p.sellingPrice)}</p>
+                  <p className={`text-sm font-medium ${isOutOfStock ? 'text-accent-red' : isLowStock ? 'text-accent-orange' : 'text-text-secondary'}`}>
+                    Stock: {p.totalQuantity}
                     {isOutOfStock && ' (Out of stock)'}
                     {isLowStock && ' (Low stock)'}
                   </p>
@@ -272,7 +272,7 @@ function AddPurchaseModal({
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-text-primary">{product.name}</p>
             <p className="text-base font-bold text-accent-green">{peso(product.sellingPrice)}</p>
-            <p className={`text-xs ${available <= 0 ? 'text-accent-red' : 'text-text-muted'}`}>
+            <p className={`text-sm font-medium ${available <= 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
               Stock: {stock}
               {alreadyInCart > 0 && ` (${alreadyInCart} in cart, ${available} available)`}
             </p>
@@ -315,14 +315,14 @@ function AddPurchaseModal({
           {/* Payment Method — Toggle Buttons */}
           <div>
             <label className="block text-sm font-medium text-text-primary mb-2">Payment Method</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setPaymentMethod('Cash')}
-                className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                className={`py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   paymentMethod === 'Cash'
-                    ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-sm'
-                    : 'bg-white/5 text-text-secondary border-card-border hover:border-text-secondary'
+                    ? 'bg-btn-primary text-btn-primary-text shadow-md'
+                    : 'border-2 border-input-border text-text-primary hover:border-btn-primary'
                 }`}
               >
                 Cash
@@ -330,10 +330,10 @@ function AddPurchaseModal({
               <button
                 type="button"
                 onClick={() => setPaymentMethod('Gcash')}
-                className={`py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                className={`py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   paymentMethod === 'Gcash'
-                    ? 'bg-btn-primary text-btn-primary-text border-btn-primary shadow-sm'
-                    : 'bg-white/5 text-text-secondary border-card-border hover:border-text-secondary'
+                    ? 'bg-btn-primary text-btn-primary-text shadow-md'
+                    : 'border-2 border-input-border text-text-primary hover:border-btn-primary'
                 }`}
               >
                 Gcash
@@ -386,14 +386,14 @@ function AddPurchaseModal({
           <button
             onClick={handleSaveRecords}
             disabled={available <= 0}
-            className="w-full py-2.5 rounded-lg bg-btn-primary text-btn-primary-text text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+            className="w-full py-2.5 rounded-lg bg-btn-primary text-btn-primary-text text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
           >
             Save Records
           </button>
           <button
             onClick={handleDispose}
             disabled={available <= 0}
-            className="w-full py-2.5 rounded-lg border border-accent-red text-accent-red text-sm font-medium hover:bg-accent-red/10 transition disabled:opacity-50"
+            className="w-full py-2.5 rounded-lg bg-accent-red text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
           >
             Dispose
           </button>

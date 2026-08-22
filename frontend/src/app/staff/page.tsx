@@ -49,12 +49,12 @@ export default function StaffHomePage() {
       ) : brands.length === 0 ? (
         <div className="py-16 text-center text-text-muted">No brands found.</div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {brands.map((brand) => (
             <button
               key={brand.id}
               onClick={() => router.push(`/staff/brands/${brand.id}`)}
-              className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-accent-primary/50 hover:shadow-md hover:shadow-accent-primary/10"
+              className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-input-focus hover:shadow-lg"
             >
               <div className="flex aspect-square items-center justify-center bg-white/5">
                 {brand.coverImage ? (
@@ -64,9 +64,9 @@ export default function StaffHomePage() {
                   <span className="text-xs text-text-muted">No Image Available</span>
                 )}
               </div>
-              <div className="px-3 py-2">
-                <p className="truncate text-sm font-semibold text-text-primary group-hover:text-accent-purple-light">{brand.name}</p>
-                <p className="text-xs text-text-muted">{brand.productCount} product{brand.productCount === 1 ? '' : 's'}</p>
+              <div className="px-3 py-3">
+                <p className="truncate text-sm font-semibold text-text-primary">{brand.name}</p>
+                <p className="text-xs text-text-secondary">{brand.productCount} product{brand.productCount === 1 ? '' : 's'}</p>
               </div>
             </button>
           ))}
