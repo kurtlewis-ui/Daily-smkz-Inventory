@@ -162,7 +162,7 @@ function AddPurchaseModal({
 }) {
   const [quantity, setQuantity] = useState('1');
   const [discount, setDiscount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<ItemPaymentMethod>('Cash');
+  const [paymentMethod, setPaymentMethod] = useState<ItemPaymentMethod | ''>('');
   const [splitCash, setSplitCash] = useState('');
   const [splitGcash, setSplitGcash] = useState('');
   const [lastSplitEdited, setLastSplitEdited] = useState<'cash' | 'gcash'>('cash');
@@ -209,6 +209,10 @@ function AddPurchaseModal({
     setError(null);
     const qty = validQty();
     if (qty === null) return;
+    if (!paymentMethod) {
+      setError('Please select a payment method.');
+      return;
+    }
     if (discountTooHigh) {
       setError('Discount can\'t be more than this item\'s total.');
       return;
