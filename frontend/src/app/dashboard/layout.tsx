@@ -34,8 +34,8 @@ interface NavItem {
 const ownerNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
   { label: 'Shops', href: '/dashboard/shops', icon: <Store size={18} /> },
-  { label: 'Products', href: '/dashboard/products', icon: <Package size={18} /> },
   { label: 'Brands', href: '/dashboard/brands', icon: <Tag size={18} /> },
+  { label: 'Products', href: '/dashboard/products', icon: <Package size={18} /> },
   {
     label: 'Sales',
     href: '/dashboard/sales',
