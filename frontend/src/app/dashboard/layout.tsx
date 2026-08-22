@@ -31,7 +31,7 @@ interface NavItem {
   dropdown?: { label: string; href: string }[];
 }
 
-const navItems: NavItem[] = [
+const ownerNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard size={18} /> },
   { label: 'Shops', href: '/dashboard/shops', icon: <Store size={18} /> },
   { label: 'Products', href: '/dashboard/products', icon: <Package size={18} /> },
@@ -59,6 +59,11 @@ const navItems: NavItem[] = [
       { label: 'Brands Archive', href: '/dashboard/archive/brands' },
     ],
   },
+];
+
+const adminNavItems: NavItem[] = [
+  { label: 'Staff', href: '/dashboard/users', icon: <Users size={18} /> },
+  { label: 'Archived Staff', href: '/dashboard/archive/users', icon: <Archive size={18} /> },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -117,6 +122,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     toggleContentTheme();
     setThemeAnimKey((k) => k + 1);
   }
+
+  const isAdmin = user?.role?.name === 'Admin';
+  const navItems = isAdmin ? adminNavItems : ownerNavItems;
 
   const isActive = (item: NavItem) => {
     if (item.href === '/dashboard') return pathname === '/dashboard';

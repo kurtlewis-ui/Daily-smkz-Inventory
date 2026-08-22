@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Store, Package, PhilippinePeso, Users, BarChart3, ChevronDown, ChevronUp, Recycle, Download } from 'lucide-react';
 import {
@@ -19,6 +20,7 @@ import {
 } from 'recharts';
 import { useDashboardStats, useSalesOverview, useTopProducts, useBranches, useDisposals, useExpenses } from '@/lib/hooks';
 import { useThemeStore } from '@/lib/theme';
+import { useAuthStore } from '@/lib/store';
 import { OwnerProfitSection } from '@/components/OwnerProfitSection';
 
 function peso(n: number) {
@@ -30,6 +32,29 @@ const DONUT_COLORS_DARK = ['#ffffff', '#d4d4d4', '#a3a3a3', '#737373', '#e5e5e5'
 const DONUT_COLORS_LIGHT = ['#10b981', '#34d399', '#6ee7b7', '#60a5fa', '#a78bfa', '#f59e0b', '#f87171', '#94a3b8'];
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const currentRole = useAuthStore((s) => s.user?.role?.name);
+
+  // Admin only has access to Staff page — redirect them away from the dashboard
+  useEffect(() => {
+    if (currentRole === 'Admin') {
+      router.replace('/dashboard/users');
+    }
+  }, [currentRole, router]);
+
+  // Don't render the dashboard for Admin while redirecting
+  if (currentRole === 'Admin') {
+    return (
+      <main className="flex min-h-[50vh] items-center justify-center">
+        <p className="text-text-muted">Redirecting...</p>
+      </main>
+    );
+  }
+
+  return <OwnerDashboard />;
+}
+
+function OwnerDashboard() {
   const { contentTheme } = useThemeStore();
   const isDark = contentTheme === 'dark';
   const { data: stats, isLoading } = useDashboardStats();
