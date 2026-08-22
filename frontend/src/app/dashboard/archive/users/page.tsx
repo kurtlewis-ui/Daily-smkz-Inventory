@@ -4,13 +4,20 @@ import { useState } from 'react';
 import { Search, Undo2, Loader2 } from 'lucide-react';
 import { useArchivedUsers, useRestoreUser } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
+import { useAuthStore } from '@/lib/store';
 
 export default function UsersArchivePage() {
   const { data, isLoading, isError, error } = useArchivedUsers();
   const restore = useRestoreUser();
-  const users = data?.data ?? [];
+  const allUsers = data?.data ?? [];
   const [search, setSearch] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const currentRole = useAuthStore((s) => s.user?.role?.name);
+  const isOwner = currentRole === 'Owner';
+
+  // Admin cannot see Owner accounts in the archive
+  const users = isOwner ? allUsers : allUsers.filter((u) => u.role.name !== 'Owner');
 
   const filtered = users.filter(
     (u) =>
