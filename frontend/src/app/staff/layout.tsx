@@ -713,7 +713,7 @@ function DraftBag() {
                         step="0.01"
                         value={expenseAmount}
                         onChange={(e) => setExpenseAmount(e.target.value)}
-                        placeholder="300"
+                        placeholder="0"
                         className="w-full rounded border border-input-border bg-input-bg px-2 py-1.5 text-sm"
                       />
                     </div>
