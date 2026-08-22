@@ -1,12 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from './store';
-import { useDraftStore } from './draft';
 
-// Clears both the auth session and the staff draft cart. Devices in a shop
-// are often shared between staff, so a stale draft must not survive logout.
-function logoutAndClearDraft(): void {
+// Logs out the auth session. Draft is preserved so staff don't lose
+// their work if their token expires.
+function logoutSession(): void {
   useAuthStore.getState().logout();
-  useDraftStore.getState().clear();
 }
 
 /**
@@ -94,13 +92,13 @@ api.interceptors.response.use(
         config.headers.Authorization = `Bearer ${accessToken}`;
         return api(config);
       } catch {
-        logoutAndClearDraft();
+        logoutSession();
         return Promise.reject(error);
       }
     }
 
     if (status === 401) {
-      logoutAndClearDraft();
+      logoutSession();
     }
     return Promise.reject(error);
   },
