@@ -27,6 +27,8 @@ import {
   Moon,
   Sun,
   Menu,
+  PhilippinePeso,
+  XCircle,
 } from 'lucide-react';
 
 function peso(n: number) {
@@ -556,9 +558,9 @@ function DraftBag() {
                     No items yet.
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {items.map((item, idx) => (
-                      <div key={`${item.productId}-${idx}`} className="rounded-lg border border-card-border p-2">
+                      <div key={`${item.productId}-${idx}`} className="rounded-lg border border-card-border p-3">
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-white/10 flex items-center justify-center">
                             {item.image ? (
@@ -574,12 +576,12 @@ function DraftBag() {
                             <div className="flex items-center justify-between">
                               <p className="text-xs text-text-secondary">
                                 {peso(item.unitPrice)} each &middot; {peso(item.unitPrice * item.quantity - (item.discount ?? 0))} total
-                                {!!item.discount && <span className="text-accent-orange"> (−{peso(item.discount)} discount)</span>}
                               </p>
+                              {!!item.discount && <p className="text-[9px] text-accent-orange mt-0.5">(−{peso(item.discount)} discount)</p>}
                               <span className="text-[10px] text-text-muted">{formatAddedTime(item.addedAt)}</span>
                             </div>
                             <div className="mt-0.5 flex items-center gap-1.5">
-                              <span className="inline-block rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-accent-purple-light">{paymentTagLabel(item)}</span>
+                              <span className="inline-block rounded border border-input-border bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-text-primary">{paymentTagLabel(item)}</span>
                               <button
                                 onClick={() => setEditingPaymentIdx(editingPaymentIdx === idx ? null : idx)}
                                 className="text-[10px] text-accent-blue hover:underline"
@@ -643,7 +645,7 @@ function DraftBag() {
                           <p className="truncate text-sm font-medium text-text-primary">{item.name}</p>
                           <p className="truncate text-xs text-text-muted">{item.brandName}</p>
                           {item.reason && (
-                            <p className="truncate text-[10px] text-accent-orange mt-0.5">{item.reason}</p>
+                            <p className="truncate text-[10px] text-accent-red mt-0.5">{item.reason}</p>
                           )}
                           {item.addedAt && (
                             <p className="text-[10px] text-text-muted mt-0.5">{formatAddedTime(item.addedAt)}</p>
@@ -671,7 +673,7 @@ function DraftBag() {
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <h4 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-text-muted">
-                    <Receipt size={13} /> Expenses
+                    <PhilippinePeso size={13} /> Expenses
                   </h4>
                   {!addingExpense && (
                     <button
@@ -747,73 +749,63 @@ function DraftBag() {
               </div>
 
               {success && (
-                <div className="rounded-lg bg-accent-green/10 border border-accent-green/30 px-3 py-2 text-sm text-accent-green flex items-center gap-2">
-                  <CheckCircle2 size={16} /> {success}
+                <div className="confirm-enter rounded-lg bg-btn-primary border border-card-border px-4 py-3 text-sm font-medium text-btn-primary-text flex items-center gap-2 shadow-lg">
+                  <CheckCircle2 size={16} className="text-accent-green shrink-0" /> {success}
                 </div>
               )}
               {error && (
-                <div className="rounded-lg bg-accent-red/10 border border-accent-red/30 px-3 py-2 text-sm text-accent-red">{error}</div>
+                <div className="confirm-enter rounded-lg bg-btn-primary border border-card-border px-4 py-3 text-sm font-medium text-btn-primary-text flex items-center gap-2 shadow-lg">
+                  <XCircle size={16} className="text-accent-red shrink-0" /> {error}
+                </div>
               )}
             </div>
 
             {!isEmpty && (
-              <div className="border-t border-card-border p-4 space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-text-secondary mb-1">Customer (optional)</label>
-                  <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full border border-input-border rounded px-2 py-1.5 text-sm bg-input-bg" />
-                </div>
-                <div className="space-y-1 text-sm">
-                  {items.length > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-text-secondary">Items Total</span>
-                      <span className="font-medium text-text-primary">{peso(itemsTotal)}</span>
-                    </div>
-                  )}
+              <div className="border-t border-card-border p-4 space-y-4">
+                <div className="space-y-2 text-sm">
                   {items.length > 0 && (
                     <>
                       <div className="flex items-center justify-between">
-                        <span className="text-text-secondary">Total Cash</span>
+                        <span className="font-semibold text-text-primary">Total Sales</span>
+                        <span className="font-bold text-text-primary">{peso(itemsTotal)}</span>
+                      </div>
+                      <div className="flex items-center justify-between pl-4">
+                        <span className="text-text-secondary">Cash</span>
                         <span className="text-text-primary">{peso(paymentTotals.cash)}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-secondary">Total Gcash</span>
+                      <div className="flex items-center justify-between pl-4">
+                        <span className="text-text-secondary">Gcash</span>
                         <span className="text-text-primary">{peso(paymentTotals.gcash)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-secondary">Total Bank Transfer</span>
-                        <span className="text-text-primary">{peso(paymentTotals.bankTransfer)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-secondary">Total Cashless</span>
-                        <span className="text-text-primary">{peso(paymentTotals.cashless)}</span>
                       </div>
                     </>
                   )}
                   {expenses.length > 0 && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-text-secondary">Expenses Total</span>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-text-secondary">Expenses</span>
                       <span className="font-medium text-text-primary">{peso(expensesTotal)}</span>
                     </div>
                   )}
-                  {items.length > 0 && expenses.length > 0 && (
-                    <div className="flex items-center justify-between border-t border-card-border pt-1">
-                      <span className="font-semibold text-text-primary">Net (this order)</span>
+                  {items.length > 0 && (
+                    <div className="flex items-center justify-between border-t border-card-border pt-2 mt-2">
+                      <span className="font-bold text-text-primary">Total Net Sales</span>
                       <span className="font-bold text-text-primary">{peso(itemsTotal - expensesTotal)}</span>
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {confirmClear ? (
-                    <div className="flex-1 flex gap-1">
-                      <button onClick={handleClear} className="flex-1 rounded-lg bg-accent-red px-3 py-2 text-xs font-medium text-white hover:opacity-90 transition">Yes, Clear</button>
-                      <button onClick={() => setConfirmClear(false)} className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-xs font-medium text-text-primary hover:bg-white/15 transition">Cancel</button>
-                    </div>
+                    <>
+                      <button onClick={handleClear} className="confirm-enter w-full rounded-lg bg-accent-red px-3 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition">Yes, Clear</button>
+                      <button onClick={() => setConfirmClear(false)} className="confirm-enter w-full rounded-lg border-2 border-input-border px-3 py-2.5 text-sm font-semibold text-text-primary hover:opacity-80 transition">Cancel</button>
+                    </>
                   ) : (
-                    <button onClick={handleClear} disabled={isSaving} className="flex-1 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-text-primary hover:bg-white/15 transition disabled:opacity-60">Clear</button>
+                    <>
+                      <button onClick={handleClear} disabled={isSaving} className="w-full rounded-lg border-2 border-input-border px-4 py-2.5 text-sm font-semibold text-text-primary hover:opacity-80 transition disabled:opacity-60">Clear</button>
+                      <button onClick={handleSave} disabled={isSaving} className="w-full bg-btn-primary text-btn-primary-text rounded-lg px-4 py-2.5 text-sm font-semibold hover:opacity-90 active:scale-[0.97] transition disabled:opacity-60">
+                        {isSaving ? 'Saving...' : 'Save Order'}
+                      </button>
+                    </>
                   )}
-                  <button onClick={handleSave} disabled={isSaving} className="flex-[2] bg-accent-teal text-white rounded-lg px-4 py-2 text-sm font-medium hover:brightness-110 active:scale-[0.97] transition disabled:opacity-60">
-                    {isSaving ? 'Saving...' : 'Save Order'}
-                  </button>
                 </div>
               </div>
             )}

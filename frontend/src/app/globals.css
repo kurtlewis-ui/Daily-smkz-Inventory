@@ -33,7 +33,7 @@ body {
   --content-text-secondary: #5f6368;
   --content-text-muted: #80868b;
   --content-text-link: #3c4043;
-  --content-surface-muted: #e8eaed;
+  --content-surface-muted: #f5f7fa;
   --content-input-bg: #f1f3f4;
   --content-input-border: #dadce0;
   --content-btn-primary: #000000;
@@ -174,6 +174,37 @@ select optgroup {
 @keyframes theme-icon-in {
   0% { transform: rotate(-90deg) scale(0.5); opacity: 0; }
   100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+/* ----------------------------------------------------------------------
+   Toast notification animation — slide up + fade in/out
+   ---------------------------------------------------------------------- */
+.toast-enter {
+  animation: toast-slide-in 0.3s ease-out forwards;
+}
+
+.toast-exit {
+  animation: toast-slide-out 0.2s ease-in forwards;
+}
+
+@keyframes toast-slide-in {
+  0% { transform: translateX(-50%) translateY(20px); opacity: 0; }
+  100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+
+@keyframes toast-slide-out {
+  0% { transform: translateX(-50%) translateY(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(20px); opacity: 0; }
+}
+
+/* Confirm clear animation */
+.confirm-enter {
+  animation: confirm-fade-in 0.2s ease-out forwards;
+}
+
+@keyframes confirm-fade-in {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 /* ----------------------------------------------------------------------
