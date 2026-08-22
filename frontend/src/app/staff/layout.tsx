@@ -70,10 +70,6 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
 
   function handleLogout() {
     logout();
-    // Clear the draft cart too — it's a separate localStorage key that would
-    // otherwise survive logout and show up for the next person to sign in on
-    // this (often shared, POS-style) device.
-    useDraftStore.getState().clear();
     router.replace('/login');
   }
 
@@ -558,9 +554,9 @@ function DraftBag() {
                     No items yet.
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {items.map((item, idx) => (
-                      <div key={`${item.productId}-${idx}`} className="rounded-lg border border-card-border p-3">
+                      <div key={`${item.productId}-${idx}`} className="rounded-lg border border-card-border p-4">
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-white/10 flex items-center justify-center">
                             {item.image ? (
@@ -578,7 +574,7 @@ function DraftBag() {
                                 {peso(item.unitPrice)} each &middot; {peso(item.unitPrice * item.quantity - (item.discount ?? 0))} total
                               </p>
                               {!!item.discount && <p className="text-[9px] text-accent-orange mt-0.5">(−{peso(item.discount)} discount)</p>}
-                              <span className="text-[10px] text-text-muted">{formatAddedTime(item.addedAt)}</span>
+                              <span className="text-[10px] text-text-muted whitespace-nowrap">{formatAddedTime(item.addedAt)}</span>
                             </div>
                             <div className="mt-0.5 flex items-center gap-1.5">
                               <span className="inline-block rounded border border-input-border bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-text-primary">{paymentTagLabel(item)}</span>
@@ -769,19 +765,19 @@ function DraftBag() {
                         <span className="font-semibold text-text-primary">Total Sales</span>
                         <span className="font-bold text-text-primary">{peso(itemsTotal)}</span>
                       </div>
-                      <div className="flex items-center justify-between pl-4">
-                        <span className="text-text-secondary">Cash</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-secondary">Total Cash</span>
                         <span className="text-text-primary">{peso(paymentTotals.cash)}</span>
                       </div>
-                      <div className="flex items-center justify-between pl-4">
-                        <span className="text-text-secondary">Gcash</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-secondary">Total Gcash</span>
                         <span className="text-text-primary">{peso(paymentTotals.gcash)}</span>
                       </div>
                     </>
                   )}
                   {expenses.length > 0 && (
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-text-secondary">Expenses</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-text-secondary">Total Expenses</span>
                       <span className="font-medium text-text-primary">{peso(expensesTotal)}</span>
                     </div>
                   )}

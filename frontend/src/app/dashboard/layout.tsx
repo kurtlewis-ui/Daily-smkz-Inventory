@@ -113,7 +113,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   function handleLogout() {
     logout();
-    useDraftStore.getState().clear();
     router.replace('/login');
   }
 
