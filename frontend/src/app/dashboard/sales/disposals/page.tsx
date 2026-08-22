@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Trash2, Plus, X, Loader2 } from 'lucide-react';
+import { Search, Plus, X, Loader2 } from 'lucide-react';
 import { useDisposals, useCreateDisposal, useBranches, useProducts } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
 

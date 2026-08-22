@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Plus, Pencil, Trash2, X, Eye, EyeOff, RefreshCw, Loader2, Store } from 'lucide-react';
+import { Search, Plus, Pencil, Archive, X, Eye, EyeOff, RefreshCw, Loader2, Store, Trash2 } from 'lucide-react';
 import {
   useUsers,
   useRoles,
@@ -408,19 +408,17 @@ function OwnerUsersView() {
       <div className="flex items-center gap-4">
         {formData.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={formData.avatarUrl} alt="" className="w-16 h-16 rounded-full object-cover border border-card-border" />
+          <img src={formData.avatarUrl} alt="" className="w-24 h-24 rounded-full object-cover border border-card-border" />
         ) : (
-          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center text-white text-lg font-bold border border-card-border">
+          <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white text-2xl font-bold border border-card-border">
             {(formData.firstName[0] ?? '').toUpperCase()}{(formData.lastName[0] ?? '').toUpperCase()}
           </div>
         )}
-        <div className="text-sm">
-          <label className="inline-block cursor-pointer bg-btn-primary text-btn-primary-text px-3 py-1.5 rounded-lg hover:opacity-90">
-            Upload Photo
+        <div className="flex-1 space-y-2">
+          <div className="border border-input-border rounded-lg px-3 py-2 flex items-center gap-2 bg-input-bg">
             <input
               type="file"
               accept="image/*"
-              className="hidden"
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
@@ -431,10 +429,13 @@ function OwnerUsersView() {
                   setFormError(err instanceof Error ? err.message : 'Could not process image.');
                 }
               }}
+              className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer"
             />
-          </label>
+          </div>
           {formData.avatarUrl && (
-            <button type="button" onClick={() => setFormData((f) => ({ ...f, avatarUrl: '' }))} className="ml-2 text-accent-red hover:underline text-xs">Remove</button>
+            <button type="button" onClick={() => setFormData((f) => ({ ...f, avatarUrl: '' }))} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
+              <Trash2 size={12} /> Remove
+            </button>
           )}
         </div>
       </div>
@@ -608,7 +609,7 @@ function OwnerUsersView() {
                         <Pencil size={15} />
                       </button>
                       <button onClick={() => handleArchive(user)} className="p-1.5 text-accent-red hover:bg-accent-red/10 rounded-lg transition" title="Archive">
-                        <Trash2 size={15} />
+                        <Archive size={15} />
                       </button>
                     </div>
                   </td>

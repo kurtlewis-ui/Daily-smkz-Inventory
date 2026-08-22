@@ -130,9 +130,9 @@ export default function AccountSettings() {
               <div className="relative">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt="avatar" className="w-20 h-20 rounded-full object-cover border border-card-border" />
+                  <img src={avatarUrl} alt="avatar" className="w-24 h-24 rounded-full object-cover border border-card-border" />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center text-white text-xl font-bold border border-card-border">{initials}</div>
+                  <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white text-2xl font-bold border border-card-border">{initials}</div>
                 )}
                 <button
                   type="button"
@@ -148,7 +148,7 @@ export default function AccountSettings() {
                 <p className="font-medium text-text-primary">{me?.role?.name}</p>
                 <p>Click the camera to change your photo.</p>
                 {avatarUrl && (
-                  <button onClick={() => setAvatarUrl(null)} className="text-accent-red hover:underline text-xs mt-1">Remove photo</button>
+                  <button onClick={() => setAvatarUrl(null)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors mt-1">Remove photo</button>
                 )}
               </div>
             </div>
