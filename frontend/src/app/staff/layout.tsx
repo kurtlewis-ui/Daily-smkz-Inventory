@@ -502,7 +502,7 @@ function DraftBag() {
       return;
     }
     if (!expenseNote.trim()) {
-      setError('Add a note for the expense (e.g. "Water bill").');
+      setError('Add a note for the expense.');
       return;
     }
     setError(null);
@@ -723,7 +723,7 @@ function DraftBag() {
                         type="text"
                         value={expenseNote}
                         onChange={(e) => setExpenseNote(e.target.value)}
-                        placeholder="Water bill"
+                        placeholder="Enter note"
                         className="w-full rounded border border-input-border bg-input-bg px-2 py-1.5 text-sm"
                       />
                     </div>
