@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2, X, Loader2 } from 'lucide-react';
+import { Plus, Search, Pencil, Archive, X, Loader2 } from 'lucide-react';
 import {
   useBranches,
   useCreateBranch,
@@ -140,7 +140,7 @@ export default function ShopsPage() {
                         className="icon-btn text-accent-red hover:bg-accent-red/10"
                         title="Archive"
                       >
-                        <Trash2 size={16} />
+                        <Archive size={16} />
                       </button>
                     </div>
                   </td>

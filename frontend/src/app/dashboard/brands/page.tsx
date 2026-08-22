@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Search, Pencil, Trash2, X, Loader2 } from 'lucide-react';
+import { Plus, Search, Pencil, Archive, X, Loader2 } from 'lucide-react';
 import {
   useBrands,
   useCreateBrand,
@@ -166,7 +166,7 @@ export default function BrandsPage() {
                         onClick={() => { setArchivingBrand(brand); setFormError(null); setShowArchiveModal(true); }}
                         className="icon-btn text-accent-red hover:bg-accent-red/10"
                       >
-                        <Trash2 size={16} />
+                        <Archive size={16} />
                       </button>
                     </div>
                   </td>
@@ -256,8 +256,8 @@ function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | n
   return (
     <div>
       <label className="block text-sm font-medium text-text-primary mb-1">Cover Image</label>
-      <div className="flex items-center gap-3">
-        <div className="w-16 h-16 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-4">
+        <div className="w-24 h-24 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0 border border-card-border">
           {coverImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={coverImage} alt="Brand cover preview" className="w-full h-full object-cover" />
@@ -265,10 +265,14 @@ function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | n
             <span className="text-[10px] text-text-muted">No Image</span>
           )}
         </div>
-        <div className="flex-1 space-y-1">
-          <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-btn-primary file:text-btn-primary-text file:text-xs" />
+        <div className="flex-1 space-y-2">
+          <div className="border border-input-border rounded-lg px-3 py-2 flex items-center gap-2 bg-input-bg">
+            <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer" />
+          </div>
           {coverImage && (
-            <button type="button" onClick={() => { setCoverImage(null); setImageError(null); }} className="text-xs text-accent-red hover:underline">Remove image</button>
+            <button type="button" onClick={() => { setCoverImage(null); setImageError(null); }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
+              <X size={12} /> Remove
+            </button>
           )}
           {imageError && <p className="text-xs text-accent-red">{imageError}</p>}
         </div>

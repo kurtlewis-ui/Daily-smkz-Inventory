@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, Trash2, X, Loader2, Upload, Download, RefreshCw, FileDown, ClipboardList } from 'lucide-react';
+import { Plus, Pencil, Archive, X, Loader2, Upload, Download, RefreshCw, FileDown, ClipboardList, Trash2 } from 'lucide-react';
 import {
   useProducts,
   useBrands,
@@ -260,7 +260,7 @@ export default function ProductsPage() {
                     <div className="flex items-center justify-end gap-2">
                       {shopFilter && <button onClick={() => setHistoryProduct(product)} className="icon-btn text-text-secondary hover:bg-white/10" title="Stock History"><ClipboardList size={16} /></button>}
                       <button onClick={() => openEditModal(product)} className="icon-btn text-accent-blue hover:bg-accent-blue/10"><Pencil size={16} /></button>
-                      <button onClick={() => { setArchivingProduct(product); setFormError(null); setShowArchiveModal(true); }} className="icon-btn text-accent-red hover:bg-accent-red/10"><Trash2 size={16} /></button>
+                      <button onClick={() => { setArchivingProduct(product); setFormError(null); setShowArchiveModal(true); }} className="icon-btn text-accent-red hover:bg-accent-red/10"><Archive size={16} /></button>
                     </div>
                   </td>
                 </tr>
@@ -513,6 +513,9 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">Quantity</label>
+          {branches.length === 1 ? (
+            <input type="number" min="0" placeholder="Quantity" value={formQuantities[branches[0].id] ?? '0'} onChange={(e) => setFormQuantities({ ...formQuantities, [branches[0].id]: e.target.value })} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+          ) : (
           <div className="divide-y divide-card-border border border-card-border rounded-lg overflow-hidden">
             {branches.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No shops yet. Create a shop first.</p>}
             {branches.map((b) => (
@@ -522,6 +525,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
               </div>
             ))}
           </div>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Brand</label>
@@ -546,7 +550,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">Product Image</label>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0 border border-card-border">
+            <div className="w-24 h-24 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0 border border-card-border">
               {formImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={formImage} alt="Product preview" className="w-full h-full object-cover" />
