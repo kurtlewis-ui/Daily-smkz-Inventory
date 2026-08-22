@@ -80,7 +80,7 @@ export default function ProductsPage() {
   }
 
   function openAddModal() {
-    setFormName(''); setFormBrand(brands[0]?.id ?? ''); setFormPrice(''); setFormAlert('0');
+    setFormName(''); setFormBrand(brands[0]?.id ?? ''); setFormPrice('0'); setFormCostPrice('0'); setFormAlert('0');
     setFormImage(null);
     const q: Record<string, string> = {}; branchesForForm.forEach((b) => (q[b.id] = ''));
     setFormQuantities(q); setFormError(null); setShowAddModal(true);
@@ -379,18 +379,11 @@ interface RestockRow { productId: string; branchId: string; quantity: string; }
 
 function RestockModal({ products, branches, onClose }: { products: Product[]; branches: { id: string; name: string }[]; onClose: () => void }) {
   const restock = useRestock();
-  const [mode, setMode] = useState<'manual' | 'csv'>('manual');
-  const [rows, setRows] = useState<RestockRow[]>([{ productId: products[0]?.id ?? '', branchId: branches[0]?.id ?? '', quantity: '' }]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RestockResult | null>(null);
 
-  // CSV mode state
   const [csvItems, setCsvItems] = useState<RestockItem[]>([]);
   const [fileName, setFileName] = useState('');
-
-  const setRow = (i: number, patch: Partial<RestockRow>) => setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
-  const addRow = () => setRows((rs) => [...rs, { productId: products[0]?.id ?? '', branchId: branches[0]?.id ?? '', quantity: '' }]);
-  const removeRow = (i: number) => setRows((rs) => rs.filter((_, idx) => idx !== i));
 
   const branchNameSet = new Set(branches.map((b) => b.name.toLowerCase()));
   const branchNames = branches.map((b) => b.name);
@@ -455,16 +448,8 @@ function RestockModal({ products, branches, onClose }: { products: Product[]; br
   }
 
   async function submit() {
-    let items: RestockItem[];
-    if (mode === 'csv') {
-      items = csvItems;
-      if (items.length === 0) { setError('No stock to add. Edit the shop columns in the exported file (numbers greater than 0) and re-upload.'); return; }
-    } else {
-      items = rows
-        .filter((r) => r.productId && r.branchId && Number(r.quantity) > 0)
-        .map((r) => ({ productId: r.productId, branchId: r.branchId, quantity: Number(r.quantity) }));
-      if (items.length === 0) { setError('Add at least one row with a quantity greater than zero.'); return; }
-    }
+    const items = csvItems;
+    if (items.length === 0) { setError('No stock to add. Edit the shop columns in the exported file (numbers greater than 0) and re-upload.'); return; }
     setError(null);
     try { setResult(await restock.mutateAsync(items)); }
     catch (e) { setError(getApiErrorMessage(e)); }
@@ -473,46 +458,14 @@ function RestockModal({ products, branches, onClose }: { products: Product[]; br
   return (
     <Modal title="Restock Products" onClose={onClose}>
       <div className="space-y-4">
-        <div className="flex gap-1 p-1 bg-white/5 rounded-lg w-fit">
-          <button onClick={() => { setMode('manual'); setError(null); setResult(null); }} className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${mode === 'manual' ? 'bg-btn-primary text-btn-primary-text' : 'text-text-secondary hover:text-text-primary'}`}>Manual</button>
-          <button onClick={() => { setMode('csv'); setError(null); setResult(null); }} className={`px-3 py-1.5 rounded-md text-sm font-medium transition ${mode === 'csv' ? 'bg-btn-primary text-btn-primary-text' : 'text-text-secondary hover:text-text-primary'}`}>Upload exported CSV</button>
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Upload Excel File</label>
+          <input type="file" accept=".xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
         </div>
-
-        {mode === 'manual' ? (
-          <>
-            <p className="text-xs text-text-muted">Add stock to products at a shop. The quantity is <strong>added</strong> to the current stock.</p>
-            {products.length === 0 || branches.length === 0 ? (
-              <p className="text-sm text-accent-orange">You need at least one product and one shop before restocking.</p>
-            ) : (
-              <div className="space-y-2">
-                {rows.map((row, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <select value={row.productId} onChange={(e) => setRow(i, { productId: e.target.value })} className="flex-1 border border-input-border rounded px-2 py-1.5 text-sm bg-input-bg">
-                      {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                    <select value={row.branchId} onChange={(e) => setRow(i, { branchId: e.target.value })} className="w-36 border border-input-border rounded px-2 py-1.5 text-sm bg-input-bg">
-                      {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                    </select>
-                    <input type="number" min="1" placeholder="+Qty" value={row.quantity} onChange={(e) => setRow(i, { quantity: e.target.value })} className="w-20 border border-input-border rounded px-2 py-1.5 text-sm bg-input-bg" />
-                    <button onClick={() => removeRow(i)} className="p-1.5 text-accent-red hover:bg-red-500/10 rounded" title="Remove"><Trash2 size={15} /></button>
-                  </div>
-                ))}
-                <button onClick={addRow} className="flex items-center gap-1 text-sm text-accent-blue hover:underline"><Plus size={14} /> Add row</button>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Upload Products File</label>
-              <input type="file" accept=".csv,text/csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
-            </div>
-            {fileName && (
-              <p className="text-sm text-text-secondary">
-                Found <strong>{csvItems.length}</strong> stock addition(s) across {new Set(csvItems.map((c) => c.productName)).size} product(s) from {fileName}.
-              </p>
-            )}
-          </>
+        {fileName && (
+          <p className="text-sm text-text-secondary">
+            Found <strong>{csvItems.length}</strong> stock addition(s) across {new Set(csvItems.map((c) => c.productName)).size} product(s) from {fileName}.
+          </p>
         )}
 
         {error && <p className="text-sm text-accent-red">{error}</p>}
@@ -524,7 +477,7 @@ function RestockModal({ products, branches, onClose }: { products: Product[]; br
         )}
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">{result ? 'Done' : 'Close'}</button>
-          {!result && <button onClick={submit} disabled={restock.isPending || (mode === 'csv' && csvItems.length === 0)} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">{restock.isPending ? 'Restocking...' : 'Restock Products'}</button>}
+          {!result && <button onClick={submit} disabled={restock.isPending || csvItems.length === 0} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">{restock.isPending ? 'Restocking...' : 'Restock Products'}</button>}
         </div>
       </div>
     </Modal>
@@ -553,7 +506,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
 
   return (
     <Modal title={title} onClose={onClose}>
-      <div className="space-y-5 max-h-[75vh] overflow-y-auto pr-1">
+      <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-8">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Name</label>
           <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
@@ -563,7 +516,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
           <div className="divide-y divide-card-border border border-card-border rounded-lg overflow-hidden">
             {branches.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No shops yet. Create a shop first.</p>}
             {branches.map((b) => (
-              <div key={b.id} className="flex items-center gap-3 px-3 py-2.5">
+              <div key={b.id} className="flex items-center gap-3 px-3 py-3">
                 <span className="text-xs font-semibold text-text-primary bg-white/10 border-l-[3px] border-accent-blue px-2.5 py-1.5 rounded-r min-w-[140px] uppercase">{b.name}</span>
                 <input type="number" min="0" placeholder={`Quantity for ${b.name}`} value={formQuantities[b.id] ?? '0'} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="flex-1 border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
               </div>
@@ -584,7 +537,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Selling Price (₱)</label>
-          <input type="number" step="0.01" min="0" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+          <input type="number" step="0.01" min="0" value={formPrice || '0'} onChange={(e) => setFormPrice(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Quantity Alert</label>
@@ -602,14 +555,16 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
               )}
             </div>
             {isAdmin ? (
-              <div className="flex-1">
+              <div className="flex-1 space-y-2">
                 <div className="border border-input-border rounded-lg px-3 py-2 flex items-center gap-2 bg-input-bg">
                   <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer" />
                 </div>
                 {formImage && (
-                  <button type="button" onClick={() => { setFormImage(null); setImageError(null); }} className="text-xs text-accent-red hover:underline mt-1">Remove image</button>
+                  <button type="button" onClick={() => { setFormImage(null); setImageError(null); }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
+                    <Trash2 size={12} /> Remove
+                  </button>
                 )}
-                {imageError && <p className="text-xs text-accent-red mt-1">{imageError}</p>}
+                {imageError && <p className="text-xs text-accent-red">{imageError}</p>}
               </div>
             ) : (
               <p className="flex-1 text-xs text-text-muted">Only an admin can change the product image.</p>
@@ -629,8 +584,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-card-bg border border-card-border rounded-xl shadow-xl w-full max-w-2xl mx-4 p-6">
-        <div className="flex items-center justify-between mb-5">
+      <div className="relative bg-card-bg border border-card-border rounded-xl shadow-xl w-full max-w-2xl mx-4 p-8">
+        <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-text-primary">{title}</h3>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
         </div>
