@@ -54,7 +54,7 @@ export default function StaffHomePage() {
             <button
               key={brand.id}
               onClick={() => router.push(`/staff/brands/${brand.id}`)}
-              className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-input-focus hover:shadow-lg"
+              className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-input-focus hover:shadow-lg hover:shadow-black/10"
             >
               <div className="flex aspect-square items-center justify-center bg-white/5">
                 {brand.coverImage ? (
@@ -64,7 +64,7 @@ export default function StaffHomePage() {
                   <span className="text-xs text-text-muted">No Image Available</span>
                 )}
               </div>
-              <div className="px-3 py-3">
+              <div className="px-3 py-3 bg-surface-muted">
                 <p className="truncate text-sm font-semibold text-text-primary">{brand.name}</p>
                 <p className="text-xs text-text-secondary">{brand.productCount} product{brand.productCount === 1 ? '' : 's'}</p>
               </div>
