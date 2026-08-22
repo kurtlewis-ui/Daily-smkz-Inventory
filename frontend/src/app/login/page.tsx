@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api, getApiErrorMessage, warmUpBackend } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import type { ApiEnvelope, AuthUser } from '@/lib/types';
-import { Eye, EyeOff, Lock, Mail, Package } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
 type LoginData = {
   accessToken: string;
@@ -59,9 +59,8 @@ export default function LoginPage() {
       <div className="relative flex w-full max-w-[420px] flex-col items-center">
         {/* Circle logo with inventory icon + shimmer hover */}
         <div className="mb-10 logo-shimmer rounded-full shadow-2xl shadow-black/50 ring-1 ring-white/10">
-          <div className="flex h-[140px] w-[140px] sm:h-[180px] sm:w-[180px] items-center justify-center rounded-full bg-white">
-            <Package size={64} className="text-black sm:hidden" />
-            <Package size={80} className="text-black hidden sm:block" />
+          <div className="flex h-[140px] w-[140px] sm:h-[180px] sm:w-[180px] items-center justify-center rounded-full overflow-hidden bg-white">
+            <img src="/logo.png" alt="Daily Smokz" className="h-full w-full object-cover" />
           </div>
         </div>
 
@@ -152,7 +151,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="mt-6 text-[11px] text-[#666666] tracking-wider uppercase">
-          Inventory System
+          Daily Smokz
         </p>
       </div>
     </main>

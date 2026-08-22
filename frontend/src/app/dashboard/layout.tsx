@@ -166,12 +166,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Logo — circle icon + text */}
+        {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-nav-border">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-            <Package size={16} className="text-black" />
+          <div className="logo-shimmer rounded-full">
+            <img src="/logo.png" alt="Daily Smokz" className="h-8 w-8 rounded-full object-cover" />
           </div>
-          <p className="text-sm font-bold text-white">Inventory System</p>
+          <p className="text-sm font-bold text-white">Daily Smokz</p>
         </div>
 
         {/* Navigation */}
@@ -300,10 +300,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-              <Package size={14} className="text-black" />
-            </div>
-            <span className="text-sm font-bold text-white">Inventory System</span>
+            <img src="/logo.png" alt="Daily Smokz" className="h-8 w-8 rounded-full object-cover" />
+            <span className="text-sm font-bold text-white">Daily Smokz</span>
           </div>
           <div className="w-9" />
         </header>

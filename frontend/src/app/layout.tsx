@@ -3,7 +3,7 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Vape Shop Management',
+  title: 'Daily Smokz',
   description: 'Inventory and sales management dashboard',
 };
 

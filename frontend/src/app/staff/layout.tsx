@@ -86,12 +86,12 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen" style={{ background: '#0f0f0f' }}>
       {/* Sidebar */}
       <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[220px] flex-col bg-nav-bg border-r border-nav-border">
-        {/* Logo — circle icon + text */}
+        {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-nav-border">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-            <Package size={16} className="text-black" />
+          <div className="logo-shimmer rounded-full">
+            <img src="/logo.png" alt="Daily Smokz" className="h-8 w-8 rounded-full object-cover" />
           </div>
-          <p className="text-sm font-bold text-white">Inventory System</p>
+          <p className="text-sm font-bold text-white">Daily Smokz</p>
         </div>
 
         {/* Navigation — white active state */}
@@ -170,10 +170,8 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
       {/* Mobile header */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-[#141414]/90 backdrop-blur-md border-b border-[#2a2a2a]">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-            <Package size={14} className="text-black" />
-          </div>
-          <span className="text-sm font-bold text-white">Inventory System</span>
+          <img src="/logo.png" alt="Daily Smokz" className="h-8 w-8 rounded-full object-cover" />
+          <span className="text-sm font-bold text-white">Daily Smokz</span>
         </div>
         <div className="flex items-center gap-2">
           {navItems.map((item) => {
