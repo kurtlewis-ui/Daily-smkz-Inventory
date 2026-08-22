@@ -26,6 +26,7 @@ import {
   Edit2,
   Moon,
   Sun,
+  Menu,
 } from 'lucide-react';
 
 function peso(n: number) {
@@ -45,8 +46,14 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
   const { contentTheme, toggleContentTheme } = useThemeStore();
   const [mounted, setMounted] = useState(false);
   const [themeAnimKey, setThemeAnimKey] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   // Auth + role guard: must be logged in and a Staff account.
   useEffect(() => {
@@ -84,8 +91,18 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen" style={{ background: '#0f0f0f' }}>
-      {/* Sidebar */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[220px] flex-col bg-nav-bg border-r border-nav-border">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — desktop always visible, mobile slides in */}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col bg-nav-bg border-r border-nav-border transition-transform duration-200 md:translate-x-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-nav-border">
           <div className="logo-shimmer rounded-full">
@@ -168,35 +185,19 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Mobile header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-[#141414]/90 backdrop-blur-md border-b border-[#2a2a2a]">
+      <header className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-[#141414]/95 backdrop-blur-md border-b border-[#2a2a2a]">
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-2 rounded-lg text-[#999999] hover:text-white hover:bg-white/5 transition-colors"
+          aria-label="Toggle navigation"
+        >
+          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
         <div className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Daily Smokz" className="h-10 w-10 rounded-full object-cover" />
-          <span className="text-base font-bold text-white">Daily Smokz</span>
+          <img src="/logo.png" alt="Daily Smokz" className="h-8 w-8 rounded-full object-cover" />
+          <span className="text-sm font-bold text-white">Daily Smokz</span>
         </div>
-        <div className="flex items-center gap-2">
-          {navItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`p-2 rounded-lg transition-colors ${
-                  active ? 'text-white bg-white/10' : 'text-[#666666] hover:text-white'
-                }`}
-                title={item.label}
-              >
-                {item.icon}
-              </Link>
-            );
-          })}
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-lg text-[#666666] hover:text-[#ef4444] transition-colors"
-            title="Logout"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
+        <div className="w-9" />
       </header>
 
       {/* Main content — applies theme */}

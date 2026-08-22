@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
-import { useBrands } from '@/lib/hooks';
+import { useBrands, useProducts } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { getApiErrorMessage } from '@/lib/api';
 import { GridSkeleton } from '@/components/Skeleton';
+
+function peso(n: number) {
+  return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default function StaffHomePage() {
   const router = useRouter();
@@ -15,6 +19,18 @@ export default function StaffHomePage() {
   const branchName = useAuthStore((s) => s.user?.branch?.name);
   const { data, isLoading, isError, error } = useBrands(debouncedSearch);
   const brands = data?.data ?? [];
+
+  // Also fetch products when there's a search query (for cross-brand product search)
+  const { data: productData, isLoading: productsLoading } = useProducts({ search: debouncedSearch });
+  const allProducts = productData?.data ?? [];
+
+  // Only show products section if the search matches product names but not brand names
+  const matchingProducts = useMemo(() => {
+    if (!debouncedSearch.trim()) return [];
+    return allProducts.filter((p) =>
+      p.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+  }, [allProducts, debouncedSearch]);
 
   // Debounce search input by 300ms
   useEffect(() => {
@@ -27,17 +43,17 @@ export default function StaffHomePage() {
       {branchName && (
         <p className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-1">{branchName}</p>
       )}
-      <h1 className="text-2xl font-bold text-text-primary mb-4">Brands</h1>
+      <h1 className="text-2xl font-bold text-text-primary mb-5">Brands</h1>
 
       <div className="mb-6 flex max-w-2xl items-center gap-2">
         <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
-            placeholder="Search brands..."
+            placeholder="Search brands or products..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-input-border bg-input-bg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus"
+            className="w-full rounded-lg border border-input-border bg-input-bg py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus"
           />
         </div>
       </div>
@@ -46,31 +62,69 @@ export default function StaffHomePage() {
         <GridSkeleton count={10} />
       ) : isError ? (
         <div className="py-16 text-center text-accent-red">{getApiErrorMessage(error)}</div>
-      ) : brands.length === 0 ? (
-        <div className="py-16 text-center text-text-muted">No brands found.</div>
       ) : (
-        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {brands.map((brand) => (
-            <button
-              key={brand.id}
-              onClick={() => router.push(`/staff/brands/${brand.id}`)}
-              className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-input-focus hover:shadow-lg hover:shadow-black/10"
-            >
-              <div className="flex aspect-square items-center justify-center bg-white/5">
-                {brand.coverImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={brand.coverImage} alt={brand.name} loading="lazy" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-xs text-text-muted">No Image Available</span>
-                )}
+        <>
+          {/* Brand Grid */}
+          {brands.length > 0 && (
+            <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {brands.map((brand) => (
+                <button
+                  key={brand.id}
+                  onClick={() => router.push(`/staff/brands/${brand.id}`)}
+                  className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-input-focus hover:shadow-lg hover:shadow-black/10"
+                >
+                  <div className="flex aspect-square items-center justify-center bg-white/5">
+                    {brand.coverImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={brand.coverImage} alt={brand.name} loading="lazy" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xs text-text-muted">No Image Available</span>
+                    )}
+                  </div>
+                  <div className="px-3 py-3 bg-surface-muted">
+                    <p className="truncate text-sm font-semibold text-text-primary">{brand.name}</p>
+                    <p className="text-xs text-text-secondary">{brand.productCount} product{brand.productCount === 1 ? '' : 's'}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Product Results (when searching) */}
+          {debouncedSearch.trim() && matchingProducts.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-lg font-bold text-text-primary mb-4">Products</h2>
+              <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {matchingProducts.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => p.brand?.id ? router.push(`/staff/brands/${p.brand.id}`) : undefined}
+                    className="flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-input-focus hover:shadow-lg hover:shadow-black/10"
+                  >
+                    <div className="flex aspect-square items-center justify-center bg-white/5">
+                      {p.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-xs text-text-muted">No Image</span>
+                      )}
+                    </div>
+                    <div className="px-3 py-3 bg-surface-muted">
+                      <p className="truncate text-sm font-semibold text-text-primary" title={p.name}>{p.name}</p>
+                      <p className="text-sm font-bold text-text-primary">{peso(p.sellingPrice)}</p>
+                      <p className="text-xs text-text-secondary">{p.brand?.name ?? ''}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
-              <div className="px-3 py-3 bg-surface-muted">
-                <p className="truncate text-sm font-semibold text-text-primary">{brand.name}</p>
-                <p className="text-xs text-text-secondary">{brand.productCount} product{brand.productCount === 1 ? '' : 's'}</p>
-              </div>
-            </button>
-          ))}
-        </div>
+            </div>
+          )}
+
+          {/* No results */}
+          {brands.length === 0 && matchingProducts.length === 0 && (
+            <div className="py-16 text-center text-text-muted">No brands or products found.</div>
+          )}
+        </>
       )}
     </div>
   );
