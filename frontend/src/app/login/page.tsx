@@ -59,7 +59,7 @@ export default function LoginPage() {
       <div className="relative flex w-full max-w-[420px] flex-col items-center">
         {/* Circle logo with inventory icon + shimmer hover */}
         <div className="mb-10 logo-shimmer rounded-full shadow-2xl shadow-black/50 ring-1 ring-white/10">
-          <div className="flex h-[140px] w-[140px] sm:h-[180px] sm:w-[180px] items-center justify-center rounded-full overflow-hidden bg-white">
+          <div className="flex h-[180px] w-[180px] sm:h-[240px] sm:w-[240px] items-center justify-center rounded-full overflow-hidden bg-white">
             <img src="/logo.png" alt="Daily Smokz" className="h-full w-full object-cover" />
           </div>
         </div>

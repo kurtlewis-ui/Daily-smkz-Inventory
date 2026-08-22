@@ -5,6 +5,10 @@ import { Providers } from './providers';
 export const metadata: Metadata = {
   title: 'Daily Smokz',
   description: 'Inventory and sales management dashboard',
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
