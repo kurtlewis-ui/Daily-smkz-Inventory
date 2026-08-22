@@ -503,10 +503,10 @@ function RestockModal({ products, branches, onClose }: { products: Product[]; br
           </>
         ) : (
           <>
-            <p className="text-xs text-text-muted">
-              <strong>Export</strong> the products first, edit the shop columns so each number is the stock you want to <strong>add</strong>, then upload the edited file here. The numbers in the shop columns are <strong>added</strong> to current stock; columns/rows with 0 (or blank) are ignored.
-            </p>
-            <input type="file" accept=".csv,text/csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Upload Products File</label>
+              <input type="file" accept=".csv,text/csv,.xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
+            </div>
             {fileName && (
               <p className="text-sm text-text-secondary">
                 Found <strong>{csvItems.length}</strong> stock addition(s) across {new Set(csvItems.map((c) => c.productName)).size} product(s) from {fileName}.
@@ -523,8 +523,8 @@ function RestockModal({ products, branches, onClose }: { products: Product[]; br
           </div>
         )}
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">{result ? 'Done' : 'Cancel'}</button>
-          {!result && <button onClick={submit} disabled={restock.isPending || (mode === 'csv' && csvItems.length === 0)} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">{restock.isPending ? 'Restocking...' : 'Restock'}</button>}
+          <button onClick={onClose} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">{result ? 'Done' : 'Close'}</button>
+          {!result && <button onClick={submit} disabled={restock.isPending || (mode === 'csv' && csvItems.length === 0)} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">{restock.isPending ? 'Restocking...' : 'Restock Products'}</button>}
         </div>
       </div>
     </Modal>
@@ -559,37 +559,13 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
           <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">Image</label>
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-16 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0">
-              {formImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={formImage} alt="Product preview" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[10px] text-text-muted">No Image</span>
-              )}
-            </div>
-            {isAdmin ? (
-              <div className="flex-1 space-y-1">
-                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-btn-primary file:text-btn-primary-text file:text-xs" />
-                {formImage && (
-                  <button type="button" onClick={() => { setFormImage(null); setImageError(null); }} className="text-xs text-accent-red hover:underline">Remove image</button>
-                )}
-                {imageError && <p className="text-xs text-accent-red">{imageError}</p>}
-              </div>
-            ) : (
-              <p className="flex-1 text-xs text-text-muted">Only an admin can change the product image.</p>
-            )}
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">Quantity per shop</label>
+          <label className="block text-sm font-medium text-text-primary mb-1">Quantity</label>
           <div className="space-y-2">
             {branches.length === 0 && <p className="text-xs text-text-muted">No shops yet. Create a shop first.</p>}
             {branches.map((b) => (
               <div key={b.id} className="flex items-center gap-2">
                 <span className="text-xs font-medium text-accent-primary bg-white/10 px-2 py-1.5 rounded min-w-[140px]">{b.name}</span>
-                <input type="number" min="0" placeholder={`Quantity for ${b.name}`} value={formQuantities[b.id] ?? ''} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="flex-1 border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+                <input type="number" min="0" value={formQuantities[b.id] ?? '0'} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="flex-1 border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
               </div>
             ))}
           </div>
@@ -615,6 +591,30 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Quantity Alert</label>
           <input type="number" min="0" value={formAlert} onChange={(e) => setFormAlert(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-text-primary mb-1">Product Image</label>
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0">
+              {formImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={formImage} alt="Product preview" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[10px] text-text-muted">No Image</span>
+              )}
+            </div>
+            {isAdmin ? (
+              <div className="flex-1 space-y-1">
+                <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-btn-primary file:text-btn-primary-text file:text-xs" />
+                {formImage && (
+                  <button type="button" onClick={() => { setFormImage(null); setImageError(null); }} className="text-xs text-accent-red hover:underline">Remove image</button>
+                )}
+                {imageError && <p className="text-xs text-accent-red">{imageError}</p>}
+              </div>
+            ) : (
+              <p className="flex-1 text-xs text-text-muted">Only an admin can change the product image.</p>
+            )}
+          </div>
         </div>
         {error && <p className="text-sm text-accent-red">{error}</p>}
         <div className="flex justify-end">
