@@ -1,0 +1,230 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-page-bg text-text-primary antialiased;
+  background-image:
+    radial-gradient(900px circle at 50% -15%, rgba(255, 255, 255, 0.02), transparent 45%);
+  background-attachment: fixed;
+}
+
+/* ----------------------------------------------------------------------
+   Content area theme — CSS variable overrides.
+   Default (dark): white buttons, white glows, monochrome charts
+   Light: black buttons, dark glows, colorful charts
+   ---------------------------------------------------------------------- */
+.content-light {
+  --content-page-bg: #eef0f2;
+  --content-card-bg: #f8f9fa;
+  --content-card-border: #dfe1e5;
+  --content-table-header: #e8eaed;
+  --content-table-header-text: #3c4043;
+  --content-text-primary: #202124;
+  --content-text-secondary: #5f6368;
+  --content-text-muted: #80868b;
+  --content-text-link: #3c4043;
+  --content-surface-muted: #e8eaed;
+  --content-input-bg: #f1f3f4;
+  --content-input-border: #dadce0;
+  --content-btn-primary: #000000;
+  --content-btn-primary-text: #ffffff;
+  --content-input-focus: #5f6368;
+  --content-row-alt: #f1f3f4;
+  --content-row-hover: rgba(0, 0, 0, 0.03);
+  --content-secondary-btn-bg: rgba(0, 0, 0, 0.04);
+  color-scheme: light;
+}
+
+/* Force all form elements in light mode to use dark text */
+.content-light input,
+.content-light select,
+.content-light textarea,
+.content-light option {
+  color: #202124 !important;
+}
+
+.content-light input::placeholder,
+.content-light textarea::placeholder {
+  color: #80868b !important;
+}
+
+.content-light select option {
+  background-color: #f8f9fa;
+  color: #202124;
+}
+
+/* Light mode cards get subtle shadow for depth */
+.content-light .bg-card-bg {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+/* ----------------------------------------------------------------------
+   Alternating table rows + hover (both themes)
+   ---------------------------------------------------------------------- */
+table tbody tr:nth-child(even) {
+  background-color: var(--content-row-alt, rgba(255, 255, 255, 0.02));
+}
+
+table tbody tr:hover {
+  background-color: var(--content-row-hover, rgba(255, 255, 255, 0.04)) !important;
+}
+
+/* Secondary/cancel buttons — visible in both themes */
+.btn-secondary {
+  background-color: var(--content-secondary-btn-bg, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--content-input-border, #333333);
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover {
+  opacity: 0.8;
+}
+
+/* Smooth transition when switching themes */
+.content-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ----------------------------------------------------------------------
+   Gradient text accent — silver/chrome shimmer
+   ---------------------------------------------------------------------- */
+.text-gradient {
+  background-image: linear-gradient(120deg, #e0e0e0 0%, #888888 50%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Native dropdown (select) option list */
+select option,
+select optgroup {
+  background-color: var(--content-input-bg, #1a1a1a);
+  color: var(--content-text-primary, #f0f0f0);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--content-page-bg, #0f0f0f);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--content-input-border, #333333);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--content-text-muted, #4a4a4a);
+}
+
+/* ----------------------------------------------------------------------
+   Logo shimmer effect — white sweep from left to right on hover.
+   ---------------------------------------------------------------------- */
+.logo-shimmer {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.logo-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  transition: none;
+}
+
+.logo-shimmer:hover::after {
+  animation: shimmer 0.8s ease-in-out;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ----------------------------------------------------------------------
+   Theme toggle icon animation — smooth rotate + scale
+   ---------------------------------------------------------------------- */
+.theme-icon-enter {
+  animation: theme-icon-in 0.4s ease-out;
+}
+
+@keyframes theme-icon-in {
+  0% { transform: rotate(-90deg) scale(0.5); opacity: 0; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+/* ----------------------------------------------------------------------
+   Card hover lift — uses theme-aware glow
+   ---------------------------------------------------------------------- */
+.card-hover {
+  @apply transition-all duration-200;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.3);
+}
+
+/* ----------------------------------------------------------------------
+   Accessibility — focus rings (theme-aware: white in dark, dark in light)
+   ---------------------------------------------------------------------- */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  [role='button']:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-offset-2 ring-offset-page-bg;
+    --tw-ring-color: color-mix(in srgb, var(--content-input-focus, #ffffff) 30%, transparent);
+  }
+}
+
+/* ----------------------------------------------------------------------
+   Reusable UI component classes
+   ---------------------------------------------------------------------- */
+@layer components {
+  /* Primary action button — white in dark mode, black in light mode */
+  .btn-grad {
+    @apply bg-btn-primary text-btn-primary-text shadow-sm transition-all hover:opacity-90 active:scale-[0.97] font-medium;
+  }
+
+  .icon-btn {
+    @apply inline-flex items-center justify-center rounded-lg p-1.5 transition-colors;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .badge-neutral {
+    @apply bg-surface-muted text-text-secondary border border-card-border;
+  }
+
+  .badge-dot {
+    @apply h-1.5 w-1.5 rounded-full;
+  }
+}

@@ -1,0 +1,56 @@
+# Render Blueprint for the Vape Shop backend (NestJS API).
+#
+# How to use:
+#   1. Push this file to your repo's main branch.
+#   2. On https://render.com, click "New +" -> "Blueprint" and pick this repo.
+#   3. Render reads this file and creates the web service below.
+#   4. Fill in the two values marked "sync: false" (DATABASE_URL and CORS_ORIGIN)
+#      when prompted. JWT secrets are generated automatically.
+#
+# Notes:
+#   - Free plan: the service sleeps after ~15 min of inactivity and cold-starts
+#     on the next request (first hit takes ~30-50s). Upgrade the plan for
+#     always-on with no cold starts.
+#   - "--include=dev" is required so the NestJS CLI and Prisma CLI (devDependencies)
+#     are available during the build.
+
+services:
+  - type: web
+    name: vape-shop-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
+    # Apply pending migrations (and ensure the Owner account exists) on every
+    # deploy/boot before the API starts. Both steps are idempotent; if seeding
+    # ever fails it won't block the service from starting.
+    startCommand: npx prisma migrate deploy && (npm run prisma:seed || echo "seed skipped") && npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Paste your Neon Postgres connection string here when prompted.
+      - key: DATABASE_URL
+        sync: false
+      # Set this to your deployed frontend URL, e.g. https://your-app.vercel.app
+      - key: CORS_ORIGIN
+        sync: false
+      # Strong secrets are generated automatically by Render.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 7d
+      - key: JWT_REFRESH_EXPIRATION
+        value: 7d
+      - key: BCRYPT_ROUNDS
+        value: "12"
+      - key: SESSION_TIMEOUT
+        value: "900"
+      - key: RATE_LIMIT_TTL
+        value: "60"
+      - key: RATE_LIMIT_MAX
+        value: "100"
+      - key: API_PREFIX
+        value: api/v1
