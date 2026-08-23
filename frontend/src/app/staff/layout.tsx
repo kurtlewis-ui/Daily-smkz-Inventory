@@ -412,24 +412,26 @@ function DraftBag() {
       readyToReconcile.current = true;
       return;
     }
-    if (Date.now() - lastLocalEditAt.current < 3000) return;
-    const serverSig = JSON.stringify([myDraftExists.items, myDraftExists.disposalItems, myDraftExists.expenses]);
-    const localSig = JSON.stringify([items, disposalItems, expenses]);
-    if (serverSig === localSig) return;
+    // Only skip if editing happened in the last 2 seconds (reduced from 3s)
+    if (Date.now() - lastLocalEditAt.current < 2000) return;
 
-    // MERGE: append server items that don't already exist locally
+    // Check if server has items we don't have locally — merge them in
+    const serverItems = (myDraftExists.items ?? []) as any[];
+    const serverDisposals = (myDraftExists.disposalItems ?? []) as any[];
+    const serverExpenses = (myDraftExists.expenses ?? []) as any[];
+
     const localProductIds = new Set(items.map((i) => i.productId));
-    const newServerItems = (myDraftExists.items ?? []).filter(
+    const newServerItems = serverItems.filter(
       (si: { productId: string }) => !localProductIds.has(si.productId),
     );
 
     const localDisposalIds = new Set(disposalItems.map((i) => i.productId));
-    const newServerDisposals = (myDraftExists.disposalItems ?? []).filter(
+    const newServerDisposals = serverDisposals.filter(
       (si: { productId: string }) => !localDisposalIds.has(si.productId),
     );
 
     const localExpSigs = new Set(expenses.map((e) => `${e.amount}|${e.note}`));
-    const newServerExpenses = (myDraftExists.expenses ?? []).filter(
+    const newServerExpenses = serverExpenses.filter(
       (se: { amount: number; note: string }) => !localExpSigs.has(`${se.amount}|${se.note}`),
     );
 
