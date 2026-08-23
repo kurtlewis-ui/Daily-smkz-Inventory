@@ -8,7 +8,6 @@ import {
   useDisposals,
   useDisposalsPending,
   useExpenses,
-  useBranchSummary,
 } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { getApiErrorMessage } from '@/lib/api';
@@ -38,18 +37,8 @@ function todayLocalDate() {
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
-// A submitted item is visible on the report the instant it's saved — tagged
-// Pending until an admin decides it. Approval just drops the tag (the row
-// stays put); decline removes it from here entirely (and copies it back
-// into the staff's draft cart instead — see the DraftBag).
-function PendingTag({ status }: { status: string }) {
-  if (status !== 'PENDING') return null;
-  return (
-    <span className="ml-2 rounded-full bg-accent-orange/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent-orange">
-      Pending
-    </span>
-  );
-}
+// A submitted item is visible on the report the instant it's saved.
+// Declined items are excluded since they are permanently removed.
 
 type ViewMode = 'sale' | 'product';
 
@@ -67,7 +56,6 @@ export default function StaffDailyReportPage() {
     endDate: today,
   });
   const approvedSales = data?.data ?? [];
-  const summary = data?.summary ?? { cash: 0, gcash: 0, total: 0, count: 0 };
 
   const { data: pendingData } = useSalesPending({
     search: search || undefined,
@@ -76,11 +64,9 @@ export default function StaffDailyReportPage() {
   });
   const pendingSales = pendingData?.data ?? [];
 
-  // Today's full picture: still-pending submissions alongside approved
-  // ones, oldest first (so the day reads top-to-bottom in the order it
-  // happened) — declined ones are excluded (they get copied back into the
-  // draft cart instead of lingering here).
-  const sales = useMemo(
+  // Today's full picture: pending + approved, sorted oldest first.
+  // Tables show PENDING only; summary totals count pending + approved.
+  const allSales = useMemo(
     () =>
       [...pendingSales, ...approvedSales].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -88,18 +74,21 @@ export default function StaffDailyReportPage() {
     [pendingSales, approvedSales],
   );
 
+  // Tables only show PENDING sales
+  const sales = useMemo(() => allSales.filter((s) => s.status === 'PENDING'), [allSales]);
+
   const { data: disposalsData } = useDisposals({ startDate: today, endDate: today });
-  const todaysDisposals = (disposalsData?.data ?? []).filter((d) => d.status !== 'DECLINED');
+  const allDisposals = (disposalsData?.data ?? []).filter((d) => d.status !== 'DECLINED');
+  const todaysDisposals = allDisposals.filter((d) => d.status === 'PENDING');
 
   const { data: expensesData } = useExpenses({ startDate: today, endDate: today });
-  const todaysExpenses = (expensesData?.data ?? []).filter((e) => e.status !== 'DECLINED');
-
-  const { data: branchSummary } = useBranchSummary();
+  const allExpenses = (expensesData?.data ?? []).filter((e) => e.status !== 'DECLINED');
+  const todaysExpenses = allExpenses.filter((e) => e.status === 'PENDING');
 
   // Aggregate items across today's sales (pending + approved) for "View by Product".
   const productRows = useMemo(() => {
     const map = new Map<string, { name: string; brandName: string; quantity: number; total: number }>();
-    for (const sale of sales) {
+    for (const sale of allSales) {
       for (const item of sale.items) {
         const key = `${item.name}__${item.brandName}`;
         const cur = map.get(key) ?? { name: item.name, brandName: item.brandName, quantity: 0, total: 0 };
@@ -114,7 +103,7 @@ export default function StaffDailyReportPage() {
       rows = rows.filter((r) => r.name.toLowerCase().includes(q) || r.brandName.toLowerCase().includes(q));
     }
     return rows.sort((a, b) => b.total - a.total);
-  }, [sales, search]);
+  }, [allSales, search]);
 
   return (
     <div>
@@ -192,7 +181,6 @@ export default function StaffDailyReportPage() {
                         {idx === 0 && (
                           <>
                             {`#${sale.number}`}
-                            <PendingTag status={sale.status} />
                             {sale.customerName && (
                               <p className="text-[10px] font-normal text-accent-blue mt-0.5">{sale.customerName}</p>
                             )}
@@ -255,18 +243,19 @@ export default function StaffDailyReportPage() {
         </div>
       )}
 
-      {/* Summary — approved sales only, so it isn't inflated by unconfirmed pending amounts */}
-      <div className="mt-4 rounded-xl border border-card-border bg-card-bg p-4 shadow-sm">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-text-muted mb-2">Totals below reflect approved sales only — pending sales are not included.</p>
-        <div className="border-l-4 border-accent-blue pl-4 text-right space-y-1">
-          <p className="text-sm font-semibold text-text-primary">Total Sales: <span className="font-bold">{peso(summary.total)}</span></p>
-          <p className="text-sm text-text-secondary">Total Cash: <span className="font-medium text-text-primary">{peso(summary.cash)}</span></p>
-          <p className="text-sm text-text-secondary">Total Gcash: <span className="font-medium text-text-primary">{peso(summary.gcash)}</span></p>
+      {/* Pending Sales Summary — only for pending items */}
+      {sales.length > 0 && (
+        <div className="mt-4 rounded-xl border border-card-border bg-card-bg p-4 shadow-sm">
+          <div className="border-l-4 border-accent-blue pl-4 text-right space-y-1">
+            <p className="text-sm font-semibold text-text-primary">Total Sales: <span className="font-bold">{peso(sales.reduce((sum, s) => sum + s.total, 0))}</span></p>
+            <p className="text-sm text-text-secondary">Total Cash: <span className="font-medium text-text-primary">{peso(sales.reduce((sum, s) => s.items.filter((i) => i.paymentMethod === 'Cash' || (i.paymentMethod === 'Split' && i.paymentSplit)).reduce((a, i) => a + (i.paymentMethod === 'Cash' ? i.subTotal : (i.paymentSplit as any)?.cash ?? 0), 0) + sum, 0))}</span></p>
+            <p className="text-sm text-text-secondary">Total Gcash: <span className="font-medium text-text-primary">{peso(sales.reduce((sum, s) => s.items.filter((i) => i.paymentMethod === 'Gcash' || (i.paymentMethod === 'Split' && i.paymentSplit)).reduce((a, i) => a + (i.paymentMethod === 'Gcash' ? i.subTotal : (i.paymentSplit as any)?.gcash ?? 0), 0) + sum, 0))}</span></p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Today's Disposals — pending (tagged) + approved, declined excluded */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
+      {/* Today's Disposals — PENDING only */}
+      <div className="mt-6 overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
         <div className="border-b border-card-border p-4">
           <h2 className="text-sm font-bold text-text-primary">Today&apos;s Disposals</h2>
         </div>
@@ -288,7 +277,7 @@ export default function StaffDailyReportPage() {
               {todaysDisposals.map((d) => (
                 <tr key={d.id} className="border-t border-card-border">
                   <td className="px-4 py-3 text-sm font-medium text-text-primary">
-                    {d.name}<PendingTag status={d.status} />
+                    {d.name}
                   </td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{d.brandName}</td>
                   <td className="px-4 py-3 text-sm text-text-primary">{d.quantity}</td>
@@ -302,8 +291,8 @@ export default function StaffDailyReportPage() {
         )}
       </div>
 
-      {/* Today's Expenses — pending (tagged) + approved, declined excluded */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
+      {/* Today's Expenses — PENDING only */}
+      <div className="mt-6 overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
         <div className="border-b border-card-border p-4">
           <h2 className="text-sm font-bold text-text-primary">Today&apos;s Expenses</h2>
         </div>
@@ -322,7 +311,7 @@ export default function StaffDailyReportPage() {
               {todaysExpenses.map((e) => (
                 <tr key={e.id} className="border-t border-card-border">
                   <td className="px-4 py-3 text-sm font-medium text-text-primary">
-                    {peso(e.amount)}<PendingTag status={e.status} />
+                    {peso(e.amount)}
                   </td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{e.note}</td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{formatDate(e.createdAt)}</td>
@@ -333,26 +322,23 @@ export default function StaffDailyReportPage() {
         )}
       </div>
 
-      {/* Today's net — approved sales minus approved expenses, live */}
-      {branchSummary && (
-        <div className="mt-4 rounded-xl border border-card-border bg-card-bg p-4 shadow-sm">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Today (Approved)</p>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p className="text-xs text-text-secondary">Total Sales</p>
-              <p className="text-lg font-bold text-accent-green">{peso(branchSummary.totalSales)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-secondary">Total Expenses</p>
-              <p className="text-lg font-bold text-accent-red">{peso(branchSummary.totalExpenses)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-secondary">Net</p>
-              <p className="text-lg font-bold text-text-primary">{peso(branchSummary.net)}</p>
-            </div>
+      {/* Today's Totals — always visible */}
+      <div className="mt-6 rounded-xl border border-card-border bg-card-bg p-5 shadow-sm">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-xs text-text-secondary mb-1">Total Sales</p>
+            <p className="text-lg font-bold text-text-primary">{peso(allSales.reduce((sum, s) => sum + s.total, 0))}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary mb-1">Total Expenses</p>
+            <p className="text-lg font-bold text-accent-red">{peso(allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary mb-1">Net</p>
+            <p className="text-lg font-bold text-text-primary">{peso(allSales.reduce((sum, s) => sum + s.total, 0) - allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
           </div>
         </div>
-      )}
+      </div>
 
       {showDisposals && <PendingDisposalsModal onClose={() => setShowDisposals(false)} />}
     </div>
