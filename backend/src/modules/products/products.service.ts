@@ -173,12 +173,22 @@ export class ProductsService {
     await this.prisma.product.update({ where: { id }, data });
 
     // When sellingPrice is updated at product level (All Shops edit),
-    // also update ALL existing inventory rows for this product.
+    // update ALL existing inventory rows for this product.
     if (dto.sellingPrice !== undefined) {
       await this.prisma.inventory.updateMany({
         where: { productId: id },
         data: { sellingPrice: dto.sellingPrice },
       });
+    } else {
+      // Auto-fill: any inventory rows with NULL selling_price get the product's current price.
+      // This self-heals legacy data that didn't have per-branch pricing.
+      const product = await this.prisma.product.findUnique({ where: { id }, select: { sellingPrice: true } });
+      if (product) {
+        await this.prisma.inventory.updateMany({
+          where: { productId: id, sellingPrice: null },
+          data: { sellingPrice: Number(product.sellingPrice) },
+        });
+      }
     }
 
     // Upsert per-branch quantities when provided, and log stock movements.
@@ -494,11 +504,13 @@ export class ProductsService {
   }
 
   private serialize(product: any, includeOwnerFields = false) {
+    const defaultPrice = Number(product.sellingPrice);
     const quantities = (product.inventory ?? []).map((inv: any) => ({
       branchId: inv.branchId,
       branchName: inv.branch?.name ?? null,
       quantity: inv.quantity,
-      sellingPrice: inv.sellingPrice != null ? Number(inv.sellingPrice) : null,
+      // If branch has its own price use it; otherwise show product's default
+      sellingPrice: inv.sellingPrice != null ? Number(inv.sellingPrice) : defaultPrice,
     }));
     const totalQuantity = quantities.reduce(
       (sum: number, q: any) => sum + q.quantity,
@@ -507,7 +519,7 @@ export class ProductsService {
 
     // For the top-level sellingPrice: when one branch is filtered, use that branch's price.
     // When multiple branches (All Shops), use the product's base price as reference.
-    const branchPrice = quantities.length === 1 && quantities[0].sellingPrice != null
+    const branchPrice = quantities.length === 1
       ? quantities[0].sellingPrice
       : Number(product.sellingPrice);
 
