@@ -263,7 +263,20 @@ export default function ProductsPage() {
                     )}
                   </td>
                   <td className="px-3 py-3 text-sm text-text-primary">{product.brand?.name ?? '—'}</td>
-                  <td className="px-3 py-3 text-sm text-text-primary">₱{product.sellingPrice.toFixed(2)}</td>
+                  <td className="px-3 py-3 text-sm">
+                    {shopFilter ? (
+                      <span className="font-medium text-text-primary">₱{(product.quantities.find((q) => q.branchId === shopFilter)?.sellingPrice ?? product.sellingPrice).toFixed(2)}</span>
+                    ) : (
+                      <div className="space-y-0.5">
+                        {product.quantities.map((q) => (
+                          <div key={q.branchId} className="text-xs">
+                            <span className="font-medium text-text-primary">₱{(q.sellingPrice ?? product.sellingPrice).toFixed(2)}</span>
+                          </div>
+                        ))}
+                        {product.quantities.length === 0 && <span className="text-text-muted">₱{product.sellingPrice.toFixed(2)}</span>}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-3 py-3 text-sm">
                     {product.quantityAlert > 0 ? (<span className="badge badge-neutral"><span className="badge-dot bg-accent-orange" />{product.quantityAlert}</span>) : (<span className="text-text-muted">{product.quantityAlert}</span>)}
                   </td>

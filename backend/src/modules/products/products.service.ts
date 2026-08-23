@@ -39,7 +39,8 @@ export class ProductsService {
               create: dto.quantities.map((q) => ({
                 branchId: q.branchId,
                 quantity: q.quantity,
-                sellingPrice: q.sellingPrice ?? null,
+                // Always store selling price per branch (direct pricing, no override logic)
+                sellingPrice: q.sellingPrice ?? dto.sellingPrice,
               })),
             }
           : undefined,
@@ -170,6 +171,15 @@ export class ProductsService {
     if (dto.quantityAlert !== undefined) data.quantityAlert = dto.quantityAlert;
 
     await this.prisma.product.update({ where: { id }, data });
+
+    // When sellingPrice is updated at product level (All Shops edit),
+    // also update ALL existing inventory rows for this product.
+    if (dto.sellingPrice !== undefined) {
+      await this.prisma.inventory.updateMany({
+        where: { productId: id },
+        data: { sellingPrice: dto.sellingPrice },
+      });
+    }
 
     // Upsert per-branch quantities when provided, and log stock movements.
     if (dto.quantities?.length) {
@@ -495,8 +505,8 @@ export class ProductsService {
       0,
     );
 
-    // If there's exactly one branch in the results and it has a price override,
-    // use that as the displayed sellingPrice (branch-specific pricing).
+    // For the top-level sellingPrice: when one branch is filtered, use that branch's price.
+    // When multiple branches (All Shops), use the product's base price as reference.
     const branchPrice = quantities.length === 1 && quantities[0].sellingPrice != null
       ? quantities[0].sellingPrice
       : Number(product.sellingPrice);
