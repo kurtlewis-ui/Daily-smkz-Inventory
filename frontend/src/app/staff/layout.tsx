@@ -236,14 +236,6 @@ function formatAddedTime(iso?: string): string {
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-// Ensures items from the server have unique IDs for frontend use
-function ensureIds<T extends { id?: string }>(items: T[]): (T & { id: string })[] {
-  return items.map((item) => ({
-    ...item,
-    id: item.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-  }));
-}
-
 function DraftBag() {
   const router = useRouter();
   const { contentTheme } = useThemeStore();
@@ -399,50 +391,6 @@ function DraftBag() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myDraftExists]);
 
-  // If the server's draft content differs from what we have locally while
-  // we weren't actively editing, something changed it that wasn't us — most
-  // likely an admin declined an item and it was copied back in here. MERGE
-  // server items with local items (don't overwrite — preserve staff's new work).
-  const readyToReconcile = useRef(false);
-  useEffect(() => {
-    if (!myDraftExists?.exists) return;
-    if (!readyToReconcile.current) {
-      readyToReconcile.current = true;
-      return;
-    }
-    // Only skip if editing happened in the last 2 seconds
-    if (Date.now() - lastLocalEditAt.current < 2000) return;
-
-    // Check if server has items we don't have locally — merge them in
-    const serverItems = (myDraftExists.items ?? []) as any[];
-    const serverDisposals = (myDraftExists.disposalItems ?? []) as any[];
-    const serverExpenses = (myDraftExists.expenses ?? []) as any[];
-
-    const localProductIds = new Set(items.map((i) => i.productId));
-    const newServerItems = serverItems.filter(
-      (si: { productId: string }) => !localProductIds.has(si.productId),
-    );
-
-    const localDisposalIds = new Set(disposalItems.map((i) => i.productId));
-    const newServerDisposals = serverDisposals.filter(
-      (si: { productId: string }) => !localDisposalIds.has(si.productId),
-    );
-
-    const localExpSigs = new Set(expenses.map((e) => `${e.amount}|${e.note}`));
-    const newServerExpenses = serverExpenses.filter(
-      (se: { amount: number; note: string }) => !localExpSigs.has(`${se.amount}|${se.note}`),
-    );
-
-    // Only update if there are actually new items from the server
-    if (newServerItems.length > 0 || newServerDisposals.length > 0 || newServerExpenses.length > 0) {
-      const mergedItems = [...items, ...ensureIds(newServerItems)];
-      const mergedDisposals = [...disposalItems, ...ensureIds(newServerDisposals)];
-      const mergedExpenses = [...expenses, ...newServerExpenses];
-      suppressNextSync.current = true;
-      replaceAll(mergedItems, mergedDisposals, mergedExpenses);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myDraftExists]);
 
   const itemsTotal = useMemo(
     () => items.reduce((sum, i) => sum + i.unitPrice * i.quantity - (i.discount ?? 0), 0),
