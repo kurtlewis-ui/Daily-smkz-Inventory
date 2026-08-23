@@ -97,7 +97,12 @@ export default function ProductsPage() {
   function buildQuantitiesPayload() {
     // Only send quantities for branches shown in the form
     const targetBranches = showEditModal ? branchesForEdit : branchesForForm;
-    return targetBranches.map((b) => ({ branchId: b.id, quantity: parseInt(formQuantities[b.id] || '0') || 0 }));
+    return targetBranches.map((b) => ({
+      branchId: b.id,
+      quantity: parseInt(formQuantities[b.id] || '0') || 0,
+      // When editing a specific branch, include the selling price as a branch override
+      ...(shopFilter && showEditModal ? { sellingPrice: parseFloat(formPrice) || 0 } : {}),
+    }));
   }
   async function handleAdd() {
     if (!formName.trim()) { setFormError('Product name is required.'); return; }
@@ -113,7 +118,13 @@ export default function ProductsPage() {
     if (!formBrand) { setFormError('Please select a brand.'); return; }
     setFormError(null);
     try {
-      await updateProduct.mutateAsync({ id: editingProduct.id, name: formName.trim(), brandId: formBrand, sellingPrice: parseFloat(formPrice) || 0, costPrice: parseFloat(formCostPrice) || 0, quantityAlert: parseInt(formAlert) || 0, image: formImage ?? '', quantities: buildQuantitiesPayload() });
+      // When a specific branch is selected, price goes to the branch (not global)
+      const updateData: any = { id: editingProduct.id, name: formName.trim(), brandId: formBrand, costPrice: parseFloat(formCostPrice) || 0, quantityAlert: parseInt(formAlert) || 0, image: formImage ?? '', quantities: buildQuantitiesPayload() };
+      if (!shopFilter) {
+        // All Shops → update the global/default selling price
+        updateData.sellingPrice = parseFloat(formPrice) || 0;
+      }
+      await updateProduct.mutateAsync(updateData);
       setEditingProduct(null); setShowEditModal(false);
     } catch (e) { setFormError(getApiErrorMessage(e)); }
   }
