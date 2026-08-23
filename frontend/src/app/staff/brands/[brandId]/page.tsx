@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Search, X, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, Search, X, CheckCircle2 } from 'lucide-react';
 import { useBrands, useProducts } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { useDraftStore } from '@/lib/draft';
