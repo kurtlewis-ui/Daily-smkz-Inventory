@@ -237,6 +237,14 @@ function formatAddedTime(iso?: string): string {
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+// Ensures items from the server have unique IDs for frontend use
+function ensureIds<T extends { id?: string }>(items: T[]): (T & { id: string })[] {
+  return items.map((item) => ({
+    ...item,
+    id: item.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+  }));
+}
+
 function DraftBag() {
   const router = useRouter();
   const { contentTheme } = useThemeStore();
@@ -271,6 +279,13 @@ function DraftBag() {
   const { data: myDraftExists } = useMyDraftExists();
 
   useEffect(() => setMounted(true), []);
+
+  // Auto-dismiss success messages after 3 seconds
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => setSuccess(null), 3000);
+    return () => clearTimeout(timer);
+  }, [success]);
 
   const isEmpty = items.length === 0 && disposalItems.length === 0 && expenses.length === 0;
 
@@ -363,8 +378,8 @@ function DraftBag() {
           replaceAll(mergedItems, mergedDisposalItems, mergedExpenses);
         }
         saveDraft.mutate({
-          items: mergedItems,
-          disposalItems: mergedDisposalItems,
+          items: mergedItems.map(({ id, addedAt, ...rest }) => rest),
+          disposalItems: mergedDisposalItems.map(({ id, addedAt, ...rest }) => rest),
           expenses: mergedExpenses,
           customerName: customerName.trim() || undefined,
         });
@@ -406,7 +421,7 @@ function DraftBag() {
     const serverSig = JSON.stringify([myDraftExists.items, myDraftExists.disposalItems, myDraftExists.expenses]);
     const localSig = JSON.stringify([items, disposalItems, expenses]);
     if (serverSig === localSig) return;
-    replaceAll(myDraftExists.items, myDraftExists.disposalItems, myDraftExists.expenses);
+    replaceAll(ensureIds(myDraftExists.items), ensureIds(myDraftExists.disposalItems), myDraftExists.expenses);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myDraftExists]);
 
@@ -447,8 +462,8 @@ function DraftBag() {
       // above may not have fired yet if the staff edited and immediately hit
       // Save — then ask the server to submit whatever it has on file.
       await saveDraft.mutateAsync({
-        items,
-        disposalItems,
+        items: items.map(({ id, addedAt, ...rest }) => rest),
+        disposalItems: disposalItems.map(({ id, addedAt, ...rest }) => rest),
         expenses,
         customerName: customerName.trim() || undefined,
       });
@@ -721,12 +736,12 @@ function DraftBag() {
               </div>
 
               {success && (
-                <div className="confirm-enter rounded-lg bg-btn-primary border border-card-border px-4 py-3 text-sm font-medium text-btn-primary-text flex items-center gap-2 shadow-lg">
+                <div className="toast-enter rounded-xl bg-btn-primary border border-card-border px-5 py-3.5 text-sm font-medium text-btn-primary-text flex items-center gap-2.5 shadow-xl">
                   <CheckCircle2 size={16} className="text-accent-green shrink-0" /> {success}
                 </div>
               )}
               {error && (
-                <div className="confirm-enter rounded-lg bg-btn-primary border border-card-border px-4 py-3 text-sm font-medium text-btn-primary-text flex items-center gap-2 shadow-lg">
+                <div className="toast-enter rounded-xl bg-btn-primary border border-card-border px-5 py-3.5 text-sm font-medium text-btn-primary-text flex items-center gap-2.5 shadow-xl">
                   <XCircle size={16} className="text-accent-red shrink-0" /> {error}
                 </div>
               )}
@@ -736,8 +751,8 @@ function DraftBag() {
               <div className="border-t border-card-border p-4 space-y-4">
                 {/* Items Summary */}
                 {items.length > 0 && (
-                  <div className="space-y-1 text-xs">
-                    <p className="font-semibold text-text-primary text-sm">Items Summary</p>
+                  <div className="space-y-1.5 text-xs pb-3 border-b border-card-border">
+                    <p className="font-semibold text-text-primary text-sm mb-2">Items Summary</p>
                     {Object.entries(
                       items.reduce<Record<string, number>>((acc, i) => {
                         acc[i.name] = (acc[i.name] ?? 0) + i.quantity;
@@ -749,7 +764,7 @@ function DraftBag() {
                         <span className="text-text-primary font-medium">× {qty}</span>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between border-t border-card-border pt-1 mt-1">
+                    <div className="flex items-center justify-between pt-2 mt-1">
                       <span className="text-text-secondary font-medium">Total Items</span>
                       <span className="text-text-primary font-bold">{items.reduce((s, i) => s + i.quantity, 0)}</span>
                     </div>
@@ -821,7 +836,6 @@ function EditPaymentInline({
   onCancel: () => void;
 }) {
   const [method, setMethod] = useState<PaymentMethod>(item.paymentMethod);
-  const [bankNote, setBankNote] = useState(item.bankNote ?? '');
   const [splitCash, setSplitCash] = useState(String(item.paymentSplit?.cash ?? ''));
   const [splitGcash, setSplitGcash] = useState(String(item.paymentSplit?.gcash ?? ''));
 
