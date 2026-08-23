@@ -10,7 +10,6 @@ import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { QuerySaleDto } from './dto/query-sale.dto';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { restoreToDraft } from './draft-restore.util';
 
 @Injectable()
 export class SalesService {
@@ -345,33 +344,6 @@ export class SalesService {
 
       // Release the stock that was reserved when this sale was created.
       await this.restoreStock(tx, sale.branchId, sale.items, actor.userId);
-
-      // Copy the declined items back into the staff's draft cart, merged
-      // with whatever's already staged, so they can fix and resubmit
-      // instead of re-entering everything from scratch.
-      const restorable = sale.items.filter((i) => i.productId);
-      if (restorable.length > 0) {
-        const products = await tx.product.findMany({
-          where: { id: { in: restorable.map((i) => i.productId as string) } },
-          select: { id: true, image: true },
-        });
-        const imageMap = new Map(products.map((p) => [p.id, p.image]));
-        await restoreToDraft(tx, sale.staffId, sale.branchId, {
-          items: restorable.map((i) => ({
-            productId: i.productId as string,
-            name: i.name,
-            brandName: i.brandName,
-            unitPrice: Number(i.unitPrice),
-            image: imageMap.get(i.productId as string) ?? null,
-            quantity: i.quantity,
-            discount: Number(i.discount),
-            paymentMethod: i.paymentMethod,
-            bankNote: i.bankNote,
-            note: i.note,
-            paymentSplit: i.paymentSplit,
-          })),
-        });
-      }
 
       const updated = await tx.sale.findUnique({ where: { id }, include: this.includeFull() });
 
