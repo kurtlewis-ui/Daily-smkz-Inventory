@@ -6,7 +6,7 @@
 import * as XLSX from 'xlsx';
 import { api } from './api';
 
-function formatSplitBreakdown(split: { cash: number; gcash: number; bankTransfer: number; cashless: number } | null): string {
+function formatSplitBreakdown(split: { cash: number; gcash: number } | null): string {
   if (!split) return '';
   const parts: string[] = [];
   if (split.cash > 0) parts.push(`Cash ${split.cash}`);
