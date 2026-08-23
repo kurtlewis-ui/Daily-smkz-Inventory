@@ -122,17 +122,15 @@ export interface Product {
   deletedAt: string | null;
 }
 
-// Cash/Gcash/BankTransfer/Cashless are real per-item payment methods. Split
-// means the item's cost was divided across those four (see PaymentSplit).
-// Mixed is a Sale-level-only rollup shown when its items don't all agree.
-export type PaymentMethod = 'Cash' | 'Gcash' | 'BankTransfer' | 'Cashless' | 'Split' | 'Mixed';
+// Cash/Gcash are the primary payment methods. Split means the item's cost
+// was divided across Cash and Gcash. Mixed is a Sale-level-only rollup shown
+// when its items don't all agree.
+export type PaymentMethod = 'Cash' | 'Gcash' | 'Split' | 'Mixed';
 export type SaleStatus = 'PENDING' | 'APPROVED' | 'DECLINED';
 
 export interface PaymentSplit {
   cash: number;
   gcash: number;
-  bankTransfer: number;
-  cashless: number;
 }
 
 export interface SaleLineItem {
@@ -170,8 +168,6 @@ export interface Sale {
 export interface SalesSummary {
   cash: number;
   gcash: number;
-  bankTransfer: number;
-  cashless: number;
   total: number;
   count: number;
 }
@@ -182,7 +178,6 @@ export interface DraftSaleItem {
   brandName: string;
   unitPrice: number;
   quantity: number;
-  image?: string | null;
   discount?: number;
   paymentMethod: PaymentMethod;
   bankNote?: string | null;
@@ -195,7 +190,6 @@ export interface DraftDisposalItem {
   name: string;
   brandName: string;
   quantity: number;
-  image?: string | null;
   reason?: string;
 }
 

@@ -423,7 +423,7 @@ function OwnerUsersView() {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 try {
-                  const dataUrl = await fileToResizedDataUrl(file, 256, 0.85);
+                  const dataUrl = await fileToResizedDataUrl(file, 200, 0.7);
                   setFormData((f) => ({ ...f, avatarUrl: dataUrl }));
                 } catch (err) {
                   setFormError(err instanceof Error ? err.message : 'Could not process image.');

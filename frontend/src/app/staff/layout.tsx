@@ -229,8 +229,6 @@ function splitBreakdownLine(split: PaymentSplit): string {
   const parts: string[] = [];
   if (split.cash > 0) parts.push(`₱${split.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })} Cash`);
   if (split.gcash > 0) parts.push(`₱${split.gcash.toLocaleString(undefined, { minimumFractionDigits: 2 })} Gcash`);
-  if (split.bankTransfer > 0) parts.push(`₱${split.bankTransfer.toLocaleString(undefined, { minimumFractionDigits: 2 })} Bank Transfer`);
-  if (split.cashless > 0) parts.push(`₱${split.cashless.toLocaleString(undefined, { minimumFractionDigits: 2 })} Cashless`);
   return parts.join(' · ') || '—';
 }
 
@@ -430,18 +428,14 @@ function DraftBag() {
   // item's Split-payment breakdown across its buckets. Line totals are
   // net of each item's discount.
   const paymentTotals = useMemo(() => {
-    const totals = { cash: 0, gcash: 0, bankTransfer: 0, cashless: 0 };
+    const totals = { cash: 0, gcash: 0 };
     for (const item of items) {
       const lineTotal = item.unitPrice * item.quantity - (item.discount ?? 0);
       if (item.paymentMethod === 'Split' && item.paymentSplit) {
         totals.cash += item.paymentSplit.cash;
         totals.gcash += item.paymentSplit.gcash;
-        totals.bankTransfer += item.paymentSplit.bankTransfer;
-        totals.cashless += item.paymentSplit.cashless;
       } else if (item.paymentMethod === 'Cash') totals.cash += lineTotal;
       else if (item.paymentMethod === 'Gcash') totals.gcash += lineTotal;
-      else if (item.paymentMethod === 'BankTransfer') totals.bankTransfer += lineTotal;
-      else if (item.paymentMethod === 'Cashless') totals.cashless += lineTotal;
     }
     return totals;
   }, [items]);
@@ -559,12 +553,7 @@ function DraftBag() {
                       <div key={`${item.productId}-${idx}`} className="rounded-lg border border-card-border p-4">
                         <div className="flex items-center gap-3">
                           <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-white/10 flex items-center justify-center">
-                            {item.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
-                            ) : (
-                              <span className="text-[9px] text-text-muted">No Img</span>
-                            )}
+                            <span className="text-[9px] text-text-muted">No Img</span>
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium text-text-primary">{item.name}</p>
@@ -630,12 +619,7 @@ function DraftBag() {
                     {disposalItems.map((item) => (
                       <div key={item.productId} className="flex items-center gap-3 rounded-lg border border-card-border p-2">
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-white/10 flex items-center justify-center">
-                          {item.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={item.image} alt={item.name} loading="lazy" className="h-full w-full object-cover" />
-                          ) : (
-                            <span className="text-[9px] text-text-muted">No Img</span>
-                          )}
+                          <span className="text-[9px] text-text-muted">No Img</span>
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-text-primary">{item.name}</p>

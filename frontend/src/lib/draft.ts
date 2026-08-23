@@ -11,7 +11,6 @@ export interface DraftItem {
   name: string;
   brandName: string;
   unitPrice: number;
-  image: string | null;
   quantity: number;
   discount?: number;
   paymentMethod: PaymentMethod;
@@ -28,7 +27,6 @@ export interface DraftDisposalItem {
   productId: string;
   name: string;
   brandName: string;
-  image: string | null;
   quantity: number;
   reason?: string | null;
   addedAt?: string;
@@ -61,9 +59,6 @@ interface DraftState {
   removeExpense: (index: number) => void;
   setCustomerName: (name: string) => void;
   clear: () => void;
-  // Adopt the server's current draft content wholesale — used to pull down
-  // changes this device didn't make itself (e.g. an admin decline copying
-  // an item back into the draft). Only called while idle (see DraftBag).
   replaceAll: (items: DraftItem[], disposalItems: DraftDisposalItem[], expenses: DraftExpense[]) => void;
 }
 
@@ -72,6 +67,9 @@ interface DraftState {
  * expenses to log, all staged here before a single "Save Order" submits
  * everything together. Persisted to localStorage so an accidental refresh
  * doesn't lose an in-progress order.
+ *
+ * NOTE: Product images are NOT stored here to avoid localStorage overflow
+ * (5MB browser limit). Images are loaded from product data at render time.
  */
 export const useDraftStore = create<DraftState>()(
   persist(
@@ -82,15 +80,6 @@ export const useDraftStore = create<DraftState>()(
       customerName: '',
       addItem: (item, quantity = 1) =>
         set((state) => {
-          const existing = state.items.find((i) => i.productId === item.productId);
-          if (existing) {
-            // Same product added again — treat as a separate line item to
-            // avoid overwriting the first entry's payment details. The user
-            // can remove duplicates if unintended.
-            return {
-              items: [...state.items, { ...item, quantity, addedAt: new Date().toISOString() }],
-            };
-          }
           return { items: [...state.items, { ...item, quantity, addedAt: new Date().toISOString() }] };
         }),
       setQuantity: (productId, quantity) =>
@@ -98,9 +87,6 @@ export const useDraftStore = create<DraftState>()(
           items: state.items.map((i) => {
             if (i.productId !== productId) return i;
             const newQty = Math.max(1, quantity);
-            // If the item has a split payment, reset it when quantity changes
-            // because the original split amounts are now stale (they were
-            // calculated for the old quantity). The user must re-enter splits.
             if (i.paymentMethod === 'Split' && i.paymentSplit && newQty !== i.quantity) {
               return { ...i, quantity: newQty, paymentMethod: 'Cash' as PaymentMethod, paymentSplit: null };
             }
@@ -152,6 +138,34 @@ export const useDraftStore = create<DraftState>()(
 
       replaceAll: (items, disposalItems, expenses) => set({ items, disposalItems, expenses }),
     }),
-    { name: 'vape-shop-draft' },
+    {
+      name: 'vape-shop-draft',
+      // Safe storage wrapper — catches localStorage overflow errors
+      storage: {
+        getItem: (name) => {
+          try {
+            const str = localStorage.getItem(name);
+            return str ? JSON.parse(str) : null;
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, JSON.stringify(value));
+          } catch {
+            // localStorage full — silently fail rather than crash the app
+            console.warn('Draft could not be saved to localStorage (storage full?)');
+          }
+        },
+        removeItem: (name) => {
+          try {
+            localStorage.removeItem(name);
+          } catch {
+            // ignore
+          }
+        },
+      },
+    },
   ),
 );

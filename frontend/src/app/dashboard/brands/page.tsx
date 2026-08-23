@@ -246,7 +246,7 @@ function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | n
   async function handleFile(file: File) {
     setImageError(null);
     try {
-      const dataUrl = await fileToResizedDataUrl(file, 512, 0.85);
+      const dataUrl = await fileToResizedDataUrl(file, 256, 0.7);
       setCoverImage(dataUrl);
     } catch (e) {
       setImageError(e instanceof Error ? e.message : 'Could not process the image.');

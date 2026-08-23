@@ -231,14 +231,13 @@ function AddPurchaseModal({
         name: product.name,
         brandName: product.brand?.name ?? '',
         unitPrice: product.sellingPrice,
-        image: product.image,
         discount: discountNumber,
         paymentMethod,
         bankNote: null,
         note: note.trim() || null,
         paymentSplit:
           paymentMethod === 'Split'
-            ? { cash: Number(splitCash) || 0, gcash: Number(splitGcash) || 0, bankTransfer: 0, cashless: 0 }
+            ? { cash: Number(splitCash) || 0, gcash: Number(splitGcash) || 0 }
             : null,
       },
       qty,
@@ -260,7 +259,6 @@ function AddPurchaseModal({
         productId: product.id,
         name: product.name,
         brandName: product.brand?.name ?? '',
-        image: product.image,
         reason: combinedReason,
       },
       qty,

@@ -52,7 +52,7 @@ export default function AccountSettings() {
     if (!file) return;
     setProfileError(null);
     try {
-      const dataUrl = await fileToResizedDataUrl(file, 256, 0.85);
+      const dataUrl = await fileToResizedDataUrl(file, 200, 0.7);
       setAvatarUrl(dataUrl);
     } catch (e) {
       setProfileError(e instanceof Error ? e.message : 'Could not process image.');
