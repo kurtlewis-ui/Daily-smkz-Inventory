@@ -39,6 +39,7 @@ export class ProductsService {
               create: dto.quantities.map((q) => ({
                 branchId: q.branchId,
                 quantity: q.quantity,
+                sellingPrice: q.sellingPrice ?? null,
               })),
             }
           : undefined,
@@ -183,8 +184,8 @@ export class ProductsService {
 
         await this.prisma.inventory.upsert({
           where: { productId_branchId: { productId: id, branchId: q.branchId } },
-          create: { productId: id, branchId: q.branchId, quantity: q.quantity },
-          update: { quantity: q.quantity },
+          create: { productId: id, branchId: q.branchId, quantity: q.quantity, sellingPrice: q.sellingPrice ?? null },
+          update: { quantity: q.quantity, ...(q.sellingPrice !== undefined ? { sellingPrice: q.sellingPrice ?? null } : {}) },
         });
 
         // Log ADJUSTMENT if quantity actually changed
@@ -487,11 +488,18 @@ export class ProductsService {
       branchId: inv.branchId,
       branchName: inv.branch?.name ?? null,
       quantity: inv.quantity,
+      sellingPrice: inv.sellingPrice != null ? Number(inv.sellingPrice) : null,
     }));
     const totalQuantity = quantities.reduce(
       (sum: number, q: any) => sum + q.quantity,
       0,
     );
+
+    // If there's exactly one branch in the results and it has a price override,
+    // use that as the displayed sellingPrice (branch-specific pricing).
+    const branchPrice = quantities.length === 1 && quantities[0].sellingPrice != null
+      ? quantities[0].sellingPrice
+      : Number(product.sellingPrice);
 
     const result: any = {
       id: product.id,
@@ -501,7 +509,7 @@ export class ProductsService {
       brand: product.brand
         ? { id: product.brand.id, name: product.brand.name, slug: product.brand.slug }
         : null,
-      sellingPrice: Number(product.sellingPrice),
+      sellingPrice: branchPrice,
       quantityAlert: product.quantityAlert,
       isActive: product.isActive,
       quantities,

@@ -24,6 +24,13 @@ export class BranchQuantityDto {
   @IsInt()
   @Min(0)
   quantity: number;
+
+  @ApiProperty({ required: false, description: 'Branch-specific selling price override (null = use product default)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  sellingPrice?: number;
 }
 
 export class CreateProductDto {
