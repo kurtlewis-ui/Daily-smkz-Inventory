@@ -480,6 +480,8 @@ function DraftBag() {
     suppressNextSync.current = true;
     clear();
     clearDraftSync.mutate();
+    setSuccess('Draft cleared');
+    setError(null);
   }
 
   function handleAddExpense() {
@@ -568,16 +570,16 @@ function DraftBag() {
                             </button>
                           </div>
                           <div className="flex items-center gap-1">
-                            <button onClick={() => setQuantity(item.productId, item.quantity - 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Decrease"><Minus size={14} /></button>
+                            <button onClick={() => setQuantity(item.id, item.quantity - 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Decrease"><Minus size={14} /></button>
                             <input
                               type="number"
                               min="1"
                               value={item.quantity}
-                              onChange={(e) => setQuantity(item.productId, parseInt(e.target.value) || 1)}
+                              onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 1)}
                               className="w-12 rounded border border-input-border bg-input-bg px-1 py-1 text-center text-sm"
                             />
-                            <button onClick={() => setQuantity(item.productId, item.quantity + 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Increase"><Plus size={14} /></button>
-                            <button onClick={() => removeItem(item.productId)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10 ml-1" title="Remove"><Trash2 size={15} /></button>
+                            <button onClick={() => setQuantity(item.id, item.quantity + 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Increase"><Plus size={14} /></button>
+                            <button onClick={() => removeItem(item.id)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10 ml-1" title="Remove"><Trash2 size={15} /></button>
                           </div>
                         </div>
                         {item.paymentMethod === 'Split' && item.paymentSplit && (
@@ -586,7 +588,7 @@ function DraftBag() {
                         {editingPaymentIdx === idx && (
                           <EditPaymentInline
                             item={item}
-                            onSave={(updates) => { updateItemPayment(item.productId, updates); setEditingPaymentIdx(null); }}
+                            onSave={(updates) => { updateItemPayment(item.id, updates); setEditingPaymentIdx(null); }}
                             onCancel={() => setEditingPaymentIdx(null)}
                           />
                         )}
@@ -622,16 +624,16 @@ function DraftBag() {
                           <p className="text-xs text-accent-red">{item.reason}</p>
                         )}
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => setDisposalQuantity(item.productId, item.quantity - 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Decrease"><Minus size={14} /></button>
+                          <button onClick={() => setDisposalQuantity(item.id, item.quantity - 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Decrease"><Minus size={14} /></button>
                           <input
                             type="number"
                             min="1"
                             value={item.quantity}
-                            onChange={(e) => setDisposalQuantity(item.productId, parseInt(e.target.value) || 1)}
+                            onChange={(e) => setDisposalQuantity(item.id, parseInt(e.target.value) || 1)}
                             className="w-12 rounded border border-input-border bg-input-bg px-1 py-1 text-center text-sm"
                           />
-                          <button onClick={() => setDisposalQuantity(item.productId, item.quantity + 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Increase"><Plus size={14} /></button>
-                          <button onClick={() => removeDisposalItem(item.productId)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10 ml-1" title="Remove"><Trash2 size={15} /></button>
+                          <button onClick={() => setDisposalQuantity(item.id, item.quantity + 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Increase"><Plus size={14} /></button>
+                          <button onClick={() => removeDisposalItem(item.id)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10 ml-1" title="Remove"><Trash2 size={15} /></button>
                         </div>
                       </div>
                     ))}
@@ -732,6 +734,27 @@ function DraftBag() {
 
             {!isEmpty && (
               <div className="border-t border-card-border p-4 space-y-4">
+                {/* Items Summary */}
+                {items.length > 0 && (
+                  <div className="space-y-1 text-xs">
+                    <p className="font-semibold text-text-primary text-sm">Items Summary</p>
+                    {Object.entries(
+                      items.reduce<Record<string, number>>((acc, i) => {
+                        acc[i.name] = (acc[i.name] ?? 0) + i.quantity;
+                        return acc;
+                      }, {})
+                    ).map(([name, qty]) => (
+                      <div key={name} className="flex items-center justify-between">
+                        <span className="text-text-secondary truncate">{name}</span>
+                        <span className="text-text-primary font-medium">× {qty}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between border-t border-card-border pt-1 mt-1">
+                      <span className="text-text-secondary font-medium">Total Items</span>
+                      <span className="text-text-primary font-bold">{items.reduce((s, i) => s + i.quantity, 0)}</span>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2 text-sm">
                   {items.length > 0 && (
                     <>

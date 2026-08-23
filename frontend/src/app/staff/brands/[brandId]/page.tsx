@@ -29,6 +29,7 @@ export default function BrandProductsPage() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<StaffProduct | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastExiting, setToastExiting] = useState(false);
   const [cooldown, setCooldown] = useState(false);
 
   const user = useAuthStore((s) => s.user);
@@ -53,7 +54,11 @@ export default function BrandProductsPage() {
 
   function showToast(msg: string) {
     setToast(msg);
-    setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), 2500);
+    setToastExiting(false);
+    setTimeout(() => {
+      setToastExiting(true);
+      setTimeout(() => { setToast(null); setToastExiting(false); }, 200);
+    }, 2500);
   }
 
   return (
@@ -159,7 +164,7 @@ export default function BrandProductsPage() {
       )}
 
       {toast && (
-        <div className="fixed bottom-24 left-1/2 z-50 toast-enter rounded-lg bg-btn-primary px-5 py-3 text-sm font-medium text-btn-primary-text shadow-lg flex items-center gap-2">
+        <div className={`fixed bottom-24 left-1/2 z-50 rounded-xl bg-btn-primary px-6 py-3.5 text-sm font-medium text-btn-primary-text shadow-xl flex items-center gap-2.5 ${toastExiting ? 'toast-exit' : 'toast-enter'}`}>
           <CheckCircle2 size={16} className="text-accent-green shrink-0" /> {toast}
         </div>
       )}
