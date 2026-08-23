@@ -103,6 +103,7 @@ export interface ProductBranchQuantity {
   branchId: string;
   branchName: string | null;
   quantity: number;
+  sellingPrice: number | null;
 }
 
 export interface Product {
