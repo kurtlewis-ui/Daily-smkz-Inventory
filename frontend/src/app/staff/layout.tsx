@@ -383,8 +383,6 @@ function DraftBag() {
     if (Date.now() - lastLocalEditAt.current < 3000) return;
     suppressNextSync.current = true;
     clear();
-    setSuccess("Your draft was submitted by an admin — it's no longer pending here.");
-    setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myDraftExists]);
 
@@ -409,8 +407,6 @@ function DraftBag() {
     const localSig = JSON.stringify([items, disposalItems, expenses]);
     if (serverSig === localSig) return;
     replaceAll(myDraftExists.items, myDraftExists.disposalItems, myDraftExists.expenses);
-    setSuccess('Your draft was updated — a declined item may have been added back for you to review.');
-    setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myDraftExists]);
 
@@ -548,34 +544,28 @@ function DraftBag() {
                 ) : (
                   <div className="space-y-4">
                     {items.map((item, idx) => (
-                      <div key={`${item.productId}-${idx}`} className="rounded-lg border border-card-border p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-white/10 flex items-center justify-center">
-                            <span className="text-[9px] text-text-muted">No Img</span>
-                          </div>
+                      <div key={`${item.productId}-${idx}`} className="rounded-lg border border-card-border p-4 space-y-2">
+                        <div className="flex items-start justify-between">
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-text-primary">{item.name}</p>
-                            <p className="truncate text-xs text-text-muted">{item.brandName}</p>
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs text-text-secondary">
-                                {peso(item.unitPrice)} each &middot; {peso(item.unitPrice * item.quantity - (item.discount ?? 0))} total
-                              </p>
-                              {!!item.discount && <p className="text-[9px] text-accent-orange mt-0.5">(−{peso(item.discount)} discount)</p>}
-                              <span className="text-[10px] text-text-muted whitespace-nowrap">{formatAddedTime(item.addedAt)}</span>
-                            </div>
-                            <div className="mt-0.5 flex items-center gap-1.5">
-                              <span className="inline-block rounded border border-input-border bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-text-primary">{paymentTagLabel(item)}</span>
-                              <button
-                                onClick={() => setEditingPaymentIdx(editingPaymentIdx === idx ? null : idx)}
-                                className="text-[10px] text-accent-blue hover:underline"
-                                title="Edit payment method"
-                              >
-                                <Edit2 size={10} />
-                              </button>
-                            </div>
-                            {item.paymentMethod === 'Split' && item.paymentSplit && (
-                              <p className="mt-0.5 text-[10px] text-text-secondary">{splitBreakdownLine(item.paymentSplit)}</p>
-                            )}
+                            <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
+                            <p className="text-xs text-text-muted">{item.brandName}</p>
+                          </div>
+                          <span className="text-[10px] text-text-muted whitespace-nowrap ml-2">{formatAddedTime(item.addedAt)}</span>
+                        </div>
+                        <p className="text-xs text-text-secondary">
+                          {peso(item.unitPrice)} each &middot; {peso(item.unitPrice * item.quantity - (item.discount ?? 0))} total
+                        </p>
+                        {!!item.discount && <p className="text-[9px] text-accent-orange">(−{peso(item.discount)} discount)</p>}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-block rounded border border-input-border bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-text-primary">{paymentTagLabel(item)}</span>
+                            <button
+                              onClick={() => setEditingPaymentIdx(editingPaymentIdx === idx ? null : idx)}
+                              className="text-[10px] text-accent-blue hover:underline"
+                              title="Edit payment method"
+                            >
+                              <Edit2 size={10} />
+                            </button>
                           </div>
                           <div className="flex items-center gap-1">
                             <button onClick={() => setQuantity(item.productId, item.quantity - 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Decrease"><Minus size={14} /></button>
@@ -587,9 +577,12 @@ function DraftBag() {
                               className="w-12 rounded border border-input-border bg-input-bg px-1 py-1 text-center text-sm"
                             />
                             <button onClick={() => setQuantity(item.productId, item.quantity + 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Increase"><Plus size={14} /></button>
+                            <button onClick={() => removeItem(item.productId)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10 ml-1" title="Remove"><Trash2 size={15} /></button>
                           </div>
-                          <button onClick={() => removeItem(item.productId)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10" title="Remove"><Trash2 size={15} /></button>
                         </div>
+                        {item.paymentMethod === 'Split' && item.paymentSplit && (
+                          <p className="text-[10px] text-text-secondary">{splitBreakdownLine(item.paymentSplit)}</p>
+                        )}
                         {editingPaymentIdx === idx && (
                           <EditPaymentInline
                             item={item}
@@ -613,23 +606,22 @@ function DraftBag() {
                     No items staged for disposal.
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {disposalItems.map((item) => (
-                      <div key={item.productId} className="flex items-center gap-3 rounded-lg border border-card-border p-2">
-                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-white/10 flex items-center justify-center">
-                          <span className="text-[9px] text-text-muted">No Img</span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-text-primary">{item.name}</p>
-                          <p className="truncate text-xs text-text-muted">{item.brandName}</p>
-                          {item.reason && (
-                            <p className="truncate text-[10px] text-accent-red mt-0.5">{item.reason}</p>
-                          )}
+                      <div key={item.productId} className="rounded-lg border border-card-border p-4 space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-text-primary">{item.name}</p>
+                            <p className="text-xs text-text-muted">{item.brandName}</p>
+                          </div>
                           {item.addedAt && (
-                            <p className="text-[10px] text-text-muted mt-0.5">{formatAddedTime(item.addedAt)}</p>
+                            <span className="text-[10px] text-text-muted whitespace-nowrap ml-2">{formatAddedTime(item.addedAt)}</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1">
+                        {item.reason && (
+                          <p className="text-xs text-accent-red">{item.reason}</p>
+                        )}
+                        <div className="flex items-center justify-end gap-1">
                           <button onClick={() => setDisposalQuantity(item.productId, item.quantity - 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Decrease"><Minus size={14} /></button>
                           <input
                             type="number"
@@ -639,8 +631,8 @@ function DraftBag() {
                             className="w-12 rounded border border-input-border bg-input-bg px-1 py-1 text-center text-sm"
                           />
                           <button onClick={() => setDisposalQuantity(item.productId, item.quantity + 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Increase"><Plus size={14} /></button>
+                          <button onClick={() => removeDisposalItem(item.productId)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10 ml-1" title="Remove"><Trash2 size={15} /></button>
                         </div>
-                        <button onClick={() => removeDisposalItem(item.productId)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10" title="Remove"><Trash2 size={15} /></button>
                       </div>
                     ))}
                   </div>
