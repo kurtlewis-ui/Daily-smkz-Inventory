@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
-import { useDraftStore } from '@/lib/draft';
 import { useThemeStore } from '@/lib/theme';
 import {
   LayoutDashboard,
