@@ -29,6 +29,7 @@ export default function BrandProductsPage() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<StaffProduct | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(false);
 
   const user = useAuthStore((s) => s.user);
   const branchId = user?.branch?.id;
@@ -39,6 +40,16 @@ export default function BrandProductsPage() {
 
   const { data, isLoading, isError, error } = useProducts({ brandId, branchId, search });
   const products = (data?.data ?? []) as StaffProduct[];
+
+  // Draft items for auto-subtracting stock display
+  const draftItems = useDraftStore((s) => s.items);
+  const draftDisposalItems = useDraftStore((s) => s.disposalItems);
+
+  function getDraftQty(productId: string): number {
+    const sellQty = draftItems.filter((i) => i.productId === productId).reduce((sum, i) => sum + i.quantity, 0);
+    const disposeQty = draftDisposalItems.find((i) => i.productId === productId)?.quantity ?? 0;
+    return sellQty + disposeQty;
+  }
 
   function showToast(msg: string) {
     setToast(msg);
@@ -85,8 +96,10 @@ export default function BrandProductsPage() {
       ) : (
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {products.map((p) => {
-            const isOutOfStock = p.totalQuantity <= 0;
-            const isLowStock = !isOutOfStock && p.totalQuantity <= 5;
+            const draftQty = getDraftQty(p.id);
+            const adjustedStock = Math.max(0, p.totalQuantity - draftQty);
+            const isOutOfStock = adjustedStock <= 0;
+            const isLowStock = !isOutOfStock && adjustedStock <= 5;
             return (
               <button
                 key={p.id}
@@ -121,7 +134,7 @@ export default function BrandProductsPage() {
                   <p className="truncate text-sm font-semibold text-text-primary" title={p.name}>{p.name}</p>
                   <p className="text-sm font-bold text-text-primary">{peso(p.sellingPrice)}</p>
                   <p className={`text-sm font-medium ${isOutOfStock ? 'text-accent-red' : isLowStock ? 'text-accent-orange' : 'text-text-secondary'}`}>
-                    Stock: {p.totalQuantity}
+                    Stock: {adjustedStock}
                     {isOutOfStock && ' (Out of stock)'}
                     {isLowStock && ' (Low stock)'}
                   </p>
@@ -132,11 +145,16 @@ export default function BrandProductsPage() {
         </div>
       )}
 
-      {selected && (
+      {selected && !cooldown && (
         <AddPurchaseModal
           product={selected}
           onClose={() => setSelected(null)}
-          onSaved={(msg) => { setSelected(null); showToast(msg); }}
+          onSaved={(msg) => {
+            setSelected(null);
+            showToast(msg);
+            setCooldown(true);
+            setTimeout(() => setCooldown(false), 1000);
+          }}
         />
       )}
 
