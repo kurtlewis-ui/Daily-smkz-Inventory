@@ -218,9 +218,7 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
 // Payment is chosen per item (in the Add Purchase modal), not once for the
 // whole order — this renders each item's choice as a small tag.
 function paymentTagLabel(item: DraftItem) {
-  if (item.paymentMethod === 'BankTransfer' && item.bankNote) return `Bank Transfer (${item.bankNote})`;
   if (item.paymentMethod === 'Split') return 'Split';
-  if (item.paymentMethod === 'Cashless') return 'Cashless';
   return item.paymentMethod;
 }
 
@@ -811,25 +809,20 @@ function EditPaymentInline({
   const [bankNote, setBankNote] = useState(item.bankNote ?? '');
   const [splitCash, setSplitCash] = useState(String(item.paymentSplit?.cash ?? ''));
   const [splitGcash, setSplitGcash] = useState(String(item.paymentSplit?.gcash ?? ''));
-  const [splitBank, setSplitBank] = useState(String(item.paymentSplit?.bankTransfer ?? ''));
 
   const lineTotal = item.unitPrice * item.quantity - (item.discount ?? 0);
-  const allocated = (Number(splitCash) || 0) + (Number(splitGcash) || 0) + (Number(splitBank) || 0);
-  const splitCashless = Math.max(0, lineTotal - allocated);
-  const overAllocated = allocated > lineTotal + 0.001;
 
   function peso(n: number) {
     return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   function handleSave() {
-    if (method === 'Split' && overAllocated) return;
     onSave({
       paymentMethod: method,
-      bankNote: method === 'BankTransfer' || method === 'Split' ? bankNote.trim() || null : null,
+      bankNote: null,
       paymentSplit:
         method === 'Split'
-          ? { cash: Number(splitCash) || 0, gcash: Number(splitGcash) || 0, bankTransfer: Number(splitBank) || 0, cashless: splitCashless }
+          ? { cash: Number(splitCash) || 0, gcash: Number(splitGcash) || 0 }
           : null,
     });
   }
@@ -839,37 +832,25 @@ function EditPaymentInline({
       <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} className="w-full rounded border border-input-border bg-input-bg px-2 py-1 text-xs">
         <option value="Cash">Cash</option>
         <option value="Gcash">Gcash</option>
-        <option value="BankTransfer">Bank Transfer</option>
-        <option value="Cashless">Cashless</option>
         <option value="Split">Split Payment</option>
       </select>
-      {(method === 'BankTransfer' || method === 'Split') && (
-        <input type="text" value={bankNote} onChange={(e) => setBankNote(e.target.value)} placeholder="Which bank?" className="w-full rounded border border-input-border bg-input-bg px-2 py-1 text-xs" />
-      )}
       {method === 'Split' && (
         <div className="space-y-1">
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             <div>
               <label className="block text-[10px] text-text-muted">Cash</label>
-              <input type="number" min="0" step="0.01" value={splitCash} onChange={(e) => setSplitCash(e.target.value)} className="w-full rounded border border-input-border bg-input-bg px-1.5 py-0.5 text-xs" />
+              <input type="number" min="0" step="0.01" value={splitCash} onChange={(e) => { setSplitCash(e.target.value); setSplitGcash(Math.max(0, lineTotal - (Number(e.target.value) || 0)).toFixed(2)); }} className="w-full rounded border border-input-border bg-input-bg px-1.5 py-0.5 text-xs" />
             </div>
             <div>
               <label className="block text-[10px] text-text-muted">Gcash</label>
-              <input type="number" min="0" step="0.01" value={splitGcash} onChange={(e) => setSplitGcash(e.target.value)} className="w-full rounded border border-input-border bg-input-bg px-1.5 py-0.5 text-xs" />
-            </div>
-            <div>
-              <label className="block text-[10px] text-text-muted">Bank</label>
-              <input type="number" min="0" step="0.01" value={splitBank} onChange={(e) => setSplitBank(e.target.value)} className="w-full rounded border border-input-border bg-input-bg px-1.5 py-0.5 text-xs" />
+              <input type="number" min="0" step="0.01" value={splitGcash} onChange={(e) => { setSplitGcash(e.target.value); setSplitCash(Math.max(0, lineTotal - (Number(e.target.value) || 0)).toFixed(2)); }} className="w-full rounded border border-input-border bg-input-bg px-1.5 py-0.5 text-xs" />
             </div>
           </div>
-          <p className={`text-[10px] ${overAllocated ? 'text-accent-red' : 'text-text-secondary'}`}>
-            Cashless (remainder): {peso(splitCashless)} {overAllocated && '— exceeds total'}
-          </p>
         </div>
       )}
       <div className="flex gap-1.5">
         <button onClick={onCancel} className="flex-1 rounded bg-white/10 px-2 py-1 text-[10px] font-medium text-text-primary hover:bg-white/15">Cancel</button>
-        <button onClick={handleSave} disabled={method === 'Split' && overAllocated} className="flex-1 rounded bg-btn-primary px-2 py-1 text-[10px] font-medium text-btn-primary-text hover:opacity-90 disabled:opacity-50">Save</button>
+        <button onClick={handleSave} className="flex-1 rounded bg-btn-primary px-2 py-1 text-[10px] font-medium text-btn-primary-text hover:opacity-90">Save</button>
       </div>
     </div>
   );

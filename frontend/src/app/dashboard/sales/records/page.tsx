@@ -13,21 +13,17 @@ function paymentDotColor(pm: PaymentMethod) {
   switch (pm) {
     case 'Cash': return 'bg-accent-green';
     case 'Gcash': return 'bg-accent-blue';
-    case 'BankTransfer': return 'bg-accent-purple-light';
-    case 'Cashless': return 'bg-accent-orange';
     default: return 'bg-text-muted';
   }
 }
-function itemPaymentLabel(item: { paymentMethod: PaymentMethod; bankNote?: string | null; paymentSplit?: { cash: number; gcash: number; bankTransfer: number; cashless: number } | null }) {
+function itemPaymentLabel(item: { paymentMethod: PaymentMethod; bankNote?: string | null; paymentSplit?: { cash: number; gcash: number } | null }) {
   if (item.paymentMethod === 'Split' && item.paymentSplit) {
     const parts: string[] = [];
     if (item.paymentSplit.cash > 0) parts.push(`₱${item.paymentSplit.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })} Cash`);
     if (item.paymentSplit.gcash > 0) parts.push(`₱${item.paymentSplit.gcash.toLocaleString(undefined, { minimumFractionDigits: 2 })} Gcash`);
-    if (item.paymentSplit.bankTransfer > 0) parts.push(`₱${item.paymentSplit.bankTransfer.toLocaleString(undefined, { minimumFractionDigits: 2 })} Bank`);
-    if (item.paymentSplit.cashless > 0) parts.push(`₱${item.paymentSplit.cashless.toLocaleString(undefined, { minimumFractionDigits: 2 })} Cashless`);
     return parts.join(' · ') || 'Split';
   }
-  if (item.paymentMethod === 'BankTransfer') return `Bank Transfer${item.bankNote ? ` (${item.bankNote})` : ''}`;
+  return item.paymentMethod;
   return item.paymentMethod;
 }
 
@@ -54,7 +50,7 @@ export default function SalesRecordsPage() {
   });
 
   const sales = data?.data ?? [];
-  const summary = data?.summary ?? { cash: 0, gcash: 0, bankTransfer: 0, cashless: 0, total: 0, count: 0 };
+  const summary = data?.summary ?? { cash: 0, gcash: 0, total: 0, count: 0 };
 
   // Today's approved Total Sales / Total Expenses / Net for the selected
   // shop — always about today, independent of whatever date range the
@@ -204,11 +200,9 @@ export default function SalesRecordsPage() {
         {/* Summary */}
         <div className="p-4 border-t border-card-border">
           <div className="border-l-4 border-accent-blue pl-4 space-y-1">
-            <p className="text-sm text-text-primary"><span className="font-medium">Total for Cash:</span> {peso(summary.cash)}</p>
-            <p className="text-sm text-text-primary"><span className="font-medium">Total for Gcash:</span> {peso(summary.gcash)}</p>
-            <p className="text-sm text-text-primary"><span className="font-medium">Total for Bank Transfer:</span> {peso(summary.bankTransfer)}</p>
-            <p className="text-sm text-text-primary"><span className="font-medium">Total for Cashless:</span> {peso(summary.cashless)}</p>
-            <p className="text-sm text-text-primary font-bold">Total for All Sales: {peso(summary.total)}</p>
+            <p className="text-sm text-text-primary font-semibold">Total Sales: {peso(summary.total)}</p>
+            <p className="text-sm text-text-primary"><span className="font-medium">Total Cash:</span> {peso(summary.cash)}</p>
+            <p className="text-sm text-text-primary"><span className="font-medium">Total Gcash:</span> {peso(summary.gcash)}</p>
           </div>
         </div>
       </div>
