@@ -4,9 +4,13 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { PaymentMethod, PaymentSplit } from './types';
 
-// A single line in the staff's draft order (the "bag"). Prices are snapshots
-// for display only; the backend re-snapshots them when the sale is created.
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+// A single line in the staff's draft order (the "bag").
 export interface DraftItem {
+  id: string;
   productId: string;
   name: string;
   brandName: string;
@@ -17,13 +21,11 @@ export interface DraftItem {
   bankNote?: string | null;
   note?: string | null;
   paymentSplit?: PaymentSplit | null;
-  // ISO timestamp of when this item was added to the draft.
   addedAt?: string;
 }
 
-// A staged "to dispose" line — same shape as DraftItem, minus a price
-// (disposals are valued at the product's current selling price server-side).
 export interface DraftDisposalItem {
+  id: string;
   productId: string;
   name: string;
   brandName: string;
@@ -32,7 +34,6 @@ export interface DraftDisposalItem {
   addedAt?: string;
 }
 
-// A staged expense entry (e.g. ₱300, "Water bill").
 export interface DraftExpense {
   amount: number;
   note: string;
@@ -44,17 +45,17 @@ interface DraftState {
   disposalItems: DraftDisposalItem[];
   expenses: DraftExpense[];
   customerName: string;
-  addItem: (item: Omit<DraftItem, 'quantity' | 'addedAt'>, quantity?: number) => void;
-  setQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
-  updateItemPayment: (productId: string, updates: {
+  addItem: (item: Omit<DraftItem, 'id' | 'quantity' | 'addedAt'>, quantity?: number) => void;
+  setQuantity: (id: string, quantity: number) => void;
+  removeItem: (id: string) => void;
+  updateItemPayment: (id: string, updates: {
     paymentMethod: PaymentMethod;
     bankNote?: string | null;
     paymentSplit?: PaymentSplit | null;
   }) => void;
-  addDisposalItem: (item: Omit<DraftDisposalItem, 'quantity'>, quantity?: number) => void;
-  setDisposalQuantity: (productId: string, quantity: number) => void;
-  removeDisposalItem: (productId: string) => void;
+  addDisposalItem: (item: Omit<DraftDisposalItem, 'id' | 'quantity'>, quantity?: number) => void;
+  setDisposalQuantity: (id: string, quantity: number) => void;
+  removeDisposalItem: (id: string) => void;
   addExpense: (expense: DraftExpense) => void;
   removeExpense: (index: number) => void;
   setCustomerName: (name: string) => void;
@@ -62,15 +63,6 @@ interface DraftState {
   replaceAll: (items: DraftItem[], disposalItems: DraftDisposalItem[], expenses: DraftExpense[]) => void;
 }
 
-/**
- * Client-side draft order for staff — items to sell, items to write off, and
- * expenses to log, all staged here before a single "Save Order" submits
- * everything together. Persisted to localStorage so an accidental refresh
- * doesn't lose an in-progress order.
- *
- * NOTE: Product images are NOT stored here to avoid localStorage overflow
- * (5MB browser limit). Images are loaded from product data at render time.
- */
 export const useDraftStore = create<DraftState>()(
   persist(
     (set) => ({
@@ -79,13 +71,13 @@ export const useDraftStore = create<DraftState>()(
       expenses: [],
       customerName: '',
       addItem: (item, quantity = 1) =>
-        set((state) => {
-          return { items: [...state.items, { ...item, quantity, addedAt: new Date().toISOString() }] };
-        }),
-      setQuantity: (productId, quantity) =>
+        set((state) => ({
+          items: [...state.items, { ...item, id: generateId(), quantity, addedAt: new Date().toISOString() }],
+        })),
+      setQuantity: (id, quantity) =>
         set((state) => ({
           items: state.items.map((i) => {
-            if (i.productId !== productId) return i;
+            if (i.id !== id) return i;
             const newQty = Math.max(1, quantity);
             if (i.paymentMethod === 'Split' && i.paymentSplit && newQty !== i.quantity) {
               return { ...i, quantity: newQty, paymentMethod: 'Cash' as PaymentMethod, paymentSplit: null };
@@ -93,13 +85,13 @@ export const useDraftStore = create<DraftState>()(
             return { ...i, quantity: newQty };
           }),
         })),
-      removeItem: (productId) =>
-        set((state) => ({ items: state.items.filter((i) => i.productId !== productId) })),
+      removeItem: (id) =>
+        set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
 
-      updateItemPayment: (productId, updates) =>
+      updateItemPayment: (id, updates) =>
         set((state) => ({
           items: state.items.map((i) =>
-            i.productId === productId ? { ...i, ...updates } : i,
+            i.id === id ? { ...i, ...updates } : i,
           ),
         })),
 
@@ -115,17 +107,17 @@ export const useDraftStore = create<DraftState>()(
               ),
             };
           }
-          return { disposalItems: [...state.disposalItems, { ...item, quantity, addedAt: new Date().toISOString() }] };
+          return { disposalItems: [...state.disposalItems, { ...item, id: generateId(), quantity, addedAt: new Date().toISOString() }] };
         }),
-      setDisposalQuantity: (productId, quantity) =>
+      setDisposalQuantity: (id, quantity) =>
         set((state) => ({
           disposalItems: state.disposalItems.map((i) =>
-            i.productId === productId ? { ...i, quantity: Math.max(1, quantity) } : i,
+            i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i,
           ),
         })),
-      removeDisposalItem: (productId) =>
+      removeDisposalItem: (id) =>
         set((state) => ({
-          disposalItems: state.disposalItems.filter((i) => i.productId !== productId),
+          disposalItems: state.disposalItems.filter((i) => i.id !== id),
         })),
 
       addExpense: (expense) => set((state) => ({ expenses: [...state.expenses, { ...expense, addedAt: new Date().toISOString() }] })),
@@ -140,7 +132,6 @@ export const useDraftStore = create<DraftState>()(
     }),
     {
       name: 'vape-shop-draft',
-      // Safe storage wrapper — catches localStorage overflow errors
       storage: {
         getItem: (name) => {
           try {
@@ -154,7 +145,6 @@ export const useDraftStore = create<DraftState>()(
           try {
             localStorage.setItem(name, JSON.stringify(value));
           } catch {
-            // localStorage full — silently fail rather than crash the app
             console.warn('Draft could not be saved to localStorage (storage full?)');
           }
         },
