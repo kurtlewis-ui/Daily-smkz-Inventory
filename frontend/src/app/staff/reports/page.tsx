@@ -22,16 +22,13 @@ function formatDate(iso: string) {
     year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 }
-function itemPaymentLabel(item: { paymentMethod: string; bankNote?: string | null; paymentSplit?: { cash: number; gcash: number; bankTransfer: number; cashless: number } | null }) {
+function itemPaymentLabel(item: { paymentMethod: string; bankNote?: string | null; paymentSplit?: { cash: number; gcash: number } | null }) {
   if (item.paymentMethod === 'Split' && item.paymentSplit) {
     const parts: string[] = [];
     if (item.paymentSplit.cash > 0) parts.push(`₱${item.paymentSplit.cash.toLocaleString(undefined, { minimumFractionDigits: 2 })} Cash`);
     if (item.paymentSplit.gcash > 0) parts.push(`₱${item.paymentSplit.gcash.toLocaleString(undefined, { minimumFractionDigits: 2 })} Gcash`);
-    if (item.paymentSplit.bankTransfer > 0) parts.push(`₱${item.paymentSplit.bankTransfer.toLocaleString(undefined, { minimumFractionDigits: 2 })} Bank`);
-    if (item.paymentSplit.cashless > 0) parts.push(`₱${item.paymentSplit.cashless.toLocaleString(undefined, { minimumFractionDigits: 2 })} Cashless`);
     return parts.join(' · ') || 'Split';
   }
-  if (item.paymentMethod === 'BankTransfer') return `Bank Transfer${item.bankNote ? ` (${item.bankNote})` : ''}`;
   return item.paymentMethod;
 }
 function todayLocalDate() {
@@ -70,7 +67,7 @@ export default function StaffDailyReportPage() {
     endDate: today,
   });
   const approvedSales = data?.data ?? [];
-  const summary = data?.summary ?? { cash: 0, gcash: 0, bankTransfer: 0, cashless: 0, total: 0, count: 0 };
+  const summary = data?.summary ?? { cash: 0, gcash: 0, total: 0, count: 0 };
 
   const { data: pendingData } = useSalesPending({
     search: search || undefined,
@@ -262,11 +259,9 @@ export default function StaffDailyReportPage() {
       <div className="mt-4 rounded-xl border border-card-border bg-card-bg p-4 shadow-sm">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-text-muted mb-2">Totals below reflect approved sales only — pending sales are not included.</p>
         <div className="border-l-4 border-accent-blue pl-4 text-right space-y-1">
-          <p className="text-sm text-text-secondary">Total for Cash: <span className="font-medium text-text-primary">{peso(summary.cash)}</span></p>
-          <p className="text-sm text-text-secondary">Total for Gcash: <span className="font-medium text-text-primary">{peso(summary.gcash)}</span></p>
-          <p className="text-sm text-text-secondary">Total for Bank Transfer: <span className="font-medium text-text-primary">{peso(summary.bankTransfer)}</span></p>
-          <p className="text-sm text-text-secondary">Total for Cashless: <span className="font-medium text-text-primary">{peso(summary.cashless)}</span></p>
-          <p className="text-sm font-bold text-text-primary">Total for All Sales: {peso(summary.total)}</p>
+          <p className="text-sm font-semibold text-text-primary">Total Sales: <span className="font-bold">{peso(summary.total)}</span></p>
+          <p className="text-sm text-text-secondary">Total Cash: <span className="font-medium text-text-primary">{peso(summary.cash)}</span></p>
+          <p className="text-sm text-text-secondary">Total Gcash: <span className="font-medium text-text-primary">{peso(summary.gcash)}</span></p>
         </div>
       </div>
 

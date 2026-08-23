@@ -497,7 +497,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
   async function handleImageFile(file: File) {
     setImageError(null);
     try {
-      const dataUrl = await fileToResizedDataUrl(file, 512, 0.85);
+      const dataUrl = await fileToResizedDataUrl(file, 256, 0.7);
       setFormImage(dataUrl);
     } catch (e) {
       setImageError(e instanceof Error ? e.message : 'Could not process the image.');
