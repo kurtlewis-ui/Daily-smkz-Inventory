@@ -403,13 +403,8 @@ function DraftBag() {
 
   // If the server's draft content differs from what we have locally while
   // we weren't actively editing, something changed it that wasn't us — most
-  // likely an admin declined an item and it was copied back in here. Adopt
-  // the server's version (it can only add what we don't already know about,
-  // since in the idle case our local copy should already mirror whatever we
-  // last pushed). Skips the very first resolved fetch so a fresh page load
-  // gets one full debounce cycle to push any not-yet-synced local edits up
-  // before we start comparing — otherwise a slow first poll could clobber
-  // them with whatever stale content the server still has.
+  // likely an admin declined an item and it was copied back in here. MERGE
+  // server items with local items (don't overwrite — preserve staff's new work).
   const readyToReconcile = useRef(false);
   useEffect(() => {
     if (!myDraftExists?.exists) return;
@@ -421,7 +416,31 @@ function DraftBag() {
     const serverSig = JSON.stringify([myDraftExists.items, myDraftExists.disposalItems, myDraftExists.expenses]);
     const localSig = JSON.stringify([items, disposalItems, expenses]);
     if (serverSig === localSig) return;
-    replaceAll(ensureIds(myDraftExists.items), ensureIds(myDraftExists.disposalItems), myDraftExists.expenses);
+
+    // MERGE: append server items that don't already exist locally
+    const localProductIds = new Set(items.map((i) => i.productId));
+    const newServerItems = (myDraftExists.items ?? []).filter(
+      (si: { productId: string }) => !localProductIds.has(si.productId),
+    );
+
+    const localDisposalIds = new Set(disposalItems.map((i) => i.productId));
+    const newServerDisposals = (myDraftExists.disposalItems ?? []).filter(
+      (si: { productId: string }) => !localDisposalIds.has(si.productId),
+    );
+
+    const localExpSigs = new Set(expenses.map((e) => `${e.amount}|${e.note}`));
+    const newServerExpenses = (myDraftExists.expenses ?? []).filter(
+      (se: { amount: number; note: string }) => !localExpSigs.has(`${se.amount}|${se.note}`),
+    );
+
+    // Only update if there are actually new items from the server
+    if (newServerItems.length > 0 || newServerDisposals.length > 0 || newServerExpenses.length > 0) {
+      const mergedItems = [...items, ...ensureIds(newServerItems)];
+      const mergedDisposals = [...disposalItems, ...ensureIds(newServerDisposals)];
+      const mergedExpenses = [...expenses, ...newServerExpenses];
+      suppressNextSync.current = true;
+      replaceAll(mergedItems, mergedDisposals, mergedExpenses);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myDraftExists]);
 
