@@ -243,21 +243,19 @@ export default function StaffDailyReportPage() {
         </div>
       )}
 
-      {/* Summary — all submitted today (pending + approved, excluding declined) */}
-      <div className="mt-4 rounded-xl border border-card-border bg-card-bg p-4 shadow-sm">
-        <div className="border-l-4 border-accent-blue pl-4 text-right space-y-1">
-          <p className="text-sm font-semibold text-text-primary">Total Sales: <span className="font-bold">{peso(allSales.reduce((sum, s) => sum + s.total, 0))}</span></p>
-          <p className="text-sm text-text-secondary">Total Cash: <span className="font-medium text-text-primary">{peso(allSales.reduce((sum, s) => s.items.filter((i) => i.paymentMethod === 'Cash' || (i.paymentMethod === 'Split' && i.paymentSplit)).reduce((a, i) => a + (i.paymentMethod === 'Cash' ? i.subTotal : (i.paymentSplit as any)?.cash ?? 0), 0) + sum, 0))}</span></p>
-          <p className="text-sm text-text-secondary">Total Gcash: <span className="font-medium text-text-primary">{peso(allSales.reduce((sum, s) => s.items.filter((i) => i.paymentMethod === 'Gcash' || (i.paymentMethod === 'Split' && i.paymentSplit)).reduce((a, i) => a + (i.paymentMethod === 'Gcash' ? i.subTotal : (i.paymentSplit as any)?.gcash ?? 0), 0) + sum, 0))}</span></p>
-          <p className="text-sm text-text-secondary">Total Expenses: <span className="font-medium text-text-primary">{peso(allExpenses.reduce((sum, e) => sum + e.amount, 0))}</span></p>
-          <div className="border-t border-card-border pt-1 mt-1">
-            <p className="text-sm font-bold text-text-primary">Total Net Sales: {peso(allSales.reduce((sum, s) => sum + s.total, 0) - allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
+      {/* Pending Sales Summary — only for pending items */}
+      {sales.length > 0 && (
+        <div className="mt-4 rounded-xl border border-card-border bg-card-bg p-4 shadow-sm">
+          <div className="border-l-4 border-accent-blue pl-4 text-right space-y-1">
+            <p className="text-sm font-semibold text-text-primary">Total Sales: <span className="font-bold">{peso(sales.reduce((sum, s) => sum + s.total, 0))}</span></p>
+            <p className="text-sm text-text-secondary">Total Cash: <span className="font-medium text-text-primary">{peso(sales.reduce((sum, s) => s.items.filter((i) => i.paymentMethod === 'Cash' || (i.paymentMethod === 'Split' && i.paymentSplit)).reduce((a, i) => a + (i.paymentMethod === 'Cash' ? i.subTotal : (i.paymentSplit as any)?.cash ?? 0), 0) + sum, 0))}</span></p>
+            <p className="text-sm text-text-secondary">Total Gcash: <span className="font-medium text-text-primary">{peso(sales.reduce((sum, s) => s.items.filter((i) => i.paymentMethod === 'Gcash' || (i.paymentMethod === 'Split' && i.paymentSplit)).reduce((a, i) => a + (i.paymentMethod === 'Gcash' ? i.subTotal : (i.paymentSplit as any)?.gcash ?? 0), 0) + sum, 0))}</span></p>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Today's Disposals — pending (tagged) + approved, declined excluded */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
+      {/* Today's Disposals — PENDING only */}
+      <div className="mt-6 overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
         <div className="border-b border-card-border p-4">
           <h2 className="text-sm font-bold text-text-primary">Today&apos;s Disposals</h2>
         </div>
@@ -293,8 +291,8 @@ export default function StaffDailyReportPage() {
         )}
       </div>
 
-      {/* Today's Expenses — pending (tagged) + approved, declined excluded */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
+      {/* Today's Expenses — PENDING only */}
+      <div className="mt-6 overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
         <div className="border-b border-card-border p-4">
           <h2 className="text-sm font-bold text-text-primary">Today&apos;s Expenses</h2>
         </div>
@@ -324,26 +322,23 @@ export default function StaffDailyReportPage() {
         )}
       </div>
 
-      {/* Today's Summary — always visible */}
-      {allSales.length > 0 && (
-        <div className="mt-4 rounded-xl border border-card-border bg-card-bg p-4 shadow-sm">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Today Summary</p>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div>
-              <p className="text-xs text-text-secondary">Total Sales</p>
-              <p className="text-lg font-bold text-text-primary">{peso(allSales.reduce((sum, s) => sum + s.total, 0))}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-secondary">Total Expenses</p>
-              <p className="text-lg font-bold text-accent-red">{peso(allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
-            </div>
-            <div>
-              <p className="text-xs text-text-secondary">Net</p>
-              <p className="text-lg font-bold text-text-primary">{peso(allSales.reduce((sum, s) => sum + s.total, 0) - allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
-            </div>
+      {/* Today's Totals — always visible */}
+      <div className="mt-6 rounded-xl border border-card-border bg-card-bg p-5 shadow-sm">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-xs text-text-secondary mb-1">Total Sales</p>
+            <p className="text-lg font-bold text-text-primary">{peso(allSales.reduce((sum, s) => sum + s.total, 0))}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary mb-1">Total Expenses</p>
+            <p className="text-lg font-bold text-accent-red">{peso(allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary mb-1">Net</p>
+            <p className="text-lg font-bold text-text-primary">{peso(allSales.reduce((sum, s) => sum + s.total, 0) - allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
           </div>
         </div>
-      )}
+      </div>
 
       {showDisposals && <PendingDisposalsModal onClose={() => setShowDisposals(false)} />}
     </div>
