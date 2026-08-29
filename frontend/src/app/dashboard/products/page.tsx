@@ -268,12 +268,19 @@ export default function ProductsPage() {
                       <span className="font-medium text-text-primary">₱{(product.quantities.find((q) => q.branchId === shopFilter)?.sellingPrice ?? product.sellingPrice).toFixed(2)}</span>
                     ) : (
                       <div className="space-y-0.5">
-                        {product.quantities.map((q) => (
-                          <div key={q.branchId} className="text-xs">
-                            <span className="font-medium text-text-primary">₱{(q.sellingPrice ?? product.sellingPrice).toFixed(2)}</span>
-                          </div>
-                        ))}
-                        {product.quantities.length === 0 && <span className="text-text-muted">₱{product.sellingPrice.toFixed(2)}</span>}
+                        {/* Key each price to its branch by ID so it aligns row-for-row with
+                            the QUANTITY column (which also maps over `branches`). Iterating
+                            product.quantities directly relied on Prisma row order and caused
+                            prices to appear next to the wrong branch. */}
+                        {branches.map((b) => {
+                          const price = product.quantities.find((q) => q.branchId === b.id)?.sellingPrice ?? product.sellingPrice;
+                          return (
+                            <div key={b.id} className="text-xs">
+                              <span className="font-medium text-text-primary">₱{price.toFixed(2)}</span>
+                            </div>
+                          );
+                        })}
+                        {branches.length === 0 && <span className="text-text-muted">₱{product.sellingPrice.toFixed(2)}</span>}
                       </div>
                     )}
                   </td>
