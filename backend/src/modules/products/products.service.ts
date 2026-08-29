@@ -172,24 +172,13 @@ export class ProductsService {
 
     await this.prisma.product.update({ where: { id }, data });
 
-    // When sellingPrice is updated at product level (All Shops edit),
-    // update ALL existing inventory rows for this product.
-    if (dto.sellingPrice !== undefined) {
-      await this.prisma.inventory.updateMany({
-        where: { productId: id },
-        data: { sellingPrice: dto.sellingPrice },
-      });
-    } else {
-      // Auto-fill: any inventory rows with NULL selling_price get the product's current price.
-      // This self-heals legacy data that didn't have per-branch pricing.
-      const product = await this.prisma.product.findUnique({ where: { id }, select: { sellingPrice: true } });
-      if (product) {
-        await this.prisma.inventory.updateMany({
-          where: { productId: id, sellingPrice: null },
-          data: { sellingPrice: Number(product.sellingPrice) },
-        });
-      }
-    }
+    // DIRECT PER-BRANCH PRICING (no override, no fallback wiping):
+    // The product-level `sellingPrice` is ONLY a default/reference used when a
+    // brand-new branch inventory row is created without its own price. Editing
+    // it must NEVER overwrite prices that branches already have. Each branch
+    // owns its price via inventory.sellingPrice and is updated ONLY through the
+    // per-branch quantities payload below. This is the fix for the bug where an
+    // "All Shops" edit flattened every branch back to the default price.
 
     // Upsert per-branch quantities when provided, and log stock movements.
     if (dto.quantities?.length) {
