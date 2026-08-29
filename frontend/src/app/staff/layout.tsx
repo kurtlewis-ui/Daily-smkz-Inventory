@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/lib/store';
 import { useDraftStore, type DraftItem } from '@/lib/draft';
 import { useThemeStore } from '@/lib/theme';
-import { useSaveDraft, useClearDraftSync, useSaveMyDraft, useMyDraftExists } from '@/lib/hooks';
+import { useSaveDraft, useClearDraftSync, useSaveMyDraft, useMyDraftExists, useMe } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
 import type { PaymentMethod, PaymentSplit } from '@/lib/types';
 import {
@@ -43,13 +43,41 @@ const navItems = [
 export default function StaffLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, accessToken, logout } = useAuthStore();
+  const { user, accessToken, logout, updateUser } = useAuthStore();
   const { contentTheme, toggleContentTheme } = useThemeStore();
   const [mounted, setMounted] = useState(false);
   const [themeAnimKey, setThemeAnimKey] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  // Keep the staff's profile (esp. their assigned branch) in sync with the
+  // server. When an owner/admin reassigns this staff to a different shop, the
+  // change is written to the DB immediately but the branch shown here comes
+  // from the localStorage-persisted auth store, which otherwise only refreshes
+  // on login or a 401-triggered token refresh (up to ~15 min). Polling /auth/me
+  // and reconciling the store makes the reassignment show up within seconds.
+  const { data: me } = useMe();
+  useEffect(() => {
+    if (!me) return;
+    const branchChanged =
+      (me.branch?.id ?? null) !== (user?.branch?.id ?? null);
+    const roleChanged = me.role?.name !== user?.role?.name;
+    const nameChanged =
+      me.firstName !== user?.firstName || me.lastName !== user?.lastName;
+    const avatarChanged = me.avatarUrl !== user?.avatarUrl;
+    if (branchChanged || roleChanged || nameChanged || avatarChanged) {
+      updateUser({
+        branch: me.branch ?? null,
+        role: me.role,
+        firstName: me.firstName,
+        lastName: me.lastName,
+        middleInitial: me.middleInitial,
+        avatarUrl: me.avatarUrl,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me]);
 
   // Close sidebar on navigation
   useEffect(() => {

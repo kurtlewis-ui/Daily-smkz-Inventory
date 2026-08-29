@@ -431,7 +431,8 @@ export function useCreateSale() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (body: SaleCreateInput) => api.post('/sales', body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['sales'], ['stats']),
+    // Creating a sale reserves (decrements) stock — refresh products.
+    onSuccess: () => invalidate(['sales'], ['products'], ['stats']),
   });
 }
 
@@ -456,7 +457,8 @@ export function useDeclineSale() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (id: string) => api.post(`/sales/${id}/decline`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['sales'], ['stats']),
+    // Declining a pending sale restores (increments) stock — refresh products.
+    onSuccess: () => invalidate(['sales'], ['products'], ['stats']),
   });
 }
 
@@ -464,7 +466,8 @@ export function useDeleteSale() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/sales/${id}`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['sales'], ['stats']),
+    // Deleting a pending sale restores (increments) stock — refresh products.
+    onSuccess: () => invalidate(['sales'], ['products'], ['stats']),
   });
 }
 
@@ -527,7 +530,9 @@ export function useSaveMyDraft() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: () => api.post('/sales/draft/save').then((r) => r.data.data as SaveDraftResult),
-    onSuccess: () => invalidate(['sales'], ['disposals'], ['expenses'], ['stats']),
+    // ['products'] refreshes the staff Products page so stock visibly drops
+    // once the order (and any staged disposals) are submitted.
+    onSuccess: () => invalidate(['sales'], ['disposals'], ['expenses'], ['products'], ['stats']),
   });
 }
 
@@ -568,8 +573,9 @@ export function useSaveDraftForStaff() {
   return useMutation({
     mutationFn: (staffId: string) =>
       api.post(`/sales/drafts/${staffId}/save`).then((r) => r.data.data),
+    // Submitting a staff draft reserves (decrements) stock — refresh products.
     onSuccess: () =>
-      invalidate(['staff-drafts'], ['sales'], ['disposals'], ['expenses'], ['stats']),
+      invalidate(['staff-drafts'], ['sales'], ['disposals'], ['expenses'], ['products'], ['stats']),
   });
 }
 
@@ -677,7 +683,8 @@ export function useDeclineDisposal() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (id: string) => api.post(`/disposals/${id}/decline`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['disposals']),
+    // Declining a pending disposal restores (increments) stock — refresh products.
+    onSuccess: () => invalidate(['disposals'], ['products'], ['stats']),
   });
 }
 
@@ -778,6 +785,12 @@ export function useMe() {
   return useQuery({
     queryKey: ['me'],
     queryFn: () => getData<AuthUser>('/auth/me'),
+    // Poll so a server-side profile change (e.g. an owner/admin reassigning
+    // this staff to a different branch) is picked up within seconds instead
+    // of waiting for the next login or token refresh. Also refetch when the
+    // user returns to the tab.
+    refetchInterval: shouldPoll,
+    refetchOnWindowFocus: true,
   });
 }
 
