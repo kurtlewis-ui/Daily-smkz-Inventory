@@ -173,14 +173,14 @@ export default function StaffDailyReportPage() {
               </tr>
             </thead>
             <tbody>
-              {sales.map((sale, saleIdx) => (
+              {sales.map((sale) => (
                 <Fragment key={sale.id}>
                   {sale.items.map((item, idx) => (
                     <tr key={item.id} className="border-t border-card-border">
                       <td className="px-4 py-3 text-sm font-medium text-text-primary">
                         {idx === 0 && (
                           <>
-                            {`#${saleIdx + 1}`}
+                            {`#${sale.number}`}
                             {sale.customerName && (
                               <p className="text-[10px] font-normal text-accent-blue mt-0.5">{sale.customerName}</p>
                             )}
@@ -206,7 +206,7 @@ export default function StaffDailyReportPage() {
                   ))}
                   <tr className="bg-surface-muted border-t border-card-border">
                     <td colSpan={8} className="px-4 py-2 text-sm font-semibold text-text-primary">
-                      Total for Sale #{saleIdx + 1}: {peso(sale.total)}
+                      Total for Sale #{sale.number}: {peso(sale.total)}
                     </td>
                   </tr>
                 </Fragment>
