@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -31,9 +32,10 @@ export class RestockItemDto {
   @IsString()
   branchName?: string;
 
-  @ApiProperty({ description: 'Quantity to ADD to current stock', example: 10 })
+  @ApiProperty({ description: 'Quantity to ADD to current stock (must be at least 1)', example: 10 })
   @Type(() => Number)
   @IsInt()
+  @Min(1, { message: 'Restock quantity must be at least 1' })
   quantity: number;
 }
 

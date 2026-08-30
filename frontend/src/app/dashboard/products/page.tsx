@@ -41,7 +41,11 @@ export default function ProductsPage() {
   });
   const isOwner = useAuthStore((s) => s.user?.role?.name === 'Owner');
 
-  const { data, isLoading, isError, error } = useProducts({ search, brandId: brandFilter || undefined });
+  // Fetch the max the backend allows (200) so ALL products are available for
+  // the client-side pagination/slicing below. Without this the query defaulted
+  // to 20, so the "Show 50/100/All" control and paging past 20 showed nothing
+  // beyond the first 20 rows.
+  const { data, isLoading, isError, error } = useProducts({ search, brandId: brandFilter || undefined, limit: 200 });
   const products = data?.data ?? [];
 
   const createProduct = useCreateProduct();
