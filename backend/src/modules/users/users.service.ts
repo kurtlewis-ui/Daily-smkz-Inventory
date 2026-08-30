@@ -39,9 +39,11 @@ export class UsersService {
       throw new NotFoundException('Role not found');
     }
 
-    // Admin cannot create Owner accounts
-    if (actorRole === 'Admin' && role.name === 'Owner') {
-      throw new ForbiddenException('Admins cannot create Owner accounts');
+    // Only an Owner may create Owner accounts. An Admin (or anyone who is not
+    // an Owner) is blocked from minting a new Owner — this closes the
+    // privilege-escalation path where an Admin creates a boss-level account.
+    if (actorRole !== 'Owner' && role.name === 'Owner') {
+      throw new ForbiddenException('Only an Owner can create Owner accounts');
     }
 
     // Verify branch exists if provided
@@ -119,8 +121,9 @@ export class UsersService {
 
     // Role-based visibility:
     // - Owner sees all users (Owner + Admin + Staff)
-    // - Admin sees only Admin + Staff (Owner accounts are hidden)
-    if (actorRole === 'Admin') {
+    // - Everyone else (e.g. Admin) sees only Admin + Staff — Owner accounts
+    //   are hidden from non-Owners.
+    if (actorRole !== 'Owner') {
       where.role = { name: { in: ['Admin', 'Staff'] } };
     }
 
@@ -220,9 +223,10 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    // Admin cannot edit Owner accounts
-    if (actorRole === 'Admin' && currentUser.role.name === 'Owner') {
-      throw new ForbiddenException('Admins cannot edit Owner accounts');
+    // Only an Owner may edit an existing Owner account. A non-Owner (e.g.
+    // Admin) cannot modify a boss-level account.
+    if (actorRole !== 'Owner' && currentUser.role.name === 'Owner') {
+      throw new ForbiddenException('Only an Owner can edit Owner accounts');
     }
 
     // If changing role, verify new role exists
@@ -233,6 +237,13 @@ export class UsersService {
 
       if (!newRole) {
         throw new NotFoundException('Role not found');
+      }
+
+      // Only an Owner may promote anyone TO Owner. This blocks a non-Owner
+      // from escalating themselves or another user to boss level by changing
+      // their role to Owner.
+      if (actorRole !== 'Owner' && newRole.name === 'Owner') {
+        throw new ForbiddenException('Only an Owner can grant the Owner role');
       }
     }
 
