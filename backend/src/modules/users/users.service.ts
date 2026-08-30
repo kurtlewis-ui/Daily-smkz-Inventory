@@ -278,6 +278,24 @@ export class UsersService {
       },
     });
 
+    // Security: if this update deactivates the account or changes its ROLE,
+    // force the user to re-authenticate immediately by clearing their
+    // sessions. Otherwise the change would only take effect when their current
+    // access token expires (up to ~15 min later) — meaning a deactivated or
+    // demoted user could keep full access in the meantime.
+    //
+    // NOTE: a BRANCH change is deliberately NOT session-clearing — PR #30 made
+    // branch reassignment reflect quickly without logging the staff out (the
+    // staff app polls /auth/me), so there's no need to disrupt their session.
+    const deactivated =
+      updateUserDto.isActive === false && currentUser.isActive !== false;
+    const roleChanged =
+      updateUserDto.roleId !== undefined &&
+      updateUserDto.roleId !== currentUser.roleId;
+    if (deactivated || roleChanged) {
+      await this.prisma.session.deleteMany({ where: { userId: id } });
+    }
+
     // Create audit log
     await this.prisma.auditLog.create({
       data: {

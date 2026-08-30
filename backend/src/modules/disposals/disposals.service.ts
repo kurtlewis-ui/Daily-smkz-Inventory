@@ -157,9 +157,24 @@ export class DisposalsService {
       }
 
       if (disposal.productId) {
-        await tx.inventory.updateMany({
-          where: { productId: disposal.productId, branchId: disposal.branchId },
-          data: { quantity: { increment: disposal.quantity } },
+        // Restore the reserved stock. Use upsert so that if the branch's
+        // inventory row no longer exists (e.g. it was removed after the
+        // disposal was created), the stock is still returned by recreating
+        // the row — instead of an updateMany silently matching nothing and
+        // losing the stock.
+        await tx.inventory.upsert({
+          where: {
+            productId_branchId: {
+              productId: disposal.productId,
+              branchId: disposal.branchId,
+            },
+          },
+          create: {
+            productId: disposal.productId,
+            branchId: disposal.branchId,
+            quantity: disposal.quantity,
+          },
+          update: { quantity: { increment: disposal.quantity } },
         });
       }
 
