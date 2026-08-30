@@ -10,6 +10,7 @@ import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { QuerySaleDto } from './dto/query-sale.dto';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
+import { businessDateOnly } from '../../common/utils/business-day.util';
 
 @Injectable()
 export class SalesService {
@@ -599,8 +600,10 @@ export class SalesService {
    * back at 1 every day instead of sharing one global, ever-climbing count.
    */
   private async nextDailyNumber(tx: Prisma.TransactionClient, branchId: string): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Reset per branch on the shop's Philippine BUSINESS day (2 AM -> 2 AM),
+    // not calendar midnight. A sale at 1:30 AM PH still belongs to the
+    // previous business day, so it keeps counting up from that day's numbers.
+    const today = businessDateOnly();
     const counter = await tx.dailySaleCounter.upsert({
       where: { branchId_date: { branchId, date: today } },
       create: { branchId, date: today, count: 1 },
