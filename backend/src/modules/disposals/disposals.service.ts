@@ -23,7 +23,8 @@ export class DisposalsService {
     const branchId = await this.resolveBranchForActor(actor, dto.branchId);
 
     const product = await this.prisma.product.findFirst({
-      where: { id: dto.productId, deletedAt: null },
+      // Block archived products AND products from an archived brand.
+      where: { id: dto.productId, deletedAt: null, brand: { deletedAt: null } },
       include: { brand: { select: { name: true } } },
     });
     if (!product) {
@@ -285,12 +286,18 @@ export class DisposalsService {
     if (actor.role === 'Staff') {
       const me = await this.prisma.user.findUnique({
         where: { id: actor.userId },
-        select: { branchId: true },
+        select: { branch: { select: { id: true, deletedAt: true } } },
       });
-      if (!me?.branchId) {
+      if (!me?.branch) {
         throw new BadRequestException('Your account is not assigned to a branch.');
       }
-      return me.branchId;
+      // An archived (closed) branch cannot transact.
+      if (me.branch.deletedAt) {
+        throw new BadRequestException(
+          'Your assigned shop is archived. Ask an admin to assign you to an active shop.',
+        );
+      }
+      return me.branch.id;
     }
     if (!branchId) {
       throw new BadRequestException('branchId is required');

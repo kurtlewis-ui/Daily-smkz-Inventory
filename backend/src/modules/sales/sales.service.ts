@@ -27,9 +27,11 @@ export class SalesService {
 
     // Load all referenced products in one query, including THIS branch's
     // inventory row so we can price each line at the branch's own price.
+    // Block archived products AND products whose brand is archived — an
+    // archived brand/product must not be sellable.
     const productIds = [...new Set(dto.items.map((i) => i.productId))];
     const products = await this.prisma.product.findMany({
-      where: { id: { in: productIds }, deletedAt: null },
+      where: { id: { in: productIds }, deletedAt: null, brand: { deletedAt: null } },
       include: {
         brand: { select: { name: true } },
         inventory: { where: { branchId }, select: { sellingPrice: true } },
@@ -41,7 +43,7 @@ export class SalesService {
     );
 
     if (products.length !== productIds.length) {
-      throw new BadRequestException('One or more products do not exist');
+      throw new BadRequestException('One or more products are unavailable (archived or from an archived brand).');
     }
 
     const items = this.buildSaleItems(dto.items, productMap, branchPriceMap);
@@ -279,14 +281,14 @@ export class SalesService {
     if (dto.items?.length) {
       const productIds = [...new Set(dto.items.map((i) => i.productId))];
       const products = await this.prisma.product.findMany({
-        where: { id: { in: productIds }, deletedAt: null },
+        where: { id: { in: productIds }, deletedAt: null, brand: { deletedAt: null } },
         include: {
           brand: { select: { name: true } },
           inventory: { where: { branchId: sale.branchId }, select: { sellingPrice: true } },
         },
       });
       if (products.length !== productIds.length) {
-        throw new BadRequestException('One or more products do not exist');
+        throw new BadRequestException('One or more products are unavailable (archived or from an archived brand).');
       }
       const productMap = new Map(products.map((p) => [p.id, p]));
       const branchPriceMap = new Map(
@@ -616,14 +618,20 @@ export class SalesService {
     if (actor.role === 'Staff') {
       const me = await this.prisma.user.findUnique({
         where: { id: actor.userId },
-        select: { branchId: true },
+        select: { branch: { select: { id: true, deletedAt: true } } },
       });
-      if (!me?.branchId) {
+      if (!me?.branch) {
         throw new BadRequestException(
           'Your account is not assigned to a branch. Ask an admin to assign one.',
         );
       }
-      return me.branchId;
+      // An archived (closed) branch cannot transact.
+      if (me.branch.deletedAt) {
+        throw new BadRequestException(
+          'Your assigned shop is archived. Ask an admin to assign you to an active shop.',
+        );
+      }
+      return me.branch.id;
     }
 
     if (!branchId) {
