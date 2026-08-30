@@ -24,19 +24,26 @@ export class SalesService {
   async create(dto: CreateSaleDto, actor: RequestUser) {
     const branchId = await this.resolveBranchForActor(actor, dto.branchId);
 
-    // Load all referenced products in one query.
+    // Load all referenced products in one query, including THIS branch's
+    // inventory row so we can price each line at the branch's own price.
     const productIds = [...new Set(dto.items.map((i) => i.productId))];
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds }, deletedAt: null },
-      include: { brand: { select: { name: true } } },
+      include: {
+        brand: { select: { name: true } },
+        inventory: { where: { branchId }, select: { sellingPrice: true } },
+      },
     });
     const productMap = new Map(products.map((p) => [p.id, p]));
+    const branchPriceMap = new Map(
+      products.map((p) => [p.id, p.inventory[0]?.sellingPrice ?? null]),
+    );
 
     if (products.length !== productIds.length) {
       throw new BadRequestException('One or more products do not exist');
     }
 
-    const items = this.buildSaleItems(dto.items, productMap);
+    const items = this.buildSaleItems(dto.items, productMap, branchPriceMap);
 
     const total = items.reduce(
       (sum, i) => sum.add(i.subTotal),
@@ -272,14 +279,20 @@ export class SalesService {
       const productIds = [...new Set(dto.items.map((i) => i.productId))];
       const products = await this.prisma.product.findMany({
         where: { id: { in: productIds }, deletedAt: null },
-        include: { brand: { select: { name: true } } },
+        include: {
+          brand: { select: { name: true } },
+          inventory: { where: { branchId: sale.branchId }, select: { sellingPrice: true } },
+        },
       });
       if (products.length !== productIds.length) {
         throw new BadRequestException('One or more products do not exist');
       }
       const productMap = new Map(products.map((p) => [p.id, p]));
+      const branchPriceMap = new Map(
+        products.map((p) => [p.id, p.inventory[0]?.sellingPrice ?? null]),
+      );
 
-      newItems = this.buildSaleItems(dto.items, productMap);
+      newItems = this.buildSaleItems(dto.items, productMap, branchPriceMap);
       data.total = newItems.reduce(
         (sum, i) => sum.add(i.subTotal),
         new Prisma.Decimal(0),
@@ -398,14 +411,27 @@ export class SalesService {
     return { message: 'Sale deleted successfully' };
   }
 
-  /** Build full sale item records (with payment resolved) from DTO input. */
+  /**
+   * Build full sale item records (with payment resolved) from DTO input.
+   *
+   * `branchPriceMap` maps productId -> the branch's own inventory.sellingPrice
+   * (when that branch has one). The recorded sale price prefers the per-branch
+   * price and falls back to the product's global default only when the branch
+   * has no price of its own — mirroring ProductsService.serialize(). This is
+   * what makes a sale at, say, Vape City record at that branch's price instead
+   * of the product's global default.
+   */
   private buildSaleItems(
     dtoItems: { productId: string; quantity: number; discount?: number; paymentMethod: PaymentMethod; bankNote?: string; note?: string; paymentSplit?: { cash: number; gcash: number; bankTransfer: number; cashless: number } }[],
     productMap: Map<string, { id: string; name: string; sellingPrice: Prisma.Decimal; costPrice?: Prisma.Decimal; brand: { name: string } }>,
+    branchPriceMap?: Map<string, Prisma.Decimal | null>,
   ) {
     return dtoItems.map((item) => {
       const product = productMap.get(item.productId)!;
-      const unitPrice = new Prisma.Decimal(product.sellingPrice);
+      const branchPrice = branchPriceMap?.get(item.productId);
+      const unitPrice = new Prisma.Decimal(
+        branchPrice != null ? branchPrice : product.sellingPrice,
+      );
       const costPrice = new Prisma.Decimal(product.costPrice ?? 0);
       const lineTotal = unitPrice.mul(item.quantity);
       const discount = new Prisma.Decimal(item.discount || 0);
