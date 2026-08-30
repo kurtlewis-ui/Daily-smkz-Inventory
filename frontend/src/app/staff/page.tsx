@@ -17,11 +17,14 @@ export default function StaffHomePage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const branchName = useAuthStore((s) => s.user?.branch?.name);
+  const branchId = useAuthStore((s) => s.user?.branch?.id);
   const { data, isLoading, isError, error } = useBrands(debouncedSearch);
   const brands = data?.data ?? [];
 
-  // Also fetch products when there's a search query (for cross-brand product search)
-  const { data: productData, isLoading: productsLoading } = useProducts({ search: debouncedSearch });
+  // Also fetch products when there's a search query (for cross-brand product
+  // search). Pass branchId so the price shown in search results is the staff's
+  // branch price, matching the selling page — not the global default.
+  const { data: productData, isLoading: productsLoading } = useProducts({ search: debouncedSearch, branchId });
   const allProducts = productData?.data ?? [];
 
   // Only show products section if the search matches product names but not brand names
