@@ -92,7 +92,13 @@ export default function ProductsPage() {
   function openEditModal(product: Product) {
     setEditingProduct(product);
     setFormName(product.name); setFormBrand(product.brand?.id ?? brands[0]?.id ?? '');
-    setFormPrice(product.sellingPrice.toString()); setFormCostPrice(''); setFormAlert(product.quantityAlert.toString());
+    // When a specific shop is selected, prefill THAT branch's own price so
+    // saving doesn't overwrite the branch price with the global default.
+    // (buildQuantitiesPayload sends formPrice as the branch price in this case.)
+    const priceToShow = shopFilter
+      ? (product.quantities.find((q) => q.branchId === shopFilter)?.sellingPrice ?? product.sellingPrice)
+      : product.sellingPrice;
+    setFormPrice(priceToShow.toString()); setFormCostPrice(''); setFormAlert(product.quantityAlert.toString());
     setFormImage(product.image ?? null);
     const q: Record<string, string> = {};
     branchesForEdit.forEach((b) => { q[b.id] = (product.quantities.find((x) => x.branchId === b.id)?.quantity ?? 0).toString(); });

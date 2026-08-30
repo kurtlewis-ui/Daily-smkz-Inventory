@@ -249,6 +249,56 @@ function paymentTagLabel(item: DraftItem) {
   return item.paymentMethod;
 }
 
+// --- Whitelisted draft payload builders -----------------------------------
+// The backend rejects any property it doesn't expect (forbidNonWhitelisted).
+// Items merged back from the server (e.g. a declined item) can carry extra
+// fields, so instead of spreading `...rest` (which forwards unknown props and
+// can trigger "property X should not exist"), we build each line explicitly
+// with ONLY the fields the server DTO allows.
+function toDraftSaleItemPayload(i: any) {
+  const out: any = {
+    productId: i.productId,
+    name: i.name,
+    brandName: i.brandName,
+    unitPrice: i.unitPrice,
+    quantity: i.quantity,
+    paymentMethod: i.paymentMethod,
+  };
+  if (i.image != null) out.image = i.image;
+  if (i.discount != null) out.discount = i.discount;
+  if (i.bankNote != null) out.bankNote = i.bankNote;
+  if (i.note != null) out.note = i.note;
+  if (i.addedAt != null) out.addedAt = i.addedAt;
+  if (i.paymentSplit != null) {
+    out.paymentSplit = {
+      cash: i.paymentSplit.cash ?? 0,
+      gcash: i.paymentSplit.gcash ?? 0,
+      bankTransfer: i.paymentSplit.bankTransfer ?? 0,
+      cashless: i.paymentSplit.cashless ?? 0,
+    };
+  }
+  return out;
+}
+
+function toDraftDisposalItemPayload(d: any) {
+  const out: any = {
+    productId: d.productId,
+    name: d.name,
+    brandName: d.brandName,
+    quantity: d.quantity,
+  };
+  if (d.image != null) out.image = d.image;
+  if (d.reason != null) out.reason = d.reason;
+  if (d.addedAt != null) out.addedAt = d.addedAt;
+  return out;
+}
+
+function toDraftExpensePayload(e: any) {
+  const out: any = { amount: e.amount, note: e.note };
+  if (e.addedAt != null) out.addedAt = e.addedAt;
+  return out;
+}
+
 // Formats the split amounts as a single line, hiding zero values.
 function splitBreakdownLine(split: PaymentSplit): string {
   const parts: string[] = [];
@@ -396,9 +446,9 @@ function DraftBag() {
           replaceAll(mergedItems, mergedDisposalItems, mergedExpenses);
         }
         saveDraft.mutate({
-          items: mergedItems.map(({ id, addedAt, ...rest }) => rest),
-          disposalItems: mergedDisposalItems.map(({ id, addedAt, ...rest }) => rest),
-          expenses: mergedExpenses,
+          items: mergedItems.map(toDraftSaleItemPayload),
+          disposalItems: mergedDisposalItems.map(toDraftDisposalItemPayload),
+          expenses: mergedExpenses.map(toDraftExpensePayload),
           customerName: customerName.trim() || undefined,
         });
       }
@@ -457,9 +507,9 @@ function DraftBag() {
       // above may not have fired yet if the staff edited and immediately hit
       // Save — then ask the server to submit whatever it has on file.
       await saveDraft.mutateAsync({
-        items: items.map(({ id, addedAt, ...rest }) => rest),
-        disposalItems: disposalItems.map(({ id, addedAt, ...rest }) => rest),
-        expenses,
+        items: items.map(toDraftSaleItemPayload),
+        disposalItems: disposalItems.map(toDraftDisposalItemPayload),
+        expenses: expenses.map(toDraftExpensePayload),
         customerName: customerName.trim() || undefined,
       });
       const result = await saveMyDraft.mutateAsync();
