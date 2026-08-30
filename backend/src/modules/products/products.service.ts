@@ -79,7 +79,9 @@ export class ProductsService {
     const { page = 1, limit = 20, search, brandId, branchId } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = { deletedAt: null };
+    // Hide archived products AND products whose brand is archived, so an
+    // archived brand's items disappear from every list/dropdown/selling screen.
+    const where: any = { deletedAt: null, brand: { deletedAt: null } };
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
     }
@@ -415,12 +417,14 @@ export class ProductsService {
     const warnings: string[] = [];
 
     for (const [index, item] of items.entries()) {
-      // Resolve product.
+      // Resolve product. Archived products, and products whose brand is
+      // archived, are treated as not found (skipped with a warning) — you
+      // can't restock something that's been archived.
       let product = item.productId
-        ? await this.prisma.product.findFirst({ where: { id: item.productId, deletedAt: null } })
+        ? await this.prisma.product.findFirst({ where: { id: item.productId, deletedAt: null, brand: { deletedAt: null } } })
         : item.productName
           ? await this.prisma.product.findFirst({
-              where: { name: { equals: item.productName.trim(), mode: 'insensitive' }, deletedAt: null },
+              where: { name: { equals: item.productName.trim(), mode: 'insensitive' }, deletedAt: null, brand: { deletedAt: null } },
             })
           : null;
       if (!product) {
