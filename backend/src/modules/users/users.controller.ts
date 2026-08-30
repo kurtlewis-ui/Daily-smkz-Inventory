@@ -38,7 +38,7 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Forbidden - insufficient permissions' })
   @ApiResponse({ status: 409, description: 'Email already exists' })
   async create(@Body() createUserDto: CreateUserDto, @CurrentUser() user: RequestUser) {
-    const result = await this.usersService.create(createUserDto, user.userId);
+    const result = await this.usersService.create(createUserDto, user.userId, user.role);
     
     return {
       success: true,
@@ -50,8 +50,8 @@ export class UsersController {
   @Roles('Owner', 'Admin')
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
-  async findAll(@Query() query: QueryUserDto) {
-    const result = await this.usersService.findAll(query);
+  async findAll(@Query() query: QueryUserDto, @CurrentUser() user: RequestUser) {
+    const result = await this.usersService.findAll(query, user.role);
     
     return {
       success: true,
@@ -92,8 +92,8 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
-    // Allow users to view their own profile, or Admin to view anyone
-    if (user.userId !== id && !['Admin'].includes(user.role)) {
+    // Allow users to view their own profile, or Owner/Admin to view anyone.
+    if (user.userId !== id && !['Owner', 'Admin'].includes(user.role)) {
       throw new ForbiddenException('You can only view your own profile');
     }
 
@@ -116,7 +116,7 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() user: RequestUser,
   ) {
-    const result = await this.usersService.update(id, updateUserDto, user.userId);
+    const result = await this.usersService.update(id, updateUserDto, user.userId, user.role);
     
     return {
       success: true,
