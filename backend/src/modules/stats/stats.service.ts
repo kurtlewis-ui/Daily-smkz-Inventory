@@ -2,24 +2,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { SaleStatus, ExpenseStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-
-// Philippine Standard Time is a fixed UTC+8 (no daylight saving).
-const PH_OFFSET_MS = 8 * 60 * 60 * 1000;
-
-/**
- * Returns the start of "today" in Philippine time, as a UTC Date (instant).
- * Works regardless of the server's own timezone: shift now into PH local time,
- * floor to midnight, then shift back to UTC.
- */
-function startOfPhDay(): Date {
-  const nowPh = new Date(Date.now() + PH_OFFSET_MS);
-  const phMidnight = Date.UTC(
-    nowPh.getUTCFullYear(),
-    nowPh.getUTCMonth(),
-    nowPh.getUTCDate(),
-  );
-  return new Date(phMidnight - PH_OFFSET_MS);
-}
+import {
+  startOfBusinessDay,
+  phBusinessClockSql,
+} from '../../common/utils/business-day.util';
 
 @Injectable()
 export class StatsService {
@@ -78,12 +64,18 @@ export class StatsService {
       branchClause = ` AND branch_id = $${params.length}::uuid`;
     }
 
+    // Bucket on the Philippine BUSINESS clock (created_at shifted +8h to PH,
+    // then -2h so the day/week/month boundary lands at 2 AM PH). Postgres
+    // date_trunc('week', ...) already starts weeks on Monday, matching the
+    // "week starts Monday 2 AM" rule. We truncate on the shifted clock, then
+    // shift back to a real UTC instant for the returned bucket label.
+    const clock = phBusinessClockSql('created_at');
     const sql =
-      `SELECT date_trunc('${unit}', created_at) AS bucket, ` +
+      `SELECT (date_trunc('${unit}', ${clock}) - interval '8 hours' + interval '2 hours') AS bucket, ` +
       `COALESCE(SUM(total), 0) AS total, COUNT(*) AS count ` +
       `FROM sales WHERE status = 'APPROVED' ` +
       `AND created_at >= now() - interval '${sinceDays} days'${branchClause} ` +
-      `GROUP BY bucket ORDER BY bucket ASC`;
+      `GROUP BY 1 ORDER BY 1 ASC`;
 
     const rows = await this.prisma.$queryRawUnsafe<
       { bucket: Date; total: any; count: any }[]
@@ -127,11 +119,10 @@ export class StatsService {
   async branchSummary(branchId: string | undefined, actor: RequestUser) {
     const resolvedBranchId = await this.resolveBranchForActor(actor, branchId);
 
-    // "Today" must follow Philippine business time (UTC+8, no DST), not the
-    // server's timezone. If the server runs in UTC, a plain setHours(0,...)
-    // would start "today" at 08:00 PH, so early-morning sales would land on
-    // the previous day. Compute PH-midnight and express it as a UTC instant.
-    const start = startOfPhDay();
+    // "Today" follows the shop's Philippine business day: 2:00 AM PH -> 2:00 AM
+    // PH the next day. So a sale at, e.g., 1:30 AM still counts toward the
+    // previous day until the clock passes 2 AM.
+    const start = startOfBusinessDay();
 
     const [salesAgg, expensesAgg] = await Promise.all([
       this.prisma.sale.aggregate({
