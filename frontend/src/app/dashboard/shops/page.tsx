@@ -9,6 +9,7 @@ import {
   useArchiveBranch,
 } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
+import { usePagination, Pagination } from '@/components/Pagination';
 import type { Branch } from '@/lib/types';
 
 export default function ShopsPage() {
@@ -32,6 +33,7 @@ export default function ShopsPage() {
   const filteredShops = shops.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()),
   );
+  const { pageItems: pagedShops, resetPage, controlProps } = usePagination(filteredShops, 10);
 
   async function handleAdd() {
     if (!newName.trim()) {
@@ -96,7 +98,7 @@ export default function ShopsPage() {
           type="text"
           placeholder="Search..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); resetPage(); }}
           className="w-full border border-input-border rounded-lg pl-9 pr-4 py-2 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus"
         />
       </div>
@@ -120,9 +122,9 @@ export default function ShopsPage() {
             ) : filteredShops.length === 0 ? (
               <tr><td colSpan={5} className="text-center py-8 text-text-muted">No shops found.</td></tr>
             ) : (
-              filteredShops.map((shop, i) => (
+              pagedShops.map((shop, i) => (
                 <tr key={shop.id} className="border-t border-card-border transition-colors">
-                  <td className="px-4 py-3 text-sm text-accent-blue font-medium">{i + 1}</td>
+                  <td className="px-4 py-3 text-sm text-accent-blue font-medium">{controlProps.startIdx + i + 1}</td>
                   <td className="px-4 py-3 text-sm text-accent-blue font-medium">{shop.name}</td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{shop.address || '—'}</td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{shop.staffCount}</td>
@@ -149,13 +151,16 @@ export default function ShopsPage() {
             )}
           </tbody>
         </table>
+        {!isLoading && !isError && filteredShops.length > 0 && (
+          <Pagination {...controlProps} noun="shops" />
+        )}
       </div>
 
       {showAddModal && (
         <Modal title="Add New Shop" onClose={() => setShowAddModal(false)}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Name</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">Name <span className="text-accent-red">*</span></label>
               <input
                 type="text"
                 value={newName}
@@ -187,7 +192,7 @@ export default function ShopsPage() {
         <Modal title="Edit Shop" onClose={() => { setShowEditModal(false); setEditingShop(null); }}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Name</label>
+              <label className="block text-sm font-medium text-text-primary mb-1">Name <span className="text-accent-red">*</span></label>
               <input
                 type="text"
                 value={newName}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Search, Plus, X, Loader2 } from 'lucide-react';
 import { useDisposals, useCreateDisposal, useBranches, useProducts } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
+import { usePagination, Pagination } from '@/components/Pagination';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -32,6 +33,7 @@ export default function DisposalsPage() {
     totalValue: disposals.reduce((s, d) => s + d.value, 0),
     count: disposals.length,
   };
+  const { pageItems: pagedDisposals, resetPage, controlProps } = usePagination(disposals, 10);
 
   return (
     <div className="p-6 bg-page-bg min-h-screen">
@@ -45,12 +47,12 @@ export default function DisposalsPage() {
 
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
         <div className="p-4 flex flex-wrap items-center gap-3">
-          <select value={selectedShop} onChange={(e) => setSelectedShop(e.target.value)} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
+          <select value={selectedShop} onChange={(e) => { setSelectedShop(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
             <option value="">All Shops</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
+          <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
+          <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
         </div>
       </div>
 
@@ -58,7 +60,7 @@ export default function DisposalsPage() {
         <div className="p-4 border-b border-card-border">
           <div className="relative w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input type="text" placeholder="Search disposals..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
+            <input type="text" placeholder="Search disposals..." value={search} onChange={(e) => { setSearch(e.target.value); resetPage(); }} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -84,9 +86,9 @@ export default function DisposalsPage() {
                 <tr><td colSpan={10} className="text-center py-8 text-accent-red">{getApiErrorMessage(error)}</td></tr>
               ) : disposals.length === 0 ? (
                 <tr><td colSpan={10} className="px-4 py-12 text-center text-text-muted">No approved disposals yet.</td></tr>
-              ) : disposals.map((d, idx) => (
+              ) : pagedDisposals.map((d, idx) => (
                 <tr key={d.id} className="border-b border-card-border transition">
-                  <td className="px-4 py-3 text-sm text-text-primary">{idx + 1}</td>
+                  <td className="px-4 py-3 text-sm text-text-primary">{controlProps.startIdx + idx + 1}</td>
                   <td className="px-4 py-3 text-sm text-text-primary">{d.name}</td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{d.brandName}</td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{d.branch?.name ?? '—'}</td>
@@ -106,6 +108,11 @@ export default function DisposalsPage() {
             </tbody>
           </table>
         </div>
+        {!isLoading && !isError && disposals.length > 0 && (
+          <div className="border-t border-card-border">
+            <Pagination {...controlProps} noun="disposals" />
+          </div>
+        )}
         <div className="p-4 border-t border-card-border">
           <div className="border-l-4 border-accent-red pl-4 space-y-1">
             <p className="text-sm text-text-primary"><span className="font-medium">Items disposed:</span> {summary.totalQuantity}</p>
@@ -156,14 +163,14 @@ function RecordDisposalModal({ branches, onClose }: { branches: { id: string; na
         <div className="space-y-4">
           <p className="text-xs text-text-muted">Request to write off damaged/expired/unsellable stock. It goes to <strong>Pending Sales</strong> for an admin to approve. Stock is only deducted once approved.</p>
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Shop</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Shop <span className="text-accent-red">*</span></label>
             <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setProductId(''); }} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg">
               <option value="">Select shop</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Product</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Product <span className="text-accent-red">*</span></label>
             <select value={productId} onChange={(e) => setProductId(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg">
               <option value="">Select product</option>
               {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -171,7 +178,7 @@ function RecordDisposalModal({ branches, onClose }: { branches: { id: string; na
             {selected && <p className="text-xs text-text-muted mt-1">In stock at this shop: <strong>{available}</strong></p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Quantity to dispose</label>
+            <label className="block text-sm font-medium text-text-primary mb-1">Quantity to dispose <span className="text-accent-red">*</span></label>
             <input type="number" min="1" max={available} value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
           </div>
           <div>

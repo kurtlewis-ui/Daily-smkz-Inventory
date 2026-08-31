@@ -4,6 +4,7 @@ import { Fragment, useState } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { useSalesRecords, useBranches, useBranchSummary } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
+import { usePagination, Pagination } from '@/components/Pagination';
 import type { PaymentMethod } from '@/lib/types';
 
 function peso(n: number) {
@@ -51,6 +52,8 @@ export default function SalesRecordsPage() {
 
   const sales = data?.data ?? [];
   const summary = data?.summary ?? { cash: 0, gcash: 0, total: 0, count: 0 };
+  // Paginate by SALE (10 per page) — each sale renders several item rows.
+  const { pageItems: pagedSales, resetPage, controlProps } = usePagination(sales, 10);
 
   // Today's approved Total Sales / Total Expenses / Net for the selected
   // shop — always about today, independent of whatever date range the
@@ -63,6 +66,7 @@ export default function SalesRecordsPage() {
     setStartDate('');
     setEndDate('');
     setSearch('');
+    resetPage();
   };
 
   return (
@@ -77,12 +81,12 @@ export default function SalesRecordsPage() {
       {/* Filters */}
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
         <div className="p-4 flex flex-wrap items-center gap-3">
-          <select value={selectedShop} onChange={(e) => setSelectedShop(e.target.value)} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
+          <select value={selectedShop} onChange={(e) => { setSelectedShop(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
             <option value="">All Shops</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
+          <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
+          <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
         </div>
       </div>
 
@@ -119,7 +123,7 @@ export default function SalesRecordsPage() {
         <div className="p-4 border-b border-card-border">
           <div className="relative w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input type="text" placeholder="Search records..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
+            <input type="text" placeholder="Search records..." value={search} onChange={(e) => { setSearch(e.target.value); resetPage(); }} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
           </div>
         </div>
 
@@ -146,7 +150,7 @@ export default function SalesRecordsPage() {
                 <tr><td colSpan={10} className="text-center py-8 text-accent-red">{getApiErrorMessage(error)}</td></tr>
               ) : sales.length === 0 ? (
                 <tr><td colSpan={10} className="text-center py-8 text-text-muted">No sales records found.</td></tr>
-              ) : sales.map((sale) => (
+              ) : pagedSales.map((sale) => (
                 <Fragment key={sale.id}>
                   {sale.items.map((item, idx) => (
                     <tr key={item.id} className="border-b border-card-border transition">
@@ -196,6 +200,12 @@ export default function SalesRecordsPage() {
             </tbody>
           </table>
         </div>
+
+        {!isLoading && !isError && sales.length > 0 && (
+          <div className="border-t border-card-border">
+            <Pagination {...controlProps} noun="sales" />
+          </div>
+        )}
 
         {/* Summary */}
         <div className="p-4 border-t border-card-border">

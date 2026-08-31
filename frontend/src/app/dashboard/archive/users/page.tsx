@@ -5,6 +5,7 @@ import { Search, Undo2, Loader2 } from 'lucide-react';
 import { useArchivedUsers, useRestoreUser } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
+import { usePagination, Pagination } from '@/components/Pagination';
 
 export default function UsersArchivePage() {
   const { data, isLoading, isError, error } = useArchivedUsers();
@@ -24,6 +25,7 @@ export default function UsersArchivePage() {
       `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()),
   );
+  const { pageItems: paged, resetPage, controlProps } = usePagination(filtered, 10);
 
   const handleRestore = async (id: string) => {
     setActionError(null);
@@ -39,7 +41,7 @@ export default function UsersArchivePage() {
         <div className="p-4 border-b border-card-border">
           <div className="relative w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input type="text" placeholder="Search archived users..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
+            <input type="text" placeholder="Search archived users..." value={search} onChange={(e) => { setSearch(e.target.value); resetPage(); }} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -61,9 +63,9 @@ export default function UsersArchivePage() {
                 <tr><td colSpan={6} className="text-center py-8 text-accent-red">{getApiErrorMessage(error)}</td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={6} className="px-4 py-12"><div className="border-l-4 border-accent-orange pl-4"><p className="text-accent-orange font-medium">No archived users found.</p></div></td></tr>
-              ) : filtered.map((user, idx) => (
+              ) : paged.map((user, idx) => (
                 <tr key={user.id} className="border-b border-card-border transition">
-                  <td className="px-4 py-3 text-sm text-text-primary">{idx + 1}</td>
+                  <td className="px-4 py-3 text-sm text-text-primary">{controlProps.startIdx + idx + 1}</td>
                   <td className="px-4 py-3 text-sm text-text-primary font-medium">{user.firstName} {user.lastName}</td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{user.email}</td>
                   <td className="px-4 py-3"><span className="badge badge-neutral">{user.role.name}</span></td>
@@ -78,6 +80,9 @@ export default function UsersArchivePage() {
             </tbody>
           </table>
         </div>
+        {!isLoading && !isError && filtered.length > 0 && (
+          <Pagination {...controlProps} noun="users" />
+        )}
       </div>
     </div>
   );
