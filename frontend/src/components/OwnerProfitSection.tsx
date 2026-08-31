@@ -132,12 +132,13 @@ function ProfitContent() {
 
   return (
     <div className="bg-card-bg border border-accent-primary/30 rounded-xl p-5 shadow-sm shadow-accent-primary/10">
-      <div className="mb-4">
+      <div className="mb-3">
         <h2 className="text-lg font-bold text-text-primary mb-3">Profit & Loss</h2>
 
-        {/* Filter bar */}
-        <div className="flex flex-col gap-3 rounded-lg border border-card-border bg-white/[0.02] p-3">
-          {/* Period dropdown */}
+        {/* Single-row filter bar: Period · From → To · Reset · Shop.
+            Wraps to multiple lines on smaller screens. */}
+        <div className="flex flex-wrap items-end gap-3 rounded-lg border border-card-border bg-white/[0.02] p-3">
+          {/* Period */}
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
               <CalendarDays size={12} /> Period
@@ -149,7 +150,7 @@ function ProfitContent() {
                 if (v === 'custom') { setActiveRange('custom'); return; }
                 applyQuickRange(v as QuickRange);
               }}
-              className="w-full sm:w-[200px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+              className="w-[150px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
             >
               <option value="today">Today</option>
               <option value="week">This Week</option>
@@ -159,58 +160,60 @@ function ProfitContent() {
             </select>
           </div>
 
-          {/* Date range (From -> To -> Reset) on the left, Shop picker on the right */}
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">From</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => { setStartDate(e.target.value); setActiveRange('custom'); }}
-                  className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
-                />
-              </div>
-              <span className="pb-2 text-text-muted">→</span>
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">To</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => { setEndDate(e.target.value); setActiveRange('custom'); }}
-                  className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
-                />
-              </div>
-              {(startDate || endDate) && (
-                <button
-                  onClick={() => applyQuickRange('all')}
-                  title="Reset the date range to All Time"
-                  className="flex items-center gap-2 rounded-lg border border-accent-red/40 bg-accent-red/10 px-4 py-2.5 text-sm font-semibold text-accent-red hover:bg-accent-red/20 transition"
-                >
-                  <RotateCcw size={16} /> Reset
-                </button>
-              )}
-            </div>
+          {/* From */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">From</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => { setStartDate(e.target.value); setActiveRange('custom'); }}
+              className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+            />
+          </div>
 
-            {/* Shop picker — sits on the right of the date row */}
-            <div className="flex flex-col gap-1">
-              <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                <Store size={12} /> Shop
-              </label>
-              <select
-                value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                className="w-full sm:min-w-[180px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
-              >
-                <option value="">All Shops</option>
-                {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            </div>
+          <span className="pb-2.5 text-text-muted">→</span>
+
+          {/* To */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">To</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => { setEndDate(e.target.value); setActiveRange('custom'); }}
+              className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+            />
+          </div>
+
+          {/* Reset (only when a custom range is set) */}
+          {(startDate || endDate) && (
+            <button
+              onClick={() => applyQuickRange('all')}
+              title="Reset the date range to All Time"
+              className="flex items-center gap-2 rounded-lg border border-accent-red/40 bg-accent-red/10 px-4 py-2 text-sm font-semibold text-accent-red hover:bg-accent-red/20 transition"
+            >
+              <RotateCcw size={16} /> Reset
+            </button>
+          )}
+
+          {/* Shop — pushed to the far right on wide screens, wraps below on small */}
+          <div className="flex flex-col gap-1 sm:ml-auto">
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+              <Store size={12} /> Shop
+            </label>
+            <select
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              className="w-full sm:w-[180px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+            >
+              <option value="">All Shops</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
+      {/* Divider separates the filters from the results */}
+      <div className="border-t border-card-border pt-4 grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
         <div>
           <p className="text-[10px] text-text-muted uppercase">Revenue</p>
           <p className="text-lg font-bold text-accent-green">{peso(metrics.revenue)}</p>
@@ -237,7 +240,7 @@ function ProfitContent() {
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-card-border flex justify-end">
+      <div className="mt-3 flex justify-end">
         <button
           onClick={handleExportProfit}
           disabled={exporting}
