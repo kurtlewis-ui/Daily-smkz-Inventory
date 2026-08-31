@@ -153,31 +153,26 @@ function ProfitContent() {
               </select>
             </div>
 
-            {/* Quick-pick period buttons */}
+            {/* Quick-pick period dropdown */}
             <div className="flex flex-col gap-1">
               <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
                 <CalendarDays size={12} /> Period
               </label>
-              <div className="inline-flex flex-wrap gap-1 rounded-lg border border-input-border bg-input-bg p-1">
-                {([
-                  { key: 'today', label: 'Today' },
-                  { key: 'week', label: 'This Week' },
-                  { key: 'month', label: 'This Month' },
-                  { key: 'all', label: 'All Time' },
-                ] as { key: QuickRange; label: string }[]).map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => applyQuickRange(opt.key)}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
-                      activeRange === opt.key
-                        ? 'bg-btn-primary text-btn-primary-text shadow-sm'
-                        : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+              <select
+                value={activeRange === 'custom' ? 'custom' : activeRange}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === 'custom') { setActiveRange('custom'); return; }
+                  applyQuickRange(v as QuickRange);
+                }}
+                className="min-w-[160px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+              >
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="all">All Time</option>
+                {activeRange === 'custom' && <option value="custom">Custom Range</option>}
+              </select>
             </div>
           </div>
 
