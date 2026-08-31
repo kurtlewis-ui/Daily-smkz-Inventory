@@ -3,10 +3,46 @@
 import { useMemo, useState } from 'react';
 import { useSalesOverview, useSalesRecords, useDisposals, useExpenses, useBranches } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
-import { Download } from 'lucide-react';
+import { Download, Store, CalendarDays } from 'lucide-react';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// The shop operates on a Philippine business day (UTC+8, starts 2 AM). These
+// helpers give the correct YYYY-MM-DD calendar strings for the quick-pick
+// ranges so they line up with the rest of the app.
+const PH_OFFSET_MS = 8 * 60 * 60 * 1000;
+const BUSINESS_START_HOUR = 2;
+
+/** The current PH business date as a Date on a "business clock" (2 AM = start of day). */
+function phBusinessNow(): Date {
+  return new Date(Date.now() + PH_OFFSET_MS - BUSINESS_START_HOUR * 60 * 60 * 1000);
+}
+
+/** Format a business-clock Date as YYYY-MM-DD (its UTC parts are the PH business date). */
+function ymd(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+type QuickRange = 'today' | 'week' | 'month' | 'all';
+
+/** Returns { start, end } YYYY-MM-DD for a quick range, in PH business time. */
+function quickRangeDates(range: QuickRange): { start: string; end: string } {
+  if (range === 'all') return { start: '', end: '' };
+  const now = phBusinessNow();
+  const todayStr = ymd(now);
+  if (range === 'today') return { start: todayStr, end: todayStr };
+  if (range === 'week') {
+    // Week starts Monday.
+    const day = now.getUTCDay(); // 0=Sun..6=Sat
+    const daysSinceMonday = (day + 6) % 7;
+    const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysSinceMonday));
+    return { start: ymd(monday), end: todayStr };
+  }
+  // month
+  const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  return { start: ymd(first), end: todayStr };
 }
 
 /**
@@ -25,7 +61,15 @@ function ProfitContent() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [branchId, setBranchId] = useState('');
+  const [activeRange, setActiveRange] = useState<QuickRange | 'custom'>('all');
   const [exporting, setExporting] = useState(false);
+
+  function applyQuickRange(range: QuickRange) {
+    const { start, end } = quickRangeDates(range);
+    setStartDate(start);
+    setEndDate(end);
+    setActiveRange(range);
+  }
 
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
@@ -88,20 +132,85 @@ function ProfitContent() {
 
   return (
     <div className="bg-card-bg border border-accent-primary/30 rounded-xl p-5 shadow-sm shadow-accent-primary/10">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div>
-          <h2 className="text-lg font-bold text-text-primary">Profit & Loss</h2>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg">
-            <option value="">All Shops</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg" />
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg" />
-          {(startDate || endDate) && (
-            <button onClick={() => { setStartDate(''); setEndDate(''); }} className="px-2 py-1 text-xs text-text-secondary border border-input-border rounded hover:opacity-80">Clear</button>
-          )}
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-text-primary mb-3">Profit & Loss</h2>
+
+        {/* Filter bar: shop picker + quick-pick period buttons + custom range */}
+        <div className="flex flex-col gap-3 rounded-lg border border-card-border bg-white/[0.02] p-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            {/* Shop picker */}
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                <Store size={12} /> Shop
+              </label>
+              <select
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                className="min-w-[180px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+              >
+                <option value="">All Shops</option>
+                {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+
+            {/* Quick-pick period buttons */}
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                <CalendarDays size={12} /> Period
+              </label>
+              <div className="inline-flex flex-wrap gap-1 rounded-lg border border-input-border bg-input-bg p-1">
+                {([
+                  { key: 'today', label: 'Today' },
+                  { key: 'week', label: 'This Week' },
+                  { key: 'month', label: 'This Month' },
+                  { key: 'all', label: 'All Time' },
+                ] as { key: QuickRange; label: string }[]).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => applyQuickRange(opt.key)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                      activeRange === opt.key
+                        ? 'bg-btn-primary text-btn-primary-text shadow-sm'
+                        : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Custom date range */}
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">From</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setActiveRange('custom'); }}
+                className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+              />
+            </div>
+            <span className="pb-2 text-text-muted">→</span>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">To</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setActiveRange('custom'); }}
+                className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <button
+                onClick={() => applyQuickRange('all')}
+                className="rounded-lg border border-input-border px-3 py-2 text-xs font-medium text-text-secondary hover:bg-white/5 hover:text-text-primary transition"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
