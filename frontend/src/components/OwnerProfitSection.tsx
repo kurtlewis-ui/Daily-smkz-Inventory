@@ -74,10 +74,6 @@ function ProfitContent() {
     return { revenue, cogs, grossProfit, expensesTotal, disposalLosses, netProfit, margin };
   }, [salesRecords, salesData, expenses, disposals, startDate, endDate]);
 
-  const dateLabel = startDate && endDate
-    ? `${startDate} to ${endDate}`
-    : startDate ? `From ${startDate}` : endDate ? `Until ${endDate}` : 'All-Time';
-
   async function handleExportProfit() {
     setExporting(true);
     try {
@@ -94,8 +90,7 @@ function ProfitContent() {
     <div className="bg-card-bg border border-accent-primary/30 rounded-xl p-5 shadow-sm shadow-accent-primary/10">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
-          <p className="text-xs text-accent-primary font-semibold uppercase tracking-wider">Owner Only — Confidential</p>
-          <h2 className="text-lg font-bold text-text-primary">Profit & Loss ({dateLabel})</h2>
+          <h2 className="text-lg font-bold text-text-primary">Profit & Loss</h2>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <select value={branchId} onChange={(e) => setBranchId(e.target.value)} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg">
