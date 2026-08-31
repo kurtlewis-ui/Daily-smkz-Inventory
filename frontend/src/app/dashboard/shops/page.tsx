@@ -21,6 +21,7 @@ export default function ShopsPage() {
   const shops = data?.data ?? [];
 
   const [search, setSearch] = useState('');
+  const [entriesPerPage, setEntriesPerPage] = useState<number | 'All'>(10);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
@@ -33,7 +34,9 @@ export default function ShopsPage() {
   const filteredShops = shops.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()),
   );
-  const { pageItems: pagedShops, resetPage, controlProps } = usePagination(filteredShops, 10);
+  // "All" shows everything on one page; otherwise page by the chosen size.
+  const perPage = entriesPerPage === 'All' ? Math.max(1, filteredShops.length) : entriesPerPage;
+  const { pageItems: pagedShops, resetPage, controlProps } = usePagination(filteredShops, perPage);
 
   async function handleAdd() {
     if (!newName.trim()) {
@@ -92,15 +95,29 @@ export default function ShopsPage() {
         </button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-        <input
-          type="text"
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); resetPage(); }}
-          className="w-full border border-input-border rounded-lg pl-9 pr-4 py-2 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-text-secondary">
+          <span>Show</span>
+          <select
+            value={entriesPerPage.toString()}
+            onChange={(e) => { const v = e.target.value; setEntriesPerPage(v === 'All' ? 'All' : parseInt(v)); resetPage(); }}
+            className="border border-input-border rounded px-2 py-1 text-sm bg-input-bg text-text-primary focus:outline-none focus:border-input-focus"
+          >
+            {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+            <option value="All">All</option>
+          </select>
+          <span>entries</span>
+        </div>
+        <div className="relative w-full max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); resetPage(); }}
+            className="w-full border border-input-border rounded-lg pl-9 pr-4 py-2 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus"
+          />
+        </div>
       </div>
 
       <div className="bg-card-bg border border-card-border rounded-lg overflow-x-auto">
