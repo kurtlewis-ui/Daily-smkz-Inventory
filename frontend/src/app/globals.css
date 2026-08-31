@@ -259,3 +259,23 @@ select optgroup {
     @apply h-1.5 w-1.5 rounded-full;
   }
 }
+
+
+/* Global toast stack (bottom-right corner) — used by components/Toast.tsx */
+.toast-in {
+  animation: toast-in-kf 0.25s ease-out forwards;
+}
+
+.toast-out {
+  animation: toast-out-kf 0.2s ease-in forwards;
+}
+
+@keyframes toast-in-kf {
+  0% { transform: translateX(16px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toast-out-kf {
+  0% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(16px); opacity: 0; }
+}
