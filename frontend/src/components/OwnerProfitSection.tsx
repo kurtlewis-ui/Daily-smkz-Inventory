@@ -215,32 +215,32 @@ function ProfitContent() {
       {/* Divider separates the filters from the results */}
       <div className="border-t border-card-border pt-4 grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
         <div>
-          <p className="text-[10px] text-text-muted uppercase">Revenue</p>
-          <p className="text-lg font-bold text-accent-green">{peso(metrics.revenue)}</p>
+          <p className="text-xs text-text-muted uppercase">Revenue</p>
+          <p className="text-2xl font-bold text-accent-green">{peso(metrics.revenue)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-text-muted uppercase">Capital</p>
-          <p className="text-lg font-bold text-accent-orange">{peso(metrics.cogs)}</p>
+          <p className="text-xs text-text-muted uppercase">Capital</p>
+          <p className="text-2xl font-bold text-accent-orange">{peso(metrics.cogs)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-text-muted uppercase">Expenses</p>
-          <p className="text-lg font-bold text-accent-red">{peso(metrics.expensesTotal)}</p>
+          <p className="text-xs text-text-muted uppercase">Expenses</p>
+          <p className="text-2xl font-bold text-accent-red">{peso(metrics.expensesTotal)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-text-muted uppercase">Disposal Losses</p>
-          <p className="text-lg font-bold text-accent-orange">{peso(metrics.disposalLosses)}</p>
+          <p className="text-xs text-text-muted uppercase">Disposal Losses</p>
+          <p className="text-2xl font-bold text-accent-orange">{peso(metrics.disposalLosses)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-text-muted uppercase">Net Profit</p>
-          <p className={`text-lg font-bold ${metrics.netProfit >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>{peso(metrics.netProfit)}</p>
+          <p className="text-xs text-text-muted uppercase">Net Profit</p>
+          <p className={`text-2xl font-bold ${metrics.netProfit >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>{peso(metrics.netProfit)}</p>
         </div>
         <div>
-          <p className="text-[10px] text-text-muted uppercase">Margin</p>
-          <p className={`text-lg font-bold ${metrics.margin >= 0 ? 'text-accent-blue' : 'text-accent-red'}`}>{metrics.margin.toFixed(1)}%</p>
+          <p className="text-xs text-text-muted uppercase">Margin</p>
+          <p className={`text-2xl font-bold ${metrics.margin >= 0 ? 'text-accent-blue' : 'text-accent-red'}`}>{metrics.margin.toFixed(1)}%</p>
         </div>
       </div>
 
-      <div className="mt-3 flex justify-end">
+      <div className="mt-8 flex justify-end">
         <button
           onClick={handleExportProfit}
           disabled={exporting}
