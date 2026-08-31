@@ -440,22 +440,24 @@ function OwnerUsersView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <div>
+      {/* 12-col grid: First(5) / M.I.(2) / Last(5) keeps the name fields
+          readable even on a ~375px phone, with M.I. staying compact. */}
+      <div className="grid grid-cols-12 gap-2">
+        <div className="col-span-5">
           <label className="block text-sm font-medium text-text-primary mb-1">First Name</label>
           <input type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" />
         </div>
-        <div>
+        <div className="col-span-2">
           <label className="block text-sm font-medium text-text-primary mb-1">M.I.</label>
           <input type="text" value={formData.middleInitial} onChange={(e) => setFormData({ ...formData, middleInitial: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" maxLength={2} />
         </div>
-        <div>
+        <div className="col-span-5">
           <label className="block text-sm font-medium text-text-primary mb-1">Last Name</label>
           <input type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Status</label>
           <select value={formData.isActive ? 'Active' : 'Disabled'} onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'Active' })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm">

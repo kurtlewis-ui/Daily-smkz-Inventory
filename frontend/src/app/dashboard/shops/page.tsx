@@ -101,7 +101,7 @@ export default function ShopsPage() {
         />
       </div>
 
-      <div className="bg-card-bg border border-card-border rounded-lg overflow-hidden">
+      <div className="bg-card-bg border border-card-border rounded-lg overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="bg-table-header">
