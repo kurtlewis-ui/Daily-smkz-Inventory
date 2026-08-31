@@ -57,7 +57,7 @@ export default function DashboardPage() {
 function OwnerDashboard() {
   const { contentTheme } = useThemeStore();
   const isDark = contentTheme === 'dark';
-  const { data: stats, isLoading } = useDashboardStats();
+  const { data: stats, isLoading, isError: statsError } = useDashboardStats();
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
 
@@ -72,11 +72,12 @@ function OwnerDashboard() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState('');
 
-  const { data: overview = [], isLoading: ovLoading } = useSalesOverview(period, overviewShop || undefined);
-  const { data: topProducts = [], isLoading: tpLoading } = useTopProducts(topShop || undefined);
+  const { data: overview = [], isLoading: ovLoading, isError: ovError } = useSalesOverview(period, overviewShop || undefined);
+  const { data: topProducts = [], isLoading: tpLoading, isError: tpError } = useTopProducts(topShop || undefined);
 
   // Disposals data for "Most Disposed Products" chart
-  const { data: disposalsData } = useDisposals({ branchId: disposalShop || undefined });
+  const { data: disposalsData, isError: dpError } = useDisposals({ branchId: disposalShop || undefined });
+  const anyLoadError = statsError || ovError || tpError || dpError;
   const disposals = (Array.isArray(disposalsData?.data) ? disposalsData.data : []).filter((d) => d.status === 'APPROVED');
 
   // Compute top disposed products (group by product name, sum quantity)
@@ -134,6 +135,11 @@ function OwnerDashboard() {
       </div>
       {exportError && (
         <div className="rounded-lg bg-accent-red/10 border border-accent-red/30 px-4 py-2 text-sm text-accent-red">{exportError}</div>
+      )}
+      {anyLoadError && (
+        <div className="rounded-lg bg-accent-red/10 border border-accent-red/30 px-4 py-3 text-sm text-accent-red">
+          Some dashboard data couldn&apos;t be loaded. Please check your connection and refresh — any empty charts below may be due to this, not missing data.
+        </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
