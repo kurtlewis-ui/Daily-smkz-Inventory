@@ -135,10 +135,64 @@ function ProfitContent() {
       <div className="mb-4">
         <h2 className="text-lg font-bold text-text-primary mb-3">Profit & Loss</h2>
 
-        {/* Filter bar: shop picker + quick-pick period buttons + custom range */}
+        {/* Filter bar */}
         <div className="flex flex-col gap-3 rounded-lg border border-card-border bg-white/[0.02] p-3">
+          {/* Period dropdown */}
+          <div className="flex flex-col gap-1">
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+              <CalendarDays size={12} /> Period
+            </label>
+            <select
+              value={activeRange === 'custom' ? 'custom' : activeRange}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === 'custom') { setActiveRange('custom'); return; }
+                applyQuickRange(v as QuickRange);
+              }}
+              className="w-full sm:w-[200px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+            >
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="all">All Time</option>
+              {activeRange === 'custom' && <option value="custom">Custom Range</option>}
+            </select>
+          </div>
+
+          {/* Date range (From -> To -> Reset) on the left, Shop picker on the right */}
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            {/* Shop picker */}
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">From</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => { setStartDate(e.target.value); setActiveRange('custom'); }}
+                  className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+                />
+              </div>
+              <span className="pb-2 text-text-muted">→</span>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">To</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => { setEndDate(e.target.value); setActiveRange('custom'); }}
+                  className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+                />
+              </div>
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => applyQuickRange('all')}
+                  title="Reset the date range to All Time"
+                  className="flex items-center gap-2 rounded-lg border border-accent-red/40 bg-accent-red/10 px-4 py-2.5 text-sm font-semibold text-accent-red hover:bg-accent-red/20 transition"
+                >
+                  <RotateCcw size={16} /> Reset
+                </button>
+              )}
+            </div>
+
+            {/* Shop picker — sits on the right of the date row */}
             <div className="flex flex-col gap-1">
               <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
                 <Store size={12} /> Shop
@@ -146,66 +200,12 @@ function ProfitContent() {
               <select
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
-                className="min-w-[180px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
+                className="w-full sm:min-w-[180px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
               >
                 <option value="">All Shops</option>
                 {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </div>
-
-            {/* Quick-pick period dropdown */}
-            <div className="flex flex-col gap-1">
-              <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                <CalendarDays size={12} /> Period
-              </label>
-              <select
-                value={activeRange === 'custom' ? 'custom' : activeRange}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === 'custom') { setActiveRange('custom'); return; }
-                  applyQuickRange(v as QuickRange);
-                }}
-                className="min-w-[160px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
-              >
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="all">All Time</option>
-                {activeRange === 'custom' && <option value="custom">Custom Range</option>}
-              </select>
-            </div>
-          </div>
-
-          {/* Custom date range */}
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">From</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => { setStartDate(e.target.value); setActiveRange('custom'); }}
-                className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
-              />
-            </div>
-            <span className="pb-2 text-text-muted">→</span>
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">To</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => { setEndDate(e.target.value); setActiveRange('custom'); }}
-                className="rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
-              />
-            </div>
-            {(startDate || endDate) && (
-              <button
-                onClick={() => applyQuickRange('all')}
-                title="Reset the date range to All Time"
-                className="flex items-center gap-1.5 rounded-lg border border-accent-red/40 bg-accent-red/10 px-3 py-2 text-xs font-semibold text-accent-red hover:bg-accent-red/20 transition"
-              >
-                <RotateCcw size={13} /> Reset
-              </button>
-            )}
           </div>
         </div>
       </div>
