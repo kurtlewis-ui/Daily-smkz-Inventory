@@ -166,7 +166,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-nav-border">
           <div className="logo-shimmer rounded-full">
-            <img src="/logo.png" alt="Daily Smokz" className="h-11 w-11 rounded-full object-cover" />
+            <img src="/logo.png" alt="Daily Smokz" className="h-11 w-11 object-contain" />
           </div>
           <p className="text-base font-bold text-white">Daily Smokz</p>
         </div>
@@ -297,7 +297,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Daily Smokz" className="h-10 w-10 rounded-full object-cover" />
+            <img src="/logo.png" alt="Daily Smokz" className="h-10 w-10 object-contain" />
             <span className="text-base font-bold text-white">Daily Smokz</span>
           </div>
           <div className="w-9" />
