@@ -18,7 +18,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { useDashboardStats, useSalesOverview, useTopProducts, useBranches, useDisposals, useExpenses } from '@/lib/hooks';
+import { useDashboardStats, useSalesOverview, useTopProducts, useBranches, useDisposals } from '@/lib/hooks';
 import { useThemeStore } from '@/lib/theme';
 import { useAuthStore } from '@/lib/store';
 import { OwnerProfitSection } from '@/components/OwnerProfitSection';
@@ -68,9 +68,6 @@ function OwnerDashboard() {
   const [showAllSelling, setShowAllSelling] = useState(false);
   const [showAllDisposed, setShowAllDisposed] = useState(false);
 
-  // Revenue date filter
-  const [revenueStartDate, setRevenueStartDate] = useState('');
-  const [revenueEndDate, setRevenueEndDate] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState('');
@@ -81,16 +78,6 @@ function OwnerDashboard() {
   // Disposals data for "Most Disposed Products" chart
   const { data: disposalsData } = useDisposals({ branchId: disposalShop || undefined });
   const disposals = (Array.isArray(disposalsData?.data) ? disposalsData.data : []).filter((d) => d.status === 'APPROVED');
-
-  // Expenses data for the Revenue card
-  const { data: expensesData } = useExpenses({ startDate: revenueStartDate || undefined, endDate: revenueEndDate || undefined });
-  const approvedExpenses = (Array.isArray(expensesData?.data) ? expensesData.data : []).filter((e) => e.status === 'APPROVED');
-  const totalExpenses = approvedExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-
-  // Disposals data for the Revenue card (all shops, date-filtered, approved only)
-  const { data: revenueDisposalsData } = useDisposals({ startDate: revenueStartDate || undefined, endDate: revenueEndDate || undefined });
-  const revenueDisposals = (Array.isArray(revenueDisposalsData?.data) ? revenueDisposalsData.data : []).filter((d) => d.status === 'APPROVED');
-  const totalDisposals = revenueDisposals.reduce((sum, d) => sum + Number(d.value), 0);
 
   // Compute top disposed products (group by product name, sum quantity)
   const disposedProducts = useMemo(() => {
@@ -103,25 +90,6 @@ function OwnerDashboard() {
     }
     return [...map.values()].sort((a, b) => b.quantity - a.quantity);
   }, [disposals]);
-
-  // Revenue filtered by date (uses sales records summary if dates are set)
-  const { data: revData } = useSalesOverview('daily', undefined);
-  const filteredRevenue = useMemo(() => {
-    if (!revenueStartDate && !revenueEndDate) {
-      return { total: stats?.approvedSalesTotal ?? 0, label: 'All-Time' };
-    }
-    // Filter overview data by date range
-    const filtered = (revData ?? []).filter((p) => {
-      if (revenueStartDate && p.date < revenueStartDate) return false;
-      if (revenueEndDate && p.date > revenueEndDate) return false;
-      return true;
-    });
-    const total = filtered.reduce((sum, p) => sum + p.total, 0);
-    const label = revenueStartDate && revenueEndDate
-      ? `${revenueStartDate} to ${revenueEndDate}`
-      : revenueStartDate ? `From ${revenueStartDate}` : `Until ${revenueEndDate}`;
-    return { total, label };
-  }, [revenueStartDate, revenueEndDate, revData, stats]);
 
   const v = (n?: number) => (isLoading || n === undefined ? '—' : n.toLocaleString());
 
@@ -178,38 +146,12 @@ function OwnerDashboard() {
       {/* Owner-only Profit & Loss section */}
       <OwnerProfitSection />
 
-      {/* Revenue Summary with date picker */}
-      <div className="bg-card-bg border border-card-border rounded-xl p-5 shadow-sm shadow-black/20">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Revenue ({filteredRevenue.label})</p>
-          <div className="flex items-center gap-2 flex-wrap">
-            <input type="date" value={revenueStartDate} onChange={(e) => setRevenueStartDate(e.target.value)} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
-            <span className="text-xs text-text-muted">to</span>
-            <input type="date" value={revenueEndDate} onChange={(e) => setRevenueEndDate(e.target.value)} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
-            {(revenueStartDate || revenueEndDate) && (
-              <button onClick={() => { setRevenueStartDate(''); setRevenueEndDate(''); }} className="px-2 py-1 text-xs text-text-secondary border border-input-border rounded hover:opacity-80">Clear</button>
-            )}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-          <div>
-            <p className="text-xs text-text-secondary">Total Sales</p>
-            <p className="text-2xl font-bold text-accent-green">{peso(filteredRevenue.total)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-text-secondary">Total Expenses</p>
-            <p className="text-2xl font-bold text-accent-red">{peso(totalExpenses)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-text-secondary">Disposal Losses</p>
-            <p className="text-2xl font-bold text-accent-orange">{peso(totalDisposals)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-text-secondary">Net Revenue</p>
-            <p className="text-2xl font-bold text-text-primary">{peso(filteredRevenue.total - totalExpenses - totalDisposals)}</p>
-          </div>
-        </div>
-      </div>
+      {/* NOTE: The old "Revenue" summary box was removed here. It only ever
+          showed to the Owner (Admins are redirected away from this dashboard),
+          and it was fully redundant with the Owner-only "Profit & Loss" box
+          above — which shows the same Sales/Expenses/Disposal Losses PLUS
+          Capital (cost of goods), Net Profit, and Margin. One box, no
+          duplication. */}
 
       {/* Sales Overview */}
       <div className="bg-card-bg border border-card-border rounded-xl p-6 shadow-sm shadow-black/20">
