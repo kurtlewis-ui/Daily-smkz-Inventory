@@ -104,9 +104,23 @@ export class DraftsService {
    * resubmitted as a duplicate on a retry.
    */
   async saveForStaff(staffId: string, actor: RequestUser) {
-    const draft = await this.prisma.draftOrder.findUnique({ where: { staffId } });
-    if (!draft) {
-      throw new NotFoundException('No draft found for that staff member');
+    // Atomically CLAIM the draft by deleting it up front and using the deleted
+    // row as our work to do. delete() succeeds for exactly one caller; if the
+    // same submit arrives twice (double-tap, or a client retry after a lost
+    // response), the second call hits "record not found" (P2025) and we treat
+    // it as "already submitted — nothing to do", so the sale can never be
+    // created twice. Any parts that fail below are written back into a fresh
+    // draft so they can still be retried.
+    let draft;
+    try {
+      draft = await this.prisma.draftOrder.delete({ where: { staffId } });
+    } catch (e: any) {
+      if (e?.code === 'P2025') {
+        // No draft to submit — either already submitted by a concurrent/retry
+        // request, or nothing was staged. Return an empty, successful result.
+        return { sale: null, disposals: [], expenses: [], errors: [], alreadySubmitted: true };
+      }
+      throw e;
     }
     const staffUser = await this.prisma.user.findUnique({ where: { id: staffId } });
     if (!staffUser) {
@@ -177,12 +191,20 @@ export class DraftsService {
       }
     }
 
-    if (remainingItems.length === 0 && remainingDisposals.length === 0 && remainingExpenses.length === 0) {
-      await this.prisma.draftOrder.delete({ where: { staffId } });
-    } else {
-      await this.prisma.draftOrder.update({
-        where: { staffId },
+    // The draft was already claimed (deleted) at the top. If any part failed,
+    // re-create the draft holding ONLY the leftover (failed) parts so the staff
+    // can retry just those — successful parts are already recorded and are not
+    // put back (so they can't be resubmitted as duplicates).
+    const hasRemaining =
+      remainingItems.length > 0 ||
+      remainingDisposals.length > 0 ||
+      remainingExpenses.length > 0;
+    if (hasRemaining) {
+      await this.prisma.draftOrder.create({
         data: {
+          staffId,
+          branchId: draft.branchId,
+          customerName: draft.customerName,
           items: remainingItems as unknown as Prisma.InputJsonValue,
           disposalItems: remainingDisposals as unknown as Prisma.InputJsonValue,
           expenses: remainingExpenses as unknown as Prisma.InputJsonValue,
