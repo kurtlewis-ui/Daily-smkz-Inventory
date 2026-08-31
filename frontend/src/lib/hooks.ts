@@ -6,7 +6,8 @@ import {
   useQueryClient,
   type QueryKey,
 } from '@tanstack/react-query';
-import { api } from './api';
+import { api, getApiErrorMessage } from './api';
+import { useToast } from '@/components/Toast';
 import type { DraftItem, DraftDisposalItem, DraftExpense } from './draft';
 import type {
   ActivityLog,
@@ -75,6 +76,18 @@ function useInvalidate() {
     keys.forEach((key) => qc.invalidateQueries({ queryKey: key }));
 }
 
+// Standardized toast callbacks for mutations. Pass a success message; failures
+// automatically surface the API error text as an error toast. Pages that show
+// their own inline error can still catch the thrown error as before — the
+// toast is additive, not a replacement.
+function useMutationToasts(successMessage: string) {
+  const toast = useToast();
+  return {
+    onSuccess: () => toast.success(successMessage),
+    onError: (err: unknown) => toast.error(getApiErrorMessage(err)),
+  };
+}
+
 // ===========================================================================
 // BRANCHES (Shops)
 // ===========================================================================
@@ -94,36 +107,44 @@ export function useArchivedBranches() {
 
 export function useCreateBranch() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Shop added');
   return useMutation({
     mutationFn: (body: { name: string; address?: string }) =>
       api.post('/branches', body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['branches'], ['stats']),
+    onSuccess: () => { invalidate(['branches'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useUpdateBranch() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Shop updated');
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string; name?: string; address?: string }) =>
       api.patch(`/branches/${id}`, body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['branches']),
+    onSuccess: () => { invalidate(['branches']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useArchiveBranch() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Shop archived');
   return useMutation({
     mutationFn: (id: string) => api.delete(`/branches/${id}`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['branches'], ['stats']),
+    onSuccess: () => { invalidate(['branches'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useRestoreBranch() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Shop restored');
   return useMutation({
     mutationFn: (id: string) =>
       api.post(`/branches/${id}/restore`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['branches'], ['stats']),
+    onSuccess: () => { invalidate(['branches'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -146,35 +167,43 @@ export function useArchivedBrands() {
 
 export function useCreateBrand() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Brand added');
   return useMutation({
     mutationFn: (body: { name: string; coverImage?: string | null }) =>
       api.post('/brands', body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['brands'], ['stats']),
+    onSuccess: () => { invalidate(['brands'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useUpdateBrand() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Brand updated');
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string; name?: string; coverImage?: string | null }) =>
       api.patch(`/brands/${id}`, body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['brands']),
+    onSuccess: () => { invalidate(['brands']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useArchiveBrand() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Brand archived');
   return useMutation({
     mutationFn: (id: string) => api.delete(`/brands/${id}`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['brands'], ['stats']),
+    onSuccess: () => { invalidate(['brands'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useRestoreBrand() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Brand restored');
   return useMutation({
     mutationFn: (id: string) => api.post(`/brands/${id}/restore`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['brands'], ['stats']),
+    onSuccess: () => { invalidate(['brands'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -222,10 +251,17 @@ export interface ImportProductRow {
 
 export function useImportProducts() {
   const invalidate = useInvalidate();
+  const toast = useToast();
   return useMutation({
     mutationFn: (products: ImportProductRow[]) =>
       api.post('/products/import', { products }).then((r) => r.data.data),
-    onSuccess: () => invalidate(['products'], ['brands'], ['stats']),
+    onSuccess: (res: any) => {
+      invalidate(['products'], ['brands'], ['stats']);
+      const created = res?.created ?? 0;
+      const updated = res?.updated ?? 0;
+      toast.success(`Import complete — ${created} added, ${updated} updated`);
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err)),
   });
 }
 
@@ -239,45 +275,55 @@ export interface RestockItem {
 
 export function useRestock() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Stock updated');
   return useMutation({
     mutationFn: (items: RestockItem[]) =>
       api.post('/products/restock', { items }).then((r) => r.data.data),
-    onSuccess: () => invalidate(['products'], ['stats']),
+    onSuccess: () => { invalidate(['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useCreateProduct() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Product added');
   return useMutation({
     mutationFn: (body: ProductMutationInput) =>
       api.post('/products', body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['products'], ['stats']),
+    onSuccess: () => { invalidate(['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useUpdateProduct() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Product updated');
   return useMutation({
     mutationFn: ({ id, ...body }: ProductMutationInput & { id: string }) =>
       api.patch(`/products/${id}`, body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['products']),
+    onSuccess: () => { invalidate(['products']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useArchiveProduct() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Product archived');
   return useMutation({
     mutationFn: (id: string) => api.delete(`/products/${id}`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['products'], ['stats']),
+    onSuccess: () => { invalidate(['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useRestoreProduct() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Product restored');
   return useMutation({
     mutationFn: (id: string) =>
       api.post(`/products/${id}/restore`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['products'], ['stats']),
+    onSuccess: () => { invalidate(['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -318,10 +364,12 @@ export interface UserCreateInput {
 
 export function useCreateUser() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('User created');
   return useMutation({
     mutationFn: (body: UserCreateInput) =>
       api.post('/users', body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['users'], ['stats']),
+    onSuccess: () => { invalidate(['users'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -339,33 +387,42 @@ export interface UserUpdateInput {
 
 export function useUpdateUser() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('User updated');
   return useMutation({
     mutationFn: ({ id, ...body }: UserUpdateInput) =>
       api.patch(`/users/${id}`, body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['users']),
+    onSuccess: () => { invalidate(['users']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useResetUserPassword() {
+  const t = useMutationToasts('Password reset');
   return useMutation({
     mutationFn: ({ id, newPassword, confirmPassword }: { id: string; newPassword: string; confirmPassword: string }) =>
       api.patch(`/users/${id}/password`, { newPassword, confirmPassword }).then((r) => r.data.data),
+    onSuccess: t.onSuccess,
+    onError: t.onError,
   });
 }
 
 export function useArchiveUser() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('User archived');
   return useMutation({
     mutationFn: (id: string) => api.delete(`/users/${id}`).then((r) => r.data),
-    onSuccess: () => invalidate(['users'], ['stats']),
+    onSuccess: () => { invalidate(['users'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useRestoreUser() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('User restored');
   return useMutation({
     mutationFn: (id: string) => api.post(`/users/${id}/restore`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['users'], ['stats']),
+    onSuccess: () => { invalidate(['users'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -429,45 +486,55 @@ export function useSalesPending(params?: {
 
 export function useCreateSale() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Sale recorded');
   return useMutation({
     mutationFn: (body: SaleCreateInput) => api.post('/sales', body).then((r) => r.data.data),
     // Creating a sale reserves (decrements) stock — refresh products.
-    onSuccess: () => invalidate(['sales'], ['products'], ['stats']),
+    onSuccess: () => { invalidate(['sales'], ['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useUpdateSale() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Sale updated');
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string } & Partial<SaleCreateInput>) =>
       api.patch(`/sales/${id}`, body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['sales']),
+    onSuccess: () => { invalidate(['sales']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useApproveSale() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Sale approved');
   return useMutation({
     mutationFn: (id: string) => api.post(`/sales/${id}/approve`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['sales'], ['products'], ['stats']),
+    onSuccess: () => { invalidate(['sales'], ['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useDeclineSale() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Sale declined');
   return useMutation({
     mutationFn: (id: string) => api.post(`/sales/${id}/decline`).then((r) => r.data.data),
     // Declining a pending sale restores (increments) stock — refresh products.
-    onSuccess: () => invalidate(['sales'], ['products'], ['stats']),
+    onSuccess: () => { invalidate(['sales'], ['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useDeleteSale() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Sale deleted');
   return useMutation({
     mutationFn: (id: string) => api.delete(`/sales/${id}`).then((r) => r.data.data),
     // Deleting a pending sale restores (increments) stock — refresh products.
-    onSuccess: () => invalidate(['sales'], ['products'], ['stats']),
+    onSuccess: () => { invalidate(['sales'], ['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -570,12 +637,16 @@ export function useStaffDrafts(branchId?: string) {
 // Save Order). Creates the real PENDING sale/disposal(s)/expense(s).
 export function useSaveDraftForStaff() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts("Staff order submitted");
   return useMutation({
     mutationFn: (staffId: string) =>
       api.post(`/sales/drafts/${staffId}/save`).then((r) => r.data.data),
     // Submitting a staff draft reserves (decrements) stock — refresh products.
-    onSuccess: () =>
-      invalidate(['staff-drafts'], ['sales'], ['disposals'], ['expenses'], ['products'], ['stats']),
+    onSuccess: () => {
+      invalidate(['staff-drafts'], ['sales'], ['disposals'], ['expenses'], ['products'], ['stats']);
+      t.onSuccess();
+    },
+    onError: t.onError,
   });
 }
 
@@ -644,10 +715,12 @@ export function useDisposals(params?: { search?: string; branchId?: string; star
 
 export function useCreateDisposal() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Disposal requested');
   return useMutation({
     mutationFn: (body: { branchId?: string; productId: string; quantity: number; reason?: string }) =>
       api.post('/disposals', body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['disposals'], ['products'], ['stats']),
+    onSuccess: () => { invalidate(['disposals'], ['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -673,18 +746,22 @@ export function useDisposalsPending(params?: { search?: string; branchId?: strin
 
 export function useApproveDisposal() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Disposal approved');
   return useMutation({
     mutationFn: (id: string) => api.post(`/disposals/${id}/approve`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['disposals'], ['products'], ['stats']),
+    onSuccess: () => { invalidate(['disposals'], ['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useDeclineDisposal() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Disposal declined');
   return useMutation({
     mutationFn: (id: string) => api.post(`/disposals/${id}/decline`).then((r) => r.data.data),
     // Declining a pending disposal restores (increments) stock — refresh products.
-    onSuccess: () => invalidate(['disposals'], ['products'], ['stats']),
+    onSuccess: () => { invalidate(['disposals'], ['products'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -693,10 +770,12 @@ export function useDeclineDisposal() {
 // ===========================================================================
 export function useCreateExpense() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Expense added');
   return useMutation({
     mutationFn: (body: { branchId?: string; amount: number; note: string }) =>
       api.post('/expenses', body).then((r) => r.data.data),
-    onSuccess: () => invalidate(['expenses'], ['stats']),
+    onSuccess: () => { invalidate(['expenses'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
@@ -750,17 +829,21 @@ export function useExpensesPending(params?: { search?: string; branchId?: string
 
 export function useApproveExpense() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Expense approved');
   return useMutation({
     mutationFn: (id: string) => api.post(`/expenses/${id}/approve`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['expenses'], ['stats']),
+    onSuccess: () => { invalidate(['expenses'], ['stats']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
 export function useDeclineExpense() {
   const invalidate = useInvalidate();
+  const t = useMutationToasts('Expense declined');
   return useMutation({
     mutationFn: (id: string) => api.post(`/expenses/${id}/decline`).then((r) => r.data.data),
-    onSuccess: () => invalidate(['expenses']),
+    onSuccess: () => { invalidate(['expenses']); t.onSuccess(); },
+    onError: t.onError,
   });
 }
 
