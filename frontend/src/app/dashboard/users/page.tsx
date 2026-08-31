@@ -444,7 +444,7 @@ function OwnerUsersView() {
           readable even on a ~375px phone, with M.I. staying compact. */}
       <div className="grid grid-cols-12 gap-2">
         <div className="col-span-5">
-          <label className="block text-sm font-medium text-text-primary mb-1">First Name</label>
+          <label className="block text-sm font-medium text-text-primary mb-1">First Name <span className="text-accent-red">*</span></label>
           <input type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" />
         </div>
         <div className="col-span-2">
@@ -452,7 +452,7 @@ function OwnerUsersView() {
           <input type="text" value={formData.middleInitial} onChange={(e) => setFormData({ ...formData, middleInitial: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" maxLength={2} />
         </div>
         <div className="col-span-5">
-          <label className="block text-sm font-medium text-text-primary mb-1">Last Name</label>
+          <label className="block text-sm font-medium text-text-primary mb-1">Last Name <span className="text-accent-red">*</span></label>
           <input type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" />
         </div>
       </div>
@@ -466,7 +466,7 @@ function OwnerUsersView() {
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">Role</label>
+          <label className="block text-sm font-medium text-text-primary mb-1">Role <span className="text-accent-red">*</span></label>
           <select value={formData.roleId} onChange={(e) => setFormData({ ...formData, roleId: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm">
             <option value="">Select role</option>
             {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -485,7 +485,7 @@ function OwnerUsersView() {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-text-primary mb-1">Email</label>
+        <label className="block text-sm font-medium text-text-primary mb-1">Email <span className="text-accent-red">*</span></label>
         <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" />
       </div>
 

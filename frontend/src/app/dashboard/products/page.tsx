@@ -549,7 +549,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
     <Modal title={title} onClose={onClose}>
       <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-8">
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">Name</label>
+          <label className="block text-sm font-medium text-text-primary mb-1">Name <span className="text-accent-red">*</span></label>
           <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
         </div>
         <div>
@@ -569,7 +569,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">Brand</label>
+          <label className="block text-sm font-medium text-text-primary mb-1">Brand <span className="text-accent-red">*</span></label>
           <select value={formBrand} onChange={(e) => setFormBrand(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus">
             <option value="">Select a brand</option>
             {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
