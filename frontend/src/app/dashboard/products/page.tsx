@@ -17,8 +17,8 @@ import {
 import { getApiErrorMessage } from '@/lib/api';
 import { parseCsv, readFileAsText } from '@/lib/csv';
 import { generateRestockXlsx, parseRestockXlsx, matchSlugToShopName, readFileAsArrayBuffer, type ProductRow } from '@/lib/xlsx-utils';
-import { fileToResizedDataUrl } from '@/lib/image';
 import { useAuthStore } from '@/lib/store';
+import { ImageCropModal } from '@/components/ImageCropModal';
 import type { Product, ImportResult, RestockResult } from '@/lib/types';
 import { StockHistoryModal } from '@/components/StockHistoryModal';
 
@@ -627,15 +627,12 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
   branches: { id: string; name: string }[]; brands: { id: string; name: string }[];
 }) {
   const [imageError, setImageError] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
-  async function handleImageFile(file: File) {
+  function handleImageFile(file: File) {
     setImageError(null);
-    try {
-      const dataUrl = await fileToResizedDataUrl(file, 256, 0.7);
-      setFormImage(dataUrl);
-    } catch (e) {
-      setImageError(e instanceof Error ? e.message : 'Could not process the image.');
-    }
+    // Open the square cropper; the cropped 256px thumbnail is applied below.
+    setCropFile(file);
   }
 
   return (
@@ -695,7 +692,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
             {isAdmin ? (
               <div className="flex-1 space-y-2">
                 <div className="border border-input-border rounded-lg px-3 py-2 flex items-center gap-2 bg-input-bg">
-                  <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleImageFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer" />
+                  <input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleImageFile(e.target.files[0]); e.currentTarget.value = ''; }} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer" />
                 </div>
                 {formImage && (
                   <button type="button" onClick={() => { setFormImage(null); setImageError(null); }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
@@ -714,6 +711,14 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
           <button onClick={onSubmit} disabled={disabled} className="btn-grad px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60">{buttonLabel}</button>
         </div>
       </div>
+      {cropFile && (
+        <ImageCropModal
+          file={cropFile}
+          title="Crop product image"
+          onCancel={() => setCropFile(null)}
+          onCropped={(dataUrl) => { setFormImage(dataUrl); setCropFile(null); }}
+        />
+      )}
     </Modal>
   );
 }

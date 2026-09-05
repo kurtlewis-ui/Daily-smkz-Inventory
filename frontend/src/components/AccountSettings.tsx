@@ -6,8 +6,8 @@ import { Camera, Loader2, Save, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useMe, useUpdateProfile, useChangeOwnPassword } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { getApiErrorMessage } from '@/lib/api';
-import { fileToResizedDataUrl } from '@/lib/image';
 import { useToast } from '@/components/Toast';
+import { ImageCropModal } from '@/components/ImageCropModal';
 
 /**
  * Account settings (profile + change password). Shared by the admin dashboard
@@ -30,6 +30,7 @@ export default function AccountSettings() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileOk, setProfileOk] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Password form
@@ -50,15 +51,11 @@ export default function AccountSettings() {
     }
   }, [me]);
 
-  async function onPickPhoto(file?: File) {
+  function onPickPhoto(file?: File) {
     if (!file) return;
     setProfileError(null);
-    try {
-      const dataUrl = await fileToResizedDataUrl(file, 200, 0.7);
-      setAvatarUrl(dataUrl);
-    } catch (e) {
-      setProfileError(e instanceof Error ? e.message : 'Could not process image.');
-    }
+    // Open the cropper; the cropped square is applied in onCropped.
+    setCropFile(file);
   }
 
   async function saveProfile() {
@@ -150,7 +147,7 @@ export default function AccountSettings() {
                 >
                   <Camera size={14} />
                 </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => onPickPhoto(e.target.files?.[0])} />
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { onPickPhoto(e.target.files?.[0]); e.currentTarget.value = ''; }} />
               </div>
               <div className="text-sm text-text-secondary">
                 <p className="font-medium text-text-primary">{me?.role?.name}</p>
@@ -224,6 +221,16 @@ export default function AccountSettings() {
             </div>
           </div>
         </>
+      )}
+
+      {cropFile && (
+        <ImageCropModal
+          file={cropFile}
+          title="Crop profile photo"
+          shape="circle"
+          onCancel={() => setCropFile(null)}
+          onCropped={(dataUrl) => { setAvatarUrl(dataUrl); setCropFile(null); }}
+        />
       )}
     </div>
   );
