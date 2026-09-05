@@ -278,10 +278,10 @@ function AddPurchaseModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       {/* max-h + overflow-y-auto so the whole form (incl. Save/Dispose buttons)
           stays reachable on small phone screens; lighter padding on mobile. */}
-      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl border border-card-border bg-card-bg p-5 sm:p-8 shadow-xl">
+      <div className="glass relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl p-5 sm:p-8 shadow-xl">
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-bold text-text-primary">Add Purchase</h3>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>

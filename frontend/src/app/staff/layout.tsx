@@ -123,8 +123,9 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* Sidebar — desktop always visible, mobile slides in */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col bg-nav-bg border-r border-nav-border transition-transform duration-200 md:translate-x-0 ${
+      {/* Sidebar — desktop always visible, mobile slides in. Restrained glass:
+          translucent nav tint + blur for depth, keeping the dark identity. */}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-[220px] flex-col bg-nav-bg/80 backdrop-blur-xl border-r border-nav-border transition-transform duration-200 md:translate-x-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Logo */}
@@ -601,8 +602,8 @@ function DraftBag() {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setOpen(false)} />
-          <div className={`fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-md flex-col bg-card-bg border-l border-card-border shadow-2xl content-transition ${contentTheme === 'light' ? 'content-light' : ''}`}>
+          <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className={`glass-strong fixed bottom-0 right-0 top-0 z-50 flex w-full max-w-md flex-col border-l shadow-2xl content-transition ${contentTheme === 'light' ? 'content-light' : ''}`}>
             <div className="flex items-center justify-between border-b border-card-border p-4">
               <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
                 <Briefcase size={18} /> Draft Order

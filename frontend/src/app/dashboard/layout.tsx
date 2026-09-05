@@ -156,10 +156,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* Sidebar — always fixed, always dark */}
+      {/* Sidebar — always fixed, always dark. Restrained glass: translucent
+          nav tint + blur for depth, keeping the dark black-and-white identity. */}
       <aside
         ref={navRef}
-        className={`fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col bg-nav-bg border-r border-nav-border transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[240px] flex-col bg-nav-bg/80 backdrop-blur-xl border-r border-nav-border transition-transform duration-200 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
