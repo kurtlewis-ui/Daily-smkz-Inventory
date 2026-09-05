@@ -279,20 +279,27 @@ select optgroup {
    of the theme's own card background plus a hairline border, so it stays
    monochrome and on-brand in both dark and light.
 
-   .glass        — standard blur for panels/sidebars
-   .glass-strong — heavier blur for sticky headers over scrolling content */
+   Legibility first: these are kept MOSTLY SOLID with only a gentle blur, so
+   content behind never muddies the text on top. Heavy see-through glass was
+   causing eye strain (esp. on data-dense pages), so blur/translucency here is
+   deliberately restrained.
+
+   .glass        — nearly-solid surface for modals/dialogs (forms + data you
+                   read), with a whisper of blur for depth.
+   .glass-strong — for true floating chrome only (sidebars, slide-over panel);
+                   a touch more translucent since it overlays scrolling content. */
 .glass {
-  background-color: color-mix(in srgb, var(--content-card-bg, #1a1a1a) 65%, transparent);
-  backdrop-filter: blur(10px) saturate(120%);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
-  border: 1px solid color-mix(in srgb, var(--content-card-border, #2a2a2a) 70%, transparent);
+  background-color: color-mix(in srgb, var(--content-card-bg, #1a1a1a) 92%, transparent);
+  backdrop-filter: blur(6px) saturate(110%);
+  -webkit-backdrop-filter: blur(6px) saturate(110%);
+  border: 1px solid color-mix(in srgb, var(--content-card-border, #2a2a2a) 80%, transparent);
 }
 
 .glass-strong {
-  background-color: color-mix(in srgb, var(--content-card-bg, #1a1a1a) 78%, transparent);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
-  border: 1px solid color-mix(in srgb, var(--content-card-border, #2a2a2a) 70%, transparent);
+  background-color: color-mix(in srgb, var(--content-card-bg, #1a1a1a) 88%, transparent);
+  backdrop-filter: blur(10px) saturate(115%);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  border: 1px solid color-mix(in srgb, var(--content-card-border, #2a2a2a) 80%, transparent);
 }
 
 /* Graceful fallback: if a browser can't do backdrop-filter, fall back to a
@@ -311,10 +318,12 @@ select optgroup {
    that part can't be glassified — this only affects the closed control.
    Pair with a chevron via the caller's markup or the arrow below. */
 .glass-select {
-  background-color: color-mix(in srgb, var(--content-input-bg, #1a1a1a) 55%, transparent);
-  backdrop-filter: blur(8px) saturate(115%);
-  -webkit-backdrop-filter: blur(8px) saturate(115%);
-  border: 1px solid color-mix(in srgb, var(--content-input-border, #333333) 75%, transparent);
+  /* Nearly solid so the selected value stays crisp over busy pages — just a
+     hint of blur/sheen, not a see-through panel. */
+  background-color: color-mix(in srgb, var(--content-input-bg, #1a1a1a) 92%, transparent);
+  backdrop-filter: blur(4px) saturate(110%);
+  -webkit-backdrop-filter: blur(4px) saturate(110%);
+  border: 1px solid color-mix(in srgb, var(--content-input-border, #333333) 85%, transparent);
   transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
