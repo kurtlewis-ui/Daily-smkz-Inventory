@@ -30,8 +30,10 @@ body {
   --content-table-header: #e8eaed;
   --content-table-header-text: #3c4043;
   --content-text-primary: #202124;
-  --content-text-secondary: #5f6368;
-  --content-text-muted: #80868b;
+  --content-text-secondary: #4b5056;
+  /* Darkened from #80868b for stronger contrast on the light surface (~4.6:1)
+     so muted subtitles / SKU metadata stay perfectly legible. */
+  --content-text-muted: #6b7076;
   --content-text-link: #3c4043;
   --content-surface-muted: #f5f7fa;
   --content-input-bg: #f1f3f4;
