@@ -17,7 +17,7 @@ import { X } from 'lucide-react';
  *   toast.success('Order submitted!', 'All set');
  *
  * Mount <ToastProvider> once near the app root (providers.tsx). It renders a
- * fixed stack in the bottom-right and auto-dismisses each toast after ~3.6s.
+ * fixed stack in the top-right and auto-dismisses each toast after ~2.8s.
  * The stack is rendered at the top level (never inside a drawer/panel), so
  * toasts can't be clipped by surrounding layout.
  */
@@ -30,7 +30,7 @@ const DEFAULT_TITLES: Record<ToastKind, string> = {
   info: 'Heads up',
 };
 
-const DURATION_MS = 3600;
+const DURATION_MS = 2800;
 
 interface ToastItem {
   id: number;
