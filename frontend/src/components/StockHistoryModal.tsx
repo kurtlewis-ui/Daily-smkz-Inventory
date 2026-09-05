@@ -40,8 +40,8 @@ export function StockHistoryModal({ productId, productName, branchId, branchName
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-card-bg border border-card-border rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="glass relative rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-card-border shrink-0">
           <div>
