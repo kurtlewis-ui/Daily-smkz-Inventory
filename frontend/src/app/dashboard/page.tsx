@@ -22,6 +22,7 @@ import { useDashboardStats, useSalesOverview, useTopProducts, useBranches, useDi
 import { useThemeStore } from '@/lib/theme';
 import { useAuthStore } from '@/lib/store';
 import { OwnerProfitSection } from '@/components/OwnerProfitSection';
+import { useToast } from '@/components/Toast';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -57,6 +58,7 @@ export default function DashboardPage() {
 function OwnerDashboard() {
   const { contentTheme } = useThemeStore();
   const isDark = contentTheme === 'dark';
+  const toast = useToast();
   const { data: stats, isLoading, isError: statsError } = useDashboardStats();
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
@@ -120,9 +122,12 @@ function OwnerDashboard() {
               const { exportAllData } = await import('@/lib/export-all');
               await exportAllData((status) => setExportStatus(status));
               setExportStatus('');
+              toast.success('All data exported.', 'Export complete');
             } catch (e: any) {
-              setExportError(e?.message ?? 'Export failed');
+              const msg = e?.message ?? 'Export failed';
+              setExportError(msg);
               setExportStatus('');
+              toast.error(msg, 'Export failed');
             } finally {
               setExporting(false);
             }
