@@ -19,8 +19,10 @@ const config: Config = {
         'nav-active': '#ffffff',
         // Text colors — adapt to content theme
         'text-primary': 'var(--content-text-primary, #f0f0f0)',
-        'text-secondary': 'var(--content-text-secondary, #a0a0a0)',
-        'text-muted': 'var(--content-text-muted, #666666)',
+        'text-secondary': 'var(--content-text-secondary, #b0b0b0)',
+        // Lifted from #666666 so muted subtitles / SKU metadata clear WCAG
+        // contrast on dark surfaces (~4.5:1 on #1a1a1a) — less eye strain.
+        'text-muted': 'var(--content-text-muted, #8a8a8a)',
         'text-link': 'var(--content-text-link, #d0d0d0)',
         // Accent colors — kept for charts/status in light mode & sales buttons
         'accent-primary': '#ffffff',
