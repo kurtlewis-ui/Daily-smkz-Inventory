@@ -12,7 +12,7 @@ html {
 }
 
 body {
-  @apply bg-page-bg text-text-primary antialiased;
+  @apply bg-page-bg text-text-primary antialiased font-sans;
   background-image:
     radial-gradient(900px circle at 50% -15%, rgba(255, 255, 255, 0.02), transparent 45%);
   background-attachment: fixed;
@@ -249,6 +249,133 @@ select optgroup {
 .tile-disabled:hover {
   transform: none;
   box-shadow: none;
+}
+
+/* ======================================================================
+   DESIGN FOUNDATION (PR #55)
+   Reusable primitives for the "elite SaaS" polish. These are TOOLS only —
+   applying them to screens happens in later PRs. They are built entirely
+   from the EXISTING black-and-white tokens (var(--content-*)), so nothing
+   here recolors the app or changes the theme; it only adds depth, glass,
+   motion, and status-feedback helpers.
+   ====================================================================== */
+
+/* --- Spring / tactile motion -----------------------------------------
+   A single elastic bezier for hover / active / tap states so interactive
+   elements feel physical. Apply `.spring` to opt in. */
+.spring {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    box-shadow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    background-color 0.25s ease, border-color 0.25s ease, opacity 0.25s ease;
+}
+
+.spring:active {
+  transform: scale(0.97);
+}
+
+/* --- Restrained glassmorphism ----------------------------------------
+   For CHROME only (top-bar/header, sidebars, slide-over panels, dropdowns
+   and context menus) — never for solid data cards. Uses a translucent tint
+   of the theme's own card background plus a hairline border, so it stays
+   monochrome and on-brand in both dark and light.
+
+   .glass        — standard blur for panels/sidebars
+   .glass-strong — heavier blur for sticky headers over scrolling content */
+.glass {
+  background-color: color-mix(in srgb, var(--content-card-bg, #1a1a1a) 65%, transparent);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  border: 1px solid color-mix(in srgb, var(--content-card-border, #2a2a2a) 70%, transparent);
+}
+
+.glass-strong {
+  background-color: color-mix(in srgb, var(--content-card-bg, #1a1a1a) 78%, transparent);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  border: 1px solid color-mix(in srgb, var(--content-card-border, #2a2a2a) 70%, transparent);
+}
+
+/* Graceful fallback: if a browser can't do backdrop-filter, fall back to a
+   near-opaque solid so text stays readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass-strong {
+    background-color: color-mix(in srgb, var(--content-card-bg, #1a1a1a) 96%, transparent);
+  }
+}
+
+/* --- Elevation / dimensional depth -----------------------------------
+   Soft, layered shadow so surfaces read as floating above the page rather
+   than flat. Neutral (black) shadow — no color. */
+.elevate {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 8px 24px -8px rgba(0, 0, 0, 0.45);
+}
+
+.elevate-lg {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 18px 40px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* --- Alert glow + pulse ----------------------------------------------
+   Turns a status badge into a living anchor. Color comes from the badge's
+   own text/background utility (accent-red / accent-orange) via currentColor,
+   so it stays consistent with the existing status palette.
+
+   .glow-pulse — ambient pulsing glow (e.g. critical / low stock)
+   .glow       — static soft glow (no animation) */
+.glow {
+  box-shadow: 0 0 8px -1px currentColor;
+}
+
+.glow-pulse {
+  animation: badge-glow-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes badge-glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+  50% { box-shadow: 0 0 10px 1px color-mix(in srgb, currentColor 55%, transparent); }
+}
+
+/* --- Success flash ----------------------------------------------------
+   Brief, non-blocking green wash that fades out over ~800ms — for a row or
+   card after a successful update / live stock change. Uses the existing
+   accent-green. Add the class, then remove it (or remount) to replay. */
+.flash-success {
+  animation: flash-success-kf 0.8s ease-out;
+}
+
+@keyframes flash-success-kf {
+  0% { background-color: color-mix(in srgb, var(--content-page-bg) 100%, transparent); }
+  15% { background-color: color-mix(in srgb, #10b981 22%, transparent); }
+  100% { background-color: transparent; }
+}
+
+/* --- Bento grid ------------------------------------------------------
+   Asymmetrical metrics grid. `.bento-grid` is the container; children use
+   `.bento-2` / `.bento-3` to span more columns at md+ (they stay full-width
+   and stack on mobile). Consumed by the dashboard redesign PR. */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .bento-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .bento-2 { grid-column: span 2 / span 2; }
+  .bento-3 { grid-column: span 3 / span 3; }
+  .bento-4 { grid-column: span 4 / span 4; }
+}
+
+/* Honor reduced-motion for the foundation animations too. */
+@media (prefers-reduced-motion: reduce) {
+  .spring,
+  .glow-pulse,
+  .flash-success {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* ----------------------------------------------------------------------
