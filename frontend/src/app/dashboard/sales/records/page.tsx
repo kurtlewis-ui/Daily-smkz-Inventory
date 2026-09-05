@@ -5,6 +5,7 @@ import { Search, Loader2 } from 'lucide-react';
 import { useSalesRecords, useBranches, useBranchSummary } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
 import { usePagination, Pagination } from '@/components/Pagination';
+import { Select } from '@/components/Select';
 import type { PaymentMethod } from '@/lib/types';
 
 function peso(n: number) {
@@ -81,10 +82,13 @@ export default function SalesRecordsPage() {
       {/* Filters */}
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
         <div className="p-4 flex flex-wrap items-center gap-3">
-          <select value={selectedShop} onChange={(e) => { setSelectedShop(e.target.value); resetPage(); }} className="glass-select px-3 py-2 rounded-lg text-sm focus:outline-none">
-            <option value="">All Shops</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          <Select
+            value={selectedShop}
+            onChange={(v) => { setSelectedShop(v); resetPage(); }}
+            ariaLabel="Shop"
+            className="w-auto min-w-[150px]"
+            options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+          />
           <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
           <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
         </div>
