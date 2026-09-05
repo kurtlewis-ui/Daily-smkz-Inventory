@@ -5,6 +5,7 @@ import { Search, Plus, X, Loader2 } from 'lucide-react';
 import { useDisposals, useCreateDisposal, useBranches, useProducts } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
 import { usePagination, Pagination } from '@/components/Pagination';
+import { Select } from '@/components/Select';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -47,10 +48,13 @@ export default function DisposalsPage() {
 
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
         <div className="p-4 flex flex-wrap items-center gap-3">
-          <select value={selectedShop} onChange={(e) => { setSelectedShop(e.target.value); resetPage(); }} className="glass-select px-3 py-2 rounded-lg text-sm focus:outline-none">
-            <option value="">All Shops</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          <Select
+            value={selectedShop}
+            onChange={(v) => { setSelectedShop(v); resetPage(); }}
+            ariaLabel="Shop"
+            className="w-auto min-w-[150px]"
+            options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+          />
           <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
           <input type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus" />
         </div>
@@ -164,17 +168,23 @@ function RecordDisposalModal({ branches, onClose }: { branches: { id: string; na
           <p className="text-xs text-text-muted">Request to write off damaged/expired/unsellable stock. It goes to <strong>Pending Sales</strong> for an admin to approve. Stock is only deducted once approved.</p>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Shop <span className="text-accent-red">*</span></label>
-            <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setProductId(''); }} className="glass-select w-full rounded px-3 py-2 text-sm">
-              <option value="">Select shop</option>
-              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <Select
+              value={branchId}
+              onChange={(v) => { setBranchId(v); setProductId(''); }}
+              ariaLabel="Shop"
+              placeholder="Select shop"
+              options={branches.map((b) => ({ value: b.id, label: b.name }))}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Product <span className="text-accent-red">*</span></label>
-            <select value={productId} onChange={(e) => setProductId(e.target.value)} className="glass-select w-full rounded px-3 py-2 text-sm">
-              <option value="">Select product</option>
-              {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
+            <Select
+              value={productId}
+              onChange={setProductId}
+              ariaLabel="Product"
+              placeholder="Select product"
+              options={products.map((p) => ({ value: p.id, label: p.name }))}
+            />
             {selected && <p className="text-xs text-text-muted mt-1">In stock at this shop: <strong>{available}</strong></p>}
           </div>
           <div>
