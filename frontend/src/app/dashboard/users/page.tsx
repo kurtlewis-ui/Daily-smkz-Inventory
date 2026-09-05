@@ -610,7 +610,7 @@ function OwnerUsersView() {
                       <button onClick={() => handleEdit(user)} className="p-1.5 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition" title="Edit">
                         <Pencil size={15} />
                       </button>
-                      <button onClick={() => handleArchive(user)} className="p-1.5 text-accent-red hover:bg-accent-red/10 rounded-lg transition" title="Archive">
+                      <button onClick={() => handleArchive(user)} className="p-1.5 text-accent-archive hover:bg-accent-archive/10 rounded-lg transition" title="Archive">
                         <Archive size={15} />
                       </button>
                     </div>
@@ -649,7 +649,7 @@ function OwnerUsersView() {
           {formError && <div className="rounded-lg bg-accent-red/10 border border-accent-red/30 px-3 py-2 text-sm text-accent-red mb-3">{formError}</div>}
           <div className="flex gap-3 justify-end">
             <button onClick={() => setShowArchiveModal(false)} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
-            <button onClick={confirmArchive} disabled={archiveUser.isPending} className="px-4 py-2 bg-accent-red text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60">
+            <button onClick={confirmArchive} disabled={archiveUser.isPending} className="px-4 py-2 bg-accent-archive text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60">
               {archiveUser.isPending ? 'Archiving...' : 'Yes, Archive'}
             </button>
           </div>
