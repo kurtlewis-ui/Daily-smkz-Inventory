@@ -656,6 +656,7 @@ function OwnerUsersView() {
         <ImageCropModal
           file={cropFile}
           title="Crop profile photo"
+          shape="circle"
           onCancel={() => setCropFile(null)}
           onCropped={(dataUrl) => { setFormData((f) => ({ ...f, avatarUrl: dataUrl })); setCropFile(null); }}
         />

@@ -25,12 +25,16 @@ export function ImageCropModal({
   onCropped,
   outSize = 256,
   title = 'Crop image',
+  shape = 'square',
 }: {
   file: File;
   onCancel: () => void;
   onCropped: (dataUrl: string) => void;
   outSize?: number;
   title?: string;
+  /** 'circle' shows a round frame + outputs a circular (transparent-corner)
+      image — used for profile pictures. 'square' for product/brand images. */
+  shape?: 'square' | 'circle';
 }) {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +122,7 @@ export function ImageCropModal({
         y: Math.max(0, srcY),
         size: Math.min(srcSize, Math.min(img.naturalWidth, img.naturalHeight)),
       };
-      const dataUrl = cropImageToDataUrl(img, crop, outSize);
+      const dataUrl = cropImageToDataUrl(img, crop, outSize, 100_000, shape === 'circle');
       onCropped(dataUrl);
     } catch (e: any) {
       setError(e?.message ?? 'Could not crop the image.');
@@ -140,10 +144,10 @@ export function ImageCropModal({
           <p className="py-8 text-center text-sm text-accent-red">{error}</p>
         ) : (
           <>
-            {/* Square crop frame */}
+            {/* Crop frame — round for profile photos, square otherwise */}
             <div
               ref={frameRef}
-              className="relative mx-auto aspect-square w-full max-w-[288px] cursor-grab touch-none overflow-hidden rounded-xl border border-white/10 bg-black/40 active:cursor-grabbing"
+              className={`relative mx-auto aspect-square w-full max-w-[288px] cursor-grab touch-none overflow-hidden border border-white/10 bg-black/40 active:cursor-grabbing ${shape === 'circle' ? 'rounded-full' : 'rounded-xl'}`}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
@@ -168,7 +172,7 @@ export function ImageCropModal({
                 />
               )}
               {/* subtle framing guide */}
-              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/20" />
+              <div className={`pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/20 ${shape === 'circle' ? 'rounded-full' : ''}`} />
             </div>
 
             {/* Zoom */}

@@ -227,6 +227,7 @@ export default function AccountSettings() {
         <ImageCropModal
           file={cropFile}
           title="Crop profile photo"
+          shape="circle"
           onCancel={() => setCropFile(null)}
           onCropped={(dataUrl) => { setAvatarUrl(dataUrl); setCropFile(null); }}
         />

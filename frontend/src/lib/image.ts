@@ -130,12 +130,16 @@ export interface CropRect {
 /**
  * Crop a square out of an already-loaded image element and return a small
  * data URL. `outSize` is the output square edge in px (default 256).
+ * When `circle` is true, the output is masked to a circle (transparent
+ * corners) — used for profile pictures — and encoded as WebP/PNG to keep
+ * that transparency.
  */
 export function cropImageToDataUrl(
   img: HTMLImageElement,
   crop: CropRect,
   outSize = 256,
   maxBytes = 100_000,
+  circle = false,
 ): string {
   const canvas = document.createElement('canvas');
   canvas.width = outSize;
@@ -143,15 +147,29 @@ export function cropImageToDataUrl(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Image cropping is not supported in this browser.');
 
-  // Draw the chosen square region scaled down into the output square.
-  // Flatten onto white first so any transparency doesn't become black in JPEG.
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, outSize, outSize);
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, crop.x, crop.y, crop.size, crop.size, 0, 0, outSize, outSize);
-
   const webp = canEncodeWebp();
-  const mime = webp ? 'image/webp' : 'image/jpeg';
+
+  ctx.imageSmoothingQuality = 'high';
+
+  if (circle) {
+    // Keep transparent corners: clip to a circle, then draw (no white fill).
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(outSize / 2, outSize / 2, outSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(img, crop.x, crop.y, crop.size, crop.size, 0, 0, outSize, outSize);
+    ctx.restore();
+  } else {
+    // Flatten onto white first so any transparency doesn't become black in JPEG.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, outSize, outSize);
+    ctx.drawImage(img, crop.x, crop.y, crop.size, crop.size, 0, 0, outSize, outSize);
+  }
+
+  // A circle needs an alpha-capable format; WebP supports alpha, PNG is the
+  // fallback. Square thumbnails prefer WebP, then JPEG.
+  const mime = webp ? 'image/webp' : circle ? 'image/png' : 'image/jpeg';
   let q = 0.82;
   let out = canvas.toDataURL(mime, q);
 
