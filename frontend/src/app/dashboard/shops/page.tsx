@@ -121,7 +121,8 @@ export default function ShopsPage() {
       </div>
 
       <div className="bg-card-bg border border-card-border rounded-lg overflow-x-auto">
-        <table className="w-full">
+        {/* Desktop: table (hidden on mobile) */}
+        <table className="hidden w-full md:table">
           <thead>
             <tr className="bg-table-header">
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-table-header-text w-16">#</th>
@@ -168,6 +169,54 @@ export default function ShopsPage() {
             )}
           </tbody>
         </table>
+
+        {/* Mobile: card list (hidden on desktop). Same data + handlers as the
+            table above; touch targets are min 48px (h-12) for tappability. */}
+        <div className="md:hidden">
+          {isLoading ? (
+            <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading shops...</div>
+          ) : isError ? (
+            <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+          ) : filteredShops.length === 0 ? (
+            <div className="py-8 text-center text-text-muted">No shops found.</div>
+          ) : (
+            <ul className="divide-y divide-card-border">
+              {pagedShops.map((shop, i) => (
+                <li key={shop.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-accent-blue">
+                        <span className="text-text-muted mr-1.5">{controlProps.startIdx + i + 1}.</span>
+                        {shop.name}
+                      </p>
+                      <p className="mt-1 text-sm text-text-secondary break-words">{shop.address || '—'}</p>
+                      <p className="mt-1 text-xs text-text-muted">Staff: <span className="text-text-secondary">{shop.staffCount}</span></p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => { setEditingShop(shop); setNewName(shop.name); setNewAddress(shop.address ?? ''); setFormError(null); setShowEditModal(true); }}
+                        className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-blue hover:bg-accent-blue/10 transition-colors"
+                        title="Edit"
+                        aria-label={`Edit ${shop.name}`}
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        onClick={() => { setArchivingShop(shop); setFormError(null); setShowArchiveModal(true); }}
+                        className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-red hover:bg-accent-red/10 transition-colors"
+                        title="Archive"
+                        aria-label={`Archive ${shop.name}`}
+                      >
+                        <Archive size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         {!isLoading && !isError && filteredShops.length > 0 && (
           <Pagination {...controlProps} noun="shops" />
         )}

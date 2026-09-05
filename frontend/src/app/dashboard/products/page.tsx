@@ -204,7 +204,8 @@ export default function ProductsPage() {
       </div>
 
       <div className="bg-card-bg border border-card-border rounded-lg overflow-x-auto">
-        <table className="w-full">
+        {/* Desktop: table (hidden on mobile) */}
+        <table className="hidden w-full md:table">
           <thead>
             <tr className="bg-table-header">
               <th className="text-left px-3 py-3 text-xs font-semibold uppercase text-table-header-text w-10">#</th>
@@ -309,6 +310,98 @@ export default function ProductsPage() {
             )}
           </tbody>
         </table>
+
+        {/* Mobile: card list (hidden on desktop). Same data + handlers as the
+            table; action buttons are 48px touch targets. */}
+        <div className="md:hidden">
+          {isLoading ? (
+            <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading products...</div>
+          ) : isError ? (
+            <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+          ) : displayProducts.length === 0 ? (
+            <div className="py-8 text-center text-text-muted">No products found. Add one or import a CSV.</div>
+          ) : (
+            <ul className="divide-y divide-card-border">
+              {displayProducts.map((product, i) => (
+                <li key={product.id} className="p-4">
+                  <div className="flex items-start gap-3">
+                    {product.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={product.image} alt={product.name} loading="lazy" className="h-12 w-12 shrink-0 rounded object-cover bg-white/10" />
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-white/10 text-[10px] text-text-muted">No Img</div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-text-primary">
+                        <span className="text-text-muted mr-1.5">{(entriesPerPage === 'All' ? 0 : (currentPage - 1) * (entriesPerPage as number)) + i + 1}.</span>
+                        {product.name}
+                      </p>
+                      <p className="mt-0.5 text-xs text-text-secondary">{product.brand?.name ?? '—'}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center">
+                      {shopFilter && <button onClick={() => setHistoryProduct(product)} className="flex h-12 w-12 items-center justify-center rounded-lg text-text-secondary hover:bg-white/10 transition-colors" title="Stock History" aria-label="Stock history"><ClipboardList size={18} /></button>}
+                      <button onClick={() => openEditModal(product)} className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-blue hover:bg-accent-blue/10 transition-colors" title="Edit" aria-label={`Edit ${product.name}`}><Pencil size={18} /></button>
+                      <button onClick={() => { setArchivingProduct(product); setFormError(null); setShowArchiveModal(true); }} className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-red hover:bg-accent-red/10 transition-colors" title="Archive" aria-label={`Archive ${product.name}`}><Archive size={18} /></button>
+                    </div>
+                  </div>
+
+                  {/* Quantity + price per branch (or single when a shop filter is on) */}
+                  <div className="mt-3 rounded-lg bg-surface-muted p-3 text-xs">
+                    {shopFilter ? (
+                      (() => {
+                        const qty = qtyForBranch(product, shopFilter);
+                        const isOut = qty <= 0;
+                        const isLow = !isOut && product.quantityAlert > 0 && qty <= product.quantityAlert;
+                        const price = product.quantities.find((q) => q.branchId === shopFilter)?.sellingPrice ?? product.sellingPrice;
+                        return (
+                          <div className="flex items-center justify-between">
+                            <span className={`font-medium ${isOut ? 'text-accent-red' : isLow ? 'text-accent-orange' : 'text-text-primary'}`}>
+                              Qty: {qty}{isOut && ' (Out)'}{isLow && ' (Low)'}
+                            </span>
+                            <span className="font-medium text-text-primary">₱{price.toFixed(2)}</span>
+                          </div>
+                        );
+                      })()
+                    ) : branches.length === 0 ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-muted">No shops yet</span>
+                        <span className="font-medium text-text-primary">₱{product.sellingPrice.toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {branches.map((b) => {
+                          const qty = qtyForBranch(product, b.id);
+                          const isOut = qty <= 0;
+                          const isLow = !isOut && product.quantityAlert > 0 && qty <= product.quantityAlert;
+                          const price = product.quantities.find((q) => q.branchId === b.id)?.sellingPrice ?? product.sellingPrice;
+                          return (
+                            <div key={b.id} className="flex items-center justify-between gap-2">
+                              <span className="font-semibold text-text-primary truncate">{b.name}</span>
+                              <span className="flex items-center gap-2 shrink-0">
+                                <span className={`${isOut ? 'text-accent-red font-medium' : isLow ? 'text-accent-orange font-medium' : 'text-accent-blue'}`}>
+                                  {qty}{isOut && ' (Out)'}{isLow && ' (Low)'}
+                                </span>
+                                <span className="text-text-primary">₱{price.toFixed(2)}</span>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="mt-2 flex items-center gap-1.5 border-t border-card-border pt-2 text-text-muted">
+                      Qty Alert:
+                      {product.quantityAlert > 0 ? (
+                        <span className="badge badge-neutral"><span className="badge-dot bg-accent-orange" />{product.quantityAlert}</span>
+                      ) : (
+                        <span>{product.quantityAlert}</span>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center justify-between text-sm text-text-secondary">
