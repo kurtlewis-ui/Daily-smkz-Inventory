@@ -99,6 +99,11 @@ function OwnerDashboard() {
     total: p.total,
   }));
 
+  // Real sales-trend series for the Pending Sales bento sparkline — the last
+  // several approved-sales buckets from the same overview data. Only used
+  // when there are at least 2 points, so we never render a fake trend.
+  const salesSpark = overviewData.slice(-12).map((p) => p.total);
+
   const topData = (Array.isArray(topProducts) ? topProducts : []).map((p) => ({ name: p.name, brand: p.brand, quantity: p.quantity, revenue: p.revenue }));
   const topDataPreview = topData.slice(0, 10);
   const disposedPreview = disposedProducts.slice(0, 10);
@@ -142,11 +147,17 @@ function OwnerDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard href="/dashboard/shops" icon={<Store size={24} />} value={v(stats?.shops)} label="Shops" accentColor="#10b981" />
+      {/* Asymmetrical Bento metrics (4-col at md+). Pending Sales is the key
+          operational metric — it spans 2 columns and carries a real
+          sales-trend sparkline (from the same approved-sales series used by
+          the chart below). Row 1: Pending(2) + Products(1) + Staff(1).
+          Row 2: Shops as a full-width footer card. Numbers use Geist Mono
+          for alignment. */}
+      <div className="bento-grid">
+        <StatsCard className="bento-2" href="/dashboard/sales/pending" icon={<PhilippinePeso size={24} />} value={v(stats?.pendingSales)} label="Pending Sales" subtitle={`${v(stats?.approvedSales)} Approved`} accentColor="#f59e0b" spark={salesSpark} />
         <StatsCard href="/dashboard/products" icon={<Package size={24} />} value={v(stats?.products)} label="Products" subtitle={`${v(stats?.brands)} brands`} accentColor="#60a5fa" />
-        <StatsCard href="/dashboard/sales/pending" icon={<PhilippinePeso size={24} />} value={v(stats?.pendingSales)} label="Pending Sales" subtitle={`${v(stats?.approvedSales)} Approved`} accentColor="#f59e0b" />
         <StatsCard href="/dashboard/users" icon={<Users size={24} />} value={v(stats?.staff)} label="Staff" subtitle={`${v(stats?.admins)} Admins`} accentColor="#a78bfa" />
+        <StatsCard className="bento-4" href="/dashboard/shops" icon={<Store size={24} />} value={v(stats?.shops)} label="Shops" accentColor="#10b981" />
       </div>
 
       {/* Owner-only Profit & Loss section */}
@@ -369,16 +380,82 @@ function formatBucket(iso: string, period: string) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-function StatsCard({ href, icon, value, label, subtitle, accentColor }: { href: string; icon: React.ReactNode; value: string; label: string; subtitle?: string; accentColor?: string }) {
+// Minimal SVG sparkline — a tiny trend line drawn from a numeric series.
+// Pure SVG (no chart lib), renders nothing when there aren't enough points,
+// so we never show a fake/empty trend. Uses the passed accent color.
+function Sparkline({ data, color, className }: { data: number[]; color: string; className?: string }) {
+  if (!data || data.length < 2) return null;
+  const w = 100;
+  const h = 32;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const step = w / (data.length - 1);
+  const points = data.map((v, i) => {
+    const x = i * step;
+    const y = h - ((v - min) / range) * h;
+    return { x, y };
+  });
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  // Close the path down to the baseline for a soft area fill under the line.
+  const areaPath = `${linePath} L${w},${h} L0,${h} Z`;
+  const gradId = `spark-${Math.random().toString(36).slice(2, 8)}`;
   return (
-    <Link href={href} className="group card-hover bg-card-bg border border-card-border rounded-xl p-4 flex items-center gap-4 relative overflow-hidden">
-      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r" style={{ background: accentColor || '#10b981' }} />
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5"><span style={{ color: accentColor || '#10b981' }}>{icon}</span></div>
-      <div>
-        <p className="text-2xl font-bold text-text-primary leading-tight">{value}</p>
-        <p className="text-sm font-medium text-text-secondary">{label}</p>
-        {subtitle && <p className="text-xs text-text-muted">{subtitle}</p>}
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.28} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+function StatsCard({
+  href,
+  icon,
+  value,
+  label,
+  subtitle,
+  accentColor,
+  className,
+  spark,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  subtitle?: string;
+  accentColor?: string;
+  className?: string;
+  spark?: number[];
+}) {
+  const color = accentColor || '#10b981';
+  return (
+    <Link
+      href={href}
+      className={`group card-hover bg-card-bg border border-card-border rounded-xl p-4 flex flex-col justify-between relative overflow-hidden ${className ?? ''}`}
+    >
+      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r" style={{ background: color }} />
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5"><span style={{ color }}>{icon}</span></div>
+        <div className="min-w-0">
+          <p className="font-mono text-2xl font-bold text-text-primary leading-tight tabular-nums">{value}</p>
+          <p className="text-sm font-medium text-text-secondary">{label}</p>
+          {subtitle && <p className="text-xs text-text-muted">{subtitle}</p>}
+        </div>
       </div>
+      {spark && spark.length >= 2 && (
+        <Sparkline data={spark} color={color} className="mt-3 h-8 w-full opacity-80" />
+      )}
     </Link>
   );
 }
