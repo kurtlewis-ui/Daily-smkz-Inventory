@@ -12,7 +12,7 @@ import {
   useArchiveUser,
 } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
-import { fileToResizedDataUrl } from '@/lib/image';
+import { ImageCropModal } from '@/components/ImageCropModal';
 import { useAuthStore } from '@/lib/store';
 import type { FullUser } from '@/lib/types';
 
@@ -268,6 +268,7 @@ function OwnerUsersView() {
   const [selectedUser, setSelectedUser] = useState<FullUser | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [formError, setFormError] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     firstName: '', middleInitial: '', lastName: '', email: '',
@@ -419,15 +420,10 @@ function OwnerUsersView() {
             <input
               type="file"
               accept="image/*"
-              onChange={async (e) => {
+              onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (!file) return;
-                try {
-                  const dataUrl = await fileToResizedDataUrl(file, 200, 0.7);
-                  setFormData((f) => ({ ...f, avatarUrl: dataUrl }));
-                } catch (err) {
-                  setFormError(err instanceof Error ? err.message : 'Could not process image.');
-                }
+                if (file) { setFormError(null); setCropFile(file); }
+                e.currentTarget.value = '';
               }}
               className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer"
             />
@@ -654,6 +650,15 @@ function OwnerUsersView() {
             </button>
           </div>
         </Modal>
+      )}
+
+      {cropFile && (
+        <ImageCropModal
+          file={cropFile}
+          title="Crop profile photo"
+          onCancel={() => setCropFile(null)}
+          onCropped={(dataUrl) => { setFormData((f) => ({ ...f, avatarUrl: dataUrl })); setCropFile(null); }}
+        />
       )}
     </div>
   );

@@ -15,6 +15,18 @@ function dataUrlBytes(dataUrl: string): number {
   return Math.floor((b64.length * 3) / 4);
 }
 
+/** True if this browser can encode WebP from a canvas (much smaller files). */
+function canEncodeWebp(): boolean {
+  try {
+    const c = document.createElement('canvas');
+    c.width = 1;
+    c.height = 1;
+    return c.toDataURL('image/webp').startsWith('data:image/webp');
+  } catch {
+    return false;
+  }
+}
+
 export function fileToResizedDataUrl(
   file: File,
   maxSize = 512,
@@ -93,6 +105,80 @@ export function fileToResizedDataUrl(
           reject(new Error('Image processing is not supported in this browser.'));
         }
       };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Square crop → tiny thumbnail. Used by the image cropper UI: the user frames
+// a square region of their photo, and we render ONLY that square, downscaled
+// to a small size and encoded as WebP (falling back to JPEG) so the stored
+// image stays tiny — important because images live inline in the DB (@db.Text)
+// and we want to keep Neon storage small. A 256px WebP thumbnail is typically
+// well under ~100KB, roughly 9x smaller than the old 512px/700KB output.
+// ---------------------------------------------------------------------------
+
+export interface CropRect {
+  /** Source-pixel coordinates of the square crop region. */
+  x: number;
+  y: number;
+  size: number;
+}
+
+/**
+ * Crop a square out of an already-loaded image element and return a small
+ * data URL. `outSize` is the output square edge in px (default 256).
+ */
+export function cropImageToDataUrl(
+  img: HTMLImageElement,
+  crop: CropRect,
+  outSize = 256,
+  maxBytes = 100_000,
+): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = outSize;
+  canvas.height = outSize;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Image cropping is not supported in this browser.');
+
+  // Draw the chosen square region scaled down into the output square.
+  // Flatten onto white first so any transparency doesn't become black in JPEG.
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, outSize, outSize);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, crop.x, crop.y, crop.size, crop.size, 0, 0, outSize, outSize);
+
+  const webp = canEncodeWebp();
+  const mime = webp ? 'image/webp' : 'image/jpeg';
+  let q = 0.82;
+  let out = canvas.toDataURL(mime, q);
+
+  // Nudge quality down until under the byte cap (thumbnails only need to be
+  // small and crisp, not archival quality).
+  let attempts = 0;
+  while (dataUrlBytes(out) > maxBytes && q > 0.4 && attempts < 8) {
+    q -= 0.1;
+    out = canvas.toDataURL(mime, q);
+    attempts++;
+  }
+  return out;
+}
+
+/** Load a File into an HTMLImageElement (for the cropper). */
+export function fileToImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('Please choose an image file.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the image.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not load the image.'));
+      img.onload = () => resolve(img);
       img.src = String(reader.result);
     };
     reader.readAsDataURL(file);

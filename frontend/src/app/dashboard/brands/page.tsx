@@ -9,7 +9,7 @@ import {
   useArchiveBrand,
 } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
-import { fileToResizedDataUrl } from '@/lib/image';
+import { ImageCropModal } from '@/components/ImageCropModal';
 import type { Brand } from '@/lib/types';
 
 const PAGE_SIZES = [5, 10, 25, 50, 'All'] as const;
@@ -242,15 +242,11 @@ export default function BrandsPage() {
 
 function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | null; setCoverImage: (v: string | null) => void }) {
   const [imageError, setImageError] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
-  async function handleFile(file: File) {
+  function handleFile(file: File) {
     setImageError(null);
-    try {
-      const dataUrl = await fileToResizedDataUrl(file, 256, 0.7);
-      setCoverImage(dataUrl);
-    } catch (e) {
-      setImageError(e instanceof Error ? e.message : 'Could not process the image.');
-    }
+    setCropFile(file);
   }
 
   return (
@@ -267,7 +263,7 @@ function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | n
         </div>
         <div className="flex-1 space-y-2">
           <div className="border border-input-border rounded-lg px-3 py-2 flex items-center gap-2 bg-input-bg">
-            <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer" />
+            <input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.currentTarget.value = ''; }} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer" />
           </div>
           {coverImage && (
             <button type="button" onClick={() => { setCoverImage(null); setImageError(null); }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
@@ -277,6 +273,14 @@ function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | n
           {imageError && <p className="text-xs text-accent-red">{imageError}</p>}
         </div>
       </div>
+      {cropFile && (
+        <ImageCropModal
+          file={cropFile}
+          title="Crop cover image"
+          onCancel={() => setCropFile(null)}
+          onCropped={(dataUrl) => { setCoverImage(dataUrl); setCropFile(null); }}
+        />
+      )}
     </div>
   );
 }
