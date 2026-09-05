@@ -164,13 +164,13 @@ function OwnerDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h2 className="text-lg font-bold text-text-primary">Sales Overview</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <select value={period} onChange={(e) => setPeriod(e.target.value)} className="border border-input-border rounded px-3 py-1.5 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus">
+            <select value={period} onChange={(e) => setPeriod(e.target.value)} className="glass-select rounded px-3 py-1.5 text-sm text-text-primary focus:outline-none">
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
               <option value="yearly">Yearly</option>
             </select>
-            <select value={overviewShop} onChange={(e) => setOverviewShop(e.target.value)} className="border border-input-border rounded px-3 py-1.5 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus">
+            <select value={overviewShop} onChange={(e) => setOverviewShop(e.target.value)} className="glass-select rounded px-3 py-1.5 text-sm text-text-primary focus:outline-none">
               <option value="">All Shops</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
@@ -204,7 +204,7 @@ function OwnerDashboard() {
       <div className="bg-card-bg border border-card-border rounded-xl p-6 shadow-sm shadow-black/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h2 className="text-lg font-bold text-text-primary">Top Selling Products</h2>
-          <select value={topShop} onChange={(e) => setTopShop(e.target.value)} className="border border-input-border rounded px-3 py-1.5 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus">
+          <select value={topShop} onChange={(e) => setTopShop(e.target.value)} className="glass-select rounded px-3 py-1.5 text-sm text-text-primary focus:outline-none">
             <option value="">All Shops</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
@@ -300,7 +300,7 @@ function OwnerDashboard() {
       <div className="bg-card-bg border border-card-border rounded-xl p-6 shadow-sm shadow-black/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h2 className="text-lg font-bold text-text-primary flex items-center gap-2"><Recycle size={20} /> Most Disposed Products</h2>
-          <select value={disposalShop} onChange={(e) => setDisposalShop(e.target.value)} className="border border-input-border rounded px-3 py-1.5 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus">
+          <select value={disposalShop} onChange={(e) => setDisposalShop(e.target.value)} className="glass-select rounded px-3 py-1.5 text-sm text-text-primary focus:outline-none">
             <option value="">All Shops</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>

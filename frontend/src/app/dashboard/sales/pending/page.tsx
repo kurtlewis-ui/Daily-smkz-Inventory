@@ -201,7 +201,7 @@ export default function SalesPendingPage() {
       {/* Filters */}
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
         <div className="p-4 flex flex-wrap items-center gap-3">
-          <select value={selectedShop} onChange={(e) => setSelectedShop(e.target.value)} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
+          <select value={selectedShop} onChange={(e) => setSelectedShop(e.target.value)} className="glass-select px-3 py-2 rounded-lg text-sm focus:outline-none">
             {branches.length === 0 && <option value="">No shops yet</option>}
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
@@ -700,7 +700,7 @@ function EditSaleModal({
             {rows.length === 0 && <p className="text-xs text-text-muted">No items. Add at least one.</p>}
             {rows.map((row, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                <select value={row.productId} onChange={(e) => setRow(idx, { productId: e.target.value })} className="flex-1 border border-input-border rounded px-2 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus">
+                <select value={row.productId} onChange={(e) => setRow(idx, { productId: e.target.value })} className="glass-select flex-1 rounded px-2 py-1.5 text-sm focus:outline-none">
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}{p.brand ? ` (${p.brand.name})` : ''} — {peso(p.sellingPrice)}</option>
                   ))}

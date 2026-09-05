@@ -81,7 +81,7 @@ export default function SalesRecordsPage() {
       {/* Filters */}
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
         <div className="p-4 flex flex-wrap items-center gap-3">
-          <select value={selectedShop} onChange={(e) => { setSelectedShop(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
+          <select value={selectedShop} onChange={(e) => { setSelectedShop(e.target.value); resetPage(); }} className="glass-select px-3 py-2 rounded-lg text-sm focus:outline-none">
             <option value="">All Shops</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>

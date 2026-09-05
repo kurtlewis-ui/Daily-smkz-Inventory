@@ -101,7 +101,7 @@ export default function ShopsPage() {
           <select
             value={entriesPerPage.toString()}
             onChange={(e) => { const v = e.target.value; setEntriesPerPage(v === 'All' ? 'All' : parseInt(v)); resetPage(); }}
-            className="border border-input-border rounded px-2 py-1 text-sm bg-input-bg text-text-primary focus:outline-none focus:border-input-focus"
+            className="glass-select rounded px-2 py-1 text-sm text-text-primary focus:outline-none"
           >
             {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
             <option value="All">All</option>

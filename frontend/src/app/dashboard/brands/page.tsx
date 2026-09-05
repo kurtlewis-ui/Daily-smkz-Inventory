@@ -102,7 +102,7 @@ export default function BrandsPage() {
           <select
             value={String(pageSize)}
             onChange={(e) => { const v = e.target.value; setPageSize(v === 'All' ? 'All' : (Number(v) as PageSize)); setCurrentPage(1); }}
-            className="border border-input-border rounded px-2 py-1 text-sm bg-input-bg focus:outline-none"
+            className="glass-select rounded px-2 py-1 text-sm focus:outline-none"
           >
             {PAGE_SIZES.map((s) => <option key={String(s)} value={String(s)}>{s}</option>)}
           </select>

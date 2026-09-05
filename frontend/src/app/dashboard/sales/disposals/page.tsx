@@ -47,7 +47,7 @@ export default function DisposalsPage() {
 
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
         <div className="p-4 flex flex-wrap items-center gap-3">
-          <select value={selectedShop} onChange={(e) => { setSelectedShop(e.target.value); resetPage(); }} className="px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
+          <select value={selectedShop} onChange={(e) => { setSelectedShop(e.target.value); resetPage(); }} className="glass-select px-3 py-2 rounded-lg text-sm focus:outline-none">
             <option value="">All Shops</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
@@ -164,14 +164,14 @@ function RecordDisposalModal({ branches, onClose }: { branches: { id: string; na
           <p className="text-xs text-text-muted">Request to write off damaged/expired/unsellable stock. It goes to <strong>Pending Sales</strong> for an admin to approve. Stock is only deducted once approved.</p>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Shop <span className="text-accent-red">*</span></label>
-            <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setProductId(''); }} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg">
+            <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setProductId(''); }} className="glass-select w-full rounded px-3 py-2 text-sm">
               <option value="">Select shop</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Product <span className="text-accent-red">*</span></label>
-            <select value={productId} onChange={(e) => setProductId(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg">
+            <select value={productId} onChange={(e) => setProductId(e.target.value)} className="glass-select w-full rounded px-3 py-2 text-sm">
               <option value="">Select product</option>
               {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>

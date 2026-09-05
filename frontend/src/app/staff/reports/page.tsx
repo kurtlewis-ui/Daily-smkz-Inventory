@@ -129,7 +129,7 @@ export default function StaffDailyReportPage() {
         <select
           value={view}
           onChange={(e) => setView(e.target.value as ViewMode)}
-          className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus"
+          className="glass-select w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
         >
           <option value="sale">View by Sale</option>
           <option value="product">View by Product</option>
