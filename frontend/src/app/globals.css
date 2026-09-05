@@ -309,7 +309,7 @@ select optgroup {
 }
 
 @keyframes toast-in-kf {
-  0% { transform: translateY(10px) scale(0.94); opacity: 0; }
+  0% { transform: translateY(-10px) scale(0.94); opacity: 0; }
   60% { transform: translateY(0) scale(1.01); opacity: 1; }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
