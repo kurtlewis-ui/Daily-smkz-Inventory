@@ -36,6 +36,9 @@ const config: Config = {
         'accent-blue': '#60a5fa',
         'accent-red': '#ef4444',
         'accent-coral': '#f87171',
+        // Warm red-orange reserved for Archive (destructive) actions so they
+        // read consistently across the app, distinct from plain red errors.
+        'accent-archive': '#f2542d',
         // Neutral surface for badges/hover
         'surface-muted': 'var(--content-surface-muted, #222222)',
         // Buttons — theme-aware (white in dark, black in light)

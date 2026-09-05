@@ -302,7 +302,7 @@ export default function ProductsPage() {
                     <div className="flex items-center justify-end gap-2">
                       {shopFilter && <button onClick={() => setHistoryProduct(product)} className="icon-btn text-text-secondary hover:bg-white/10" title="Stock History"><ClipboardList size={16} /></button>}
                       <button onClick={() => openEditModal(product)} className="icon-btn text-accent-blue hover:bg-accent-blue/10"><Pencil size={16} /></button>
-                      <button onClick={() => { setArchivingProduct(product); setFormError(null); setShowArchiveModal(true); }} className="icon-btn text-accent-red hover:bg-accent-red/10"><Archive size={16} /></button>
+                      <button onClick={() => { setArchivingProduct(product); setFormError(null); setShowArchiveModal(true); }} className="icon-btn text-accent-archive hover:bg-accent-archive/10"><Archive size={16} /></button>
                     </div>
                   </td>
                 </tr>
@@ -341,7 +341,7 @@ export default function ProductsPage() {
                     <div className="flex shrink-0 items-center">
                       {shopFilter && <button onClick={() => setHistoryProduct(product)} className="flex h-12 w-12 items-center justify-center rounded-lg text-text-secondary hover:bg-white/10 transition-colors" title="Stock History" aria-label="Stock history"><ClipboardList size={18} /></button>}
                       <button onClick={() => openEditModal(product)} className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-blue hover:bg-accent-blue/10 transition-colors" title="Edit" aria-label={`Edit ${product.name}`}><Pencil size={18} /></button>
-                      <button onClick={() => { setArchivingProduct(product); setFormError(null); setShowArchiveModal(true); }} className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-red hover:bg-accent-red/10 transition-colors" title="Archive" aria-label={`Archive ${product.name}`}><Archive size={18} /></button>
+                      <button onClick={() => { setArchivingProduct(product); setFormError(null); setShowArchiveModal(true); }} className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-archive hover:bg-accent-archive/10 transition-colors" title="Archive" aria-label={`Archive ${product.name}`}><Archive size={18} /></button>
                     </div>
                   </div>
 
@@ -428,7 +428,7 @@ export default function ProductsPage() {
             {formError && <p className="text-sm text-accent-red">{formError}</p>}
             <div className="flex justify-end gap-2">
               <button onClick={() => { setShowArchiveModal(false); setArchivingProduct(null); }} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">Cancel</button>
-              <button onClick={handleArchive} disabled={archiveProduct.isPending} className="bg-btn-danger text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-60">{archiveProduct.isPending ? 'Archiving...' : 'Yes, Archive'}</button>
+              <button onClick={handleArchive} disabled={archiveProduct.isPending} className="bg-accent-archive text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-60">{archiveProduct.isPending ? 'Archiving...' : 'Yes, Archive'}</button>
             </div>
           </div>
         </Modal>

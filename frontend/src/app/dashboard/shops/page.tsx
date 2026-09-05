@@ -157,7 +157,7 @@ export default function ShopsPage() {
                       </button>
                       <button
                         onClick={() => { setArchivingShop(shop); setFormError(null); setShowArchiveModal(true); }}
-                        className="icon-btn text-accent-red hover:bg-accent-red/10"
+                        className="icon-btn text-accent-archive hover:bg-accent-archive/10"
                         title="Archive"
                       >
                         <Archive size={16} />
@@ -203,7 +203,7 @@ export default function ShopsPage() {
                       </button>
                       <button
                         onClick={() => { setArchivingShop(shop); setFormError(null); setShowArchiveModal(true); }}
-                        className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-red hover:bg-accent-red/10 transition-colors"
+                        className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-archive hover:bg-accent-archive/10 transition-colors"
                         title="Archive"
                         aria-label={`Archive ${shop.name}`}
                       >
@@ -297,7 +297,7 @@ export default function ShopsPage() {
               <button onClick={() => { setShowArchiveModal(false); setArchivingShop(null); }} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">
                 Cancel
               </button>
-              <button onClick={handleArchive} disabled={archiveBranch.isPending} className="bg-btn-danger text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-60">
+              <button onClick={handleArchive} disabled={archiveBranch.isPending} className="bg-accent-archive text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-60">
                 {archiveBranch.isPending ? 'Archiving...' : 'Yes, Archive'}
               </button>
             </div>

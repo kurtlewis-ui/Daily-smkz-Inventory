@@ -164,7 +164,7 @@ export default function BrandsPage() {
                       </button>
                       <button
                         onClick={() => { setArchivingBrand(brand); setFormError(null); setShowArchiveModal(true); }}
-                        className="icon-btn text-accent-red hover:bg-accent-red/10"
+                        className="icon-btn text-accent-archive hover:bg-accent-archive/10"
                       >
                         <Archive size={16} />
                       </button>
@@ -231,7 +231,7 @@ export default function BrandsPage() {
             {formError && <p className="text-sm text-accent-red">{formError}</p>}
             <div className="flex justify-end gap-2">
               <button onClick={() => { setShowArchiveModal(false); setArchivingBrand(null); }} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">Cancel</button>
-              <button onClick={handleArchive} disabled={archiveBrand.isPending} className="bg-btn-danger text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-60">{archiveBrand.isPending ? 'Archiving...' : 'Yes, Archive'}</button>
+              <button onClick={handleArchive} disabled={archiveBrand.isPending} className="bg-accent-archive text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-60">{archiveBrand.isPending ? 'Archiving...' : 'Yes, Archive'}</button>
             </div>
           </div>
         </Modal>
