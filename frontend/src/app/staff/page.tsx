@@ -74,7 +74,7 @@ export default function StaffHomePage() {
                 <button
                   key={brand.id}
                   onClick={() => router.push(`/staff/brands/${brand.id}`)}
-                  className="group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-input-focus hover:shadow-lg hover:shadow-black/10"
+                  className="tile-hover group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm hover:border-input-focus"
                 >
                   <div className="flex aspect-square items-center justify-center bg-white/5">
                     {brand.coverImage ? (
@@ -102,7 +102,7 @@ export default function StaffHomePage() {
                   <button
                     key={p.id}
                     onClick={() => p.brand?.id ? router.push(`/staff/brands/${p.brand.id}`) : undefined}
-                    className="flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm transition hover:border-input-focus hover:shadow-lg hover:shadow-black/10"
+                    className="tile-hover flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm hover:border-input-focus"
                   >
                     <div className="flex aspect-square items-center justify-center bg-white/5">
                       {p.image ? (

@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Search, X, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Search, X } from 'lucide-react';
 import { useBrands, useProducts } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { useDraftStore } from '@/lib/draft';
 import { getApiErrorMessage } from '@/lib/api';
 import { GridSkeleton } from '@/components/Skeleton';
+import { useToast } from '@/components/Toast';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -28,9 +29,8 @@ export default function BrandProductsPage() {
   const brandId = String(params.brandId);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<StaffProduct | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-  const [toastExiting, setToastExiting] = useState(false);
   const [cooldown, setCooldown] = useState(false);
+  const toast = useToast();
 
   const user = useAuthStore((s) => s.user);
   const branchId = user?.branch?.id;
@@ -50,15 +50,6 @@ export default function BrandProductsPage() {
     const sellQty = draftItems.filter((i) => i.productId === productId).reduce((sum, i) => sum + i.quantity, 0);
     const disposeQty = draftDisposalItems.find((i) => i.productId === productId)?.quantity ?? 0;
     return sellQty + disposeQty;
-  }
-
-  function showToast(msg: string) {
-    setToast(msg);
-    setToastExiting(false);
-    setTimeout(() => {
-      setToastExiting(true);
-      setTimeout(() => { setToast(null); setToastExiting(false); }, 200);
-    }, 2500);
   }
 
   return (
@@ -108,13 +99,15 @@ export default function BrandProductsPage() {
             return (
               <button
                 key={p.id}
-                onClick={() => setSelected(p)}
-                className={`relative flex flex-col overflow-hidden rounded-xl border bg-card-bg text-left shadow-sm transition hover:shadow-lg hover:shadow-black/10 ${
+                onClick={() => { if (!isOutOfStock) setSelected(p); }}
+                disabled={isOutOfStock}
+                aria-disabled={isOutOfStock}
+                className={`relative flex flex-col overflow-hidden rounded-xl border bg-card-bg text-left shadow-sm ${
                   isOutOfStock
-                    ? 'border-accent-red/40 opacity-60 grayscale-[40%]'
+                    ? 'tile-disabled border-accent-red/40 opacity-60 grayscale-[40%]'
                     : isLowStock
-                    ? 'border-accent-orange/40 hover:border-input-focus'
-                    : 'border-card-border hover:border-input-focus'
+                    ? 'tile-hover border-accent-orange/40 hover:border-input-focus'
+                    : 'tile-hover border-card-border hover:border-input-focus'
                 }`}
               >
                 {isOutOfStock && (
@@ -139,7 +132,7 @@ export default function BrandProductsPage() {
                   <p className="truncate text-sm font-semibold text-text-primary" title={p.name}>{p.name}</p>
                   <p className="text-sm font-bold text-text-primary">{peso(p.sellingPrice)}</p>
                   <p className={`text-sm font-medium ${isOutOfStock ? 'text-accent-red' : isLowStock ? 'text-accent-orange' : 'text-text-secondary'}`}>
-                    Stock: {adjustedStock}
+                    Stock/s: {adjustedStock}
                     {isOutOfStock && ' (Out of stock)'}
                     {isLowStock && ' (Low stock)'}
                   </p>
@@ -156,17 +149,11 @@ export default function BrandProductsPage() {
           onClose={() => setSelected(null)}
           onSaved={(msg) => {
             setSelected(null);
-            showToast(msg);
+            toast.success(msg);
             setCooldown(true);
             setTimeout(() => setCooldown(false), 1000);
           }}
         />
-      )}
-
-      {toast && (
-        <div className={`fixed bottom-24 left-1/2 z-50 rounded-xl bg-btn-primary px-6 py-3.5 text-sm font-medium text-btn-primary-text shadow-xl flex items-center gap-2.5 ${toastExiting ? 'toast-exit' : 'toast-enter'}`}>
-          <CheckCircle2 size={16} className="text-accent-green shrink-0" /> {toast}
-        </div>
       )}
     </div>
   );
@@ -314,7 +301,7 @@ function AddPurchaseModal({
             <p className="truncate text-sm font-bold text-text-primary">{product.name}</p>
             <p className="text-base font-bold text-text-primary">{peso(product.sellingPrice)}</p>
             <p className={`text-sm font-medium ${available <= 0 ? 'text-accent-red' : 'text-text-secondary'}`}>
-              Stock: {stock}
+              Stock/s: {stock}
               {alreadyInCart > 0 && ` (${alreadyInCart} in cart, ${available} available)`}
             </p>
           </div>

@@ -220,6 +220,38 @@ select optgroup {
 }
 
 /* ----------------------------------------------------------------------
+   Selectable product/brand tile — rises + slightly scales with a soft
+   shadow and a theme-aware glow on hover. Used on the staff pages.
+   ---------------------------------------------------------------------- */
+.tile-hover {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.18s ease, border-color 0.18s ease;
+  will-change: transform;
+}
+
+.tile-hover:hover {
+  transform: translateY(-6px) scale(1.025);
+  box-shadow:
+    0 14px 30px -8px rgba(0, 0, 0, 0.45),
+    0 0 0 1px color-mix(in srgb, var(--content-input-focus, #ffffff) 22%, transparent),
+    0 0 18px -2px color-mix(in srgb, var(--content-input-focus, #ffffff) 28%, transparent);
+}
+
+.tile-hover:active {
+  transform: translateY(-2px) scale(1.01);
+}
+
+/* Out-of-stock tiles never lift — they aren't selectable. */
+.tile-disabled {
+  cursor: not-allowed;
+}
+
+.tile-disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ----------------------------------------------------------------------
    Accessibility — focus rings (theme-aware: white in dark, dark in light)
    ---------------------------------------------------------------------- */
 @layer base {
@@ -261,21 +293,137 @@ select optgroup {
 }
 
 
-/* Global toast stack (bottom-right corner) — used by components/Toast.tsx */
+/* ----------------------------------------------------------------------
+   Global toast stack (bottom-right corner) — used by components/Toast.tsx
+   Professional card with title + subtitle and an animated status icon.
+   ---------------------------------------------------------------------- */
+
+/* Card enter: spring pop-in (scale + slide-up + fade). */
 .toast-in {
-  animation: toast-in-kf 0.25s ease-out forwards;
+  animation: toast-in-kf 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* Card exit: smooth fade + slide out to the right. */
 .toast-out {
-  animation: toast-out-kf 0.2s ease-in forwards;
+  animation: toast-out-kf 0.22s ease-in forwards;
 }
 
 @keyframes toast-in-kf {
-  0% { transform: translateX(16px); opacity: 0; }
-  100% { transform: translateX(0); opacity: 1; }
+  0% { transform: translateY(10px) scale(0.94); opacity: 0; }
+  60% { transform: translateY(0) scale(1.01); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 @keyframes toast-out-kf {
-  0% { transform: translateX(0); opacity: 1; }
-  100% { transform: translateX(16px); opacity: 0; }
+  0% { transform: translateX(0) scale(1); opacity: 1; }
+  100% { transform: translateX(16px) scale(0.98); opacity: 0; }
+}
+
+/* Auto-dismiss progress bar shrinking left→right. */
+.toast-progress {
+  transform-origin: left center;
+  animation: toast-progress-kf linear forwards;
+}
+
+@keyframes toast-progress-kf {
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+
+/* ----------------------------------------------------------------------
+   Animated status icon — 3 stages, shared by success (check) and error (X):
+   (1) a thin arc spins as a "processing" swirl,
+   (2) the full ring strokes itself closed,
+   (3) the check / X path draws, then the icon springs with a soft glow.
+   ---------------------------------------------------------------------- */
+
+/* Stage 1: spinning swirl arc (fades out as the ring takes over). */
+.toast-icon-swirl {
+  transform-origin: center;
+  animation: toast-swirl-spin 0.5s linear, toast-swirl-fade 0.12s ease-out 0.44s forwards;
+}
+
+@keyframes toast-swirl-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(320deg); }
+}
+
+@keyframes toast-swirl-fade {
+  to { opacity: 0; }
+}
+
+/* Stage 2: ring draws itself closed (circumference ~ 2*pi*10 ≈ 63). */
+.toast-icon-ring {
+  stroke-dasharray: 63;
+  stroke-dashoffset: 63;
+  animation: toast-ring-draw 0.34s ease-out 0.46s forwards;
+}
+
+@keyframes toast-ring-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Stage 3: check / X mark draws in (dash length covers both paths). */
+.toast-icon-mark {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: toast-mark-draw 0.24s ease-out 0.78s forwards;
+}
+
+@keyframes toast-mark-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Whole icon spring bounce + glow pulse once the mark lands. */
+.toast-icon-pop {
+  transform-origin: center;
+  animation: toast-icon-pop-kf 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) 0.82s both;
+}
+
+@keyframes toast-icon-pop-kf {
+  0% { transform: scale(0.8); }
+  55% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.toast-icon-glow-success {
+  animation: toast-glow-success 0.5s ease-out 0.82s both;
+}
+
+.toast-icon-glow-error {
+  animation: toast-glow-error 0.5s ease-out 0.82s both;
+}
+
+@keyframes toast-glow-success {
+  0% { filter: drop-shadow(0 0 0 rgba(34, 197, 94, 0)); }
+  40% { filter: drop-shadow(0 0 7px rgba(34, 197, 94, 0.6)); }
+  100% { filter: drop-shadow(0 0 0 rgba(34, 197, 94, 0)); }
+}
+
+@keyframes toast-glow-error {
+  0% { filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0)); }
+  40% { filter: drop-shadow(0 0 7px rgba(239, 68, 68, 0.6)); }
+  100% { filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0)); }
+}
+
+/* Respect users who prefer reduced motion: skip the drawing animations. */
+@media (prefers-reduced-motion: reduce) {
+  .toast-in,
+  .toast-out,
+  .toast-icon-swirl,
+  .toast-icon-ring,
+  .toast-icon-mark,
+  .toast-icon-pop,
+  .toast-icon-glow-success,
+  .toast-icon-glow-error,
+  .toast-progress {
+    animation: none !important;
+  }
+  .toast-icon-ring,
+  .toast-icon-mark {
+    stroke-dashoffset: 0 !important;
+  }
+  .toast-icon-swirl {
+    opacity: 0 !important;
+  }
 }

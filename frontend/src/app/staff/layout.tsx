@@ -8,6 +8,7 @@ import { useDraftStore, type DraftItem } from '@/lib/draft';
 import { useThemeStore } from '@/lib/theme';
 import { useSaveDraft, useClearDraftSync, useSaveMyDraft, useMyDraftExists, useMe } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import type { PaymentMethod, PaymentSplit } from '@/lib/types';
 import {
   Home,
@@ -19,7 +20,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  CheckCircle2,
   Recycle,
   Settings as SettingsIcon,
   Edit2,
@@ -27,7 +27,6 @@ import {
   Sun,
   Menu,
   PhilippinePeso,
-  XCircle,
 } from 'lucide-react';
 
 function peso(n: number) {
@@ -333,9 +332,10 @@ function DraftBag() {
     customerName,
     clear,
     replaceAll,
+    removedProductIds,
+    clearTombstones,
   } = useDraftStore();
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const toast = useToast();
   const [addingExpense, setAddingExpense] = useState(false);
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseNote, setExpenseNote] = useState('');
@@ -347,13 +347,6 @@ function DraftBag() {
   const { data: myDraftExists } = useMyDraftExists();
 
   useEffect(() => setMounted(true), []);
-
-  // Auto-dismiss success messages after 3 seconds
-  useEffect(() => {
-    if (!success) return;
-    const timer = setTimeout(() => setSuccess(null), 3000);
-    return () => clearTimeout(timer);
-  }, [success]);
 
   const isEmpty = items.length === 0 && disposalItems.length === 0 && expenses.length === 0;
 
@@ -394,11 +387,21 @@ function DraftBag() {
         // look), don't blindly delete it out from under the staff member —
         // let the reconcile effect adopt it instead.
         const server = myDraftExistsRef.current;
+        const tombstoned = new Set(removedProductIds);
+        // Server content the user has NOT intentionally removed. Items the
+        // user just deleted (tombstoned) don't count as "content worth
+        // keeping" — otherwise a stale poll would block us from clearing a
+        // cart the user just emptied.
         const serverHasContent =
           !!server?.exists &&
-          (server.items.length > 0 || server.disposalItems.length > 0 || server.expenses.length > 0);
+          ((server.items ?? []).some((i: { productId: string }) => !tombstoned.has(i.productId)) ||
+            (server.disposalItems ?? []).some((i: { productId: string }) => !tombstoned.has(i.productId)) ||
+            (server.expenses ?? []).length > 0);
         if (!serverHasContent) {
           clearDraftSync.mutate();
+          // The delete removes everything server-side; drop the tombstones
+          // for whatever it held so they don't linger forever.
+          if (removedProductIds.length > 0) clearTombstones();
         }
       } else {
         // Before pushing, merge any server-side items that don't exist
@@ -407,15 +410,20 @@ function DraftBag() {
         // If we find missing items, adopt them locally too so the next cycle
         // doesn't push without them again.
         const server = myDraftExistsRef.current;
+        const tombstoned = new Set(removedProductIds);
         let mergedItems = items;
         let mergedDisposalItems = disposalItems;
         let mergedExpenses = expenses;
         let hasNewServerContent = false;
         if (server?.exists) {
-          // Append server items whose productId isn't in our local list.
+          // Append server items whose productId isn't in our local list AND
+          // hasn't been intentionally removed by the user. The tombstone
+          // check is what stops a just-deleted item from being resurrected
+          // by a stale poll snapshot, while still adopting genuine
+          // admin-declined items the user never removed.
           const localProductIds = new Set(items.map((i) => i.productId));
           const missingItems = (server.items ?? []).filter(
-            (si: { productId: string }) => !localProductIds.has(si.productId),
+            (si: { productId: string }) => !localProductIds.has(si.productId) && !tombstoned.has(si.productId),
           );
           if (missingItems.length > 0) {
             mergedItems = [...items, ...missingItems];
@@ -423,7 +431,7 @@ function DraftBag() {
           }
           const localDisposalIds = new Set(disposalItems.map((i) => i.productId));
           const missingDisposals = (server.disposalItems ?? []).filter(
-            (si: { productId: string }) => !localDisposalIds.has(si.productId),
+            (si: { productId: string }) => !localDisposalIds.has(si.productId) && !tombstoned.has(si.productId),
           );
           if (missingDisposals.length > 0) {
             mergedDisposalItems = [...disposalItems, ...missingDisposals];
@@ -445,12 +453,27 @@ function DraftBag() {
           suppressNextSync.current = true;
           replaceAll(mergedItems, mergedDisposalItems, mergedExpenses);
         }
-        saveDraft.mutate({
-          items: mergedItems.map(toDraftSaleItemPayload),
-          disposalItems: mergedDisposalItems.map(toDraftDisposalItemPayload),
-          expenses: mergedExpenses.map(toDraftExpensePayload),
-          customerName: customerName.trim() || undefined,
-        });
+        // This push replaces the server-side draft with our tombstone-
+        // respecting state, so once it lands the server no longer holds the
+        // removed items — drop their tombstones so they don't linger.
+        const pushedProductIds = new Set([
+          ...mergedItems.map((i) => i.productId),
+          ...mergedDisposalItems.map((i) => i.productId),
+        ]);
+        const staleTombstones = removedProductIds.filter((pid) => !pushedProductIds.has(pid));
+        saveDraft.mutate(
+          {
+            items: mergedItems.map(toDraftSaleItemPayload),
+            disposalItems: mergedDisposalItems.map(toDraftDisposalItemPayload),
+            expenses: mergedExpenses.map(toDraftExpensePayload),
+            customerName: customerName.trim() || undefined,
+          },
+          {
+            onSuccess: () => {
+              if (staleTombstones.length > 0) clearTombstones(staleTombstones);
+            },
+          },
+        );
       }
     }, 800);
     return () => clearTimeout(timer);
@@ -500,8 +523,6 @@ function DraftBag() {
 
   async function handleSave() {
     if (isEmpty) return;
-    setError(null);
-    setSuccess(null);
     try {
       // Flush the very latest state to the server first — the debounced sync
       // above may not have fired yet if the staff edited and immediately hit
@@ -520,14 +541,14 @@ function DraftBag() {
         // any) is still sitting in the server-side draft for a retry later —
         // stay put so the staff can see what failed instead of navigating
         // away from it.
-        setError(`Some items couldn't be submitted: ${result.errors.join('; ')}`);
+        toast.error(`Some items couldn't be submitted: ${result.errors.join('; ')}`, 'Partly submitted');
       } else {
-        setSuccess('Order submitted! It now awaits admin approval.');
+        toast.success('Order submitted! It now awaits admin approval.', 'Order submitted');
         setOpen(false);
         router.push('/staff/reports');
       }
     } catch (e) {
-      setError(getApiErrorMessage(e));
+      toast.error(getApiErrorMessage(e), "Couldn't save order");
     }
   }
 
@@ -540,21 +561,19 @@ function DraftBag() {
     suppressNextSync.current = true;
     clear();
     clearDraftSync.mutate();
-    setSuccess('Draft cleared');
-    setError(null);
+    toast.success('Draft cleared', 'Draft cleared');
   }
 
   function handleAddExpense() {
     const amount = Number(expenseAmount);
     if (!amount || amount <= 0) {
-      setError('Enter a valid expense amount.');
+      toast.error('Enter a valid expense amount.', 'Invalid expense');
       return;
     }
     if (!expenseNote.trim()) {
-      setError('Add a note for the expense.');
+      toast.error('Add a note for the expense.', 'Invalid expense');
       return;
     }
-    setError(null);
     addExpense({ amount, note: expenseNote.trim() });
     setExpenseAmount('');
     setExpenseNote('');
@@ -567,7 +586,7 @@ function DraftBag() {
     <>
       {/* Floating button — themed */}
       <button
-        onClick={() => { setOpen((o) => !o); setSuccess(null); setError(null); }}
+        onClick={() => { setOpen((o) => !o); }}
         className={`fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-black/30 hover:opacity-90 transition ${contentTheme === 'light' ? 'bg-black text-white' : 'bg-white text-black'}`}
         title="Draft order"
         aria-label="Draft order"
@@ -780,16 +799,6 @@ function DraftBag() {
                 )}
               </div>
 
-              {success && (
-                <div className="toast-enter rounded-xl bg-btn-primary border border-card-border px-5 py-3.5 text-sm font-medium text-btn-primary-text flex items-center gap-2.5 shadow-xl">
-                  <CheckCircle2 size={16} className="text-accent-green shrink-0" /> {success}
-                </div>
-              )}
-              {error && (
-                <div className="toast-enter rounded-xl bg-btn-primary border border-card-border px-5 py-3.5 text-sm font-medium text-btn-primary-text flex items-center gap-2.5 shadow-xl">
-                  <XCircle size={16} className="text-accent-red shrink-0" /> {error}
-                </div>
-              )}
             </div>
 
             {!isEmpty && (
