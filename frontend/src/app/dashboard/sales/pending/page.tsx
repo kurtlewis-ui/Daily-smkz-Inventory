@@ -22,6 +22,7 @@ import {
   type SaleItemInput,
 } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import type { Sale, PaymentMethod, PaymentSplit } from '@/lib/types';
 
 function peso(n: number) {
@@ -129,6 +130,7 @@ export default function SalesPendingPage() {
   // Today's approved Total Sales / Total Expenses / Net for the selected branch.
   const { data: branchSummary } = useBranchSummary(selectedShop || undefined);
 
+  const toast = useToast();
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -145,7 +147,14 @@ export default function SalesPendingPage() {
   async function runSafe(fn: () => Promise<unknown>) {
     setActionError(null);
     setActionStatus(null);
-    try { await fn(); } catch (e) { setActionError(getApiErrorMessage(e)); }
+    // Success toasts come from the individual mutation hooks (approve/decline/
+    // delete/update already toast), so here we only surface FAILURES as a
+    // float — in addition to the inline error — so nothing fails silently.
+    try { await fn(); } catch (e) {
+      const msg = getApiErrorMessage(e);
+      setActionError(msg);
+      toast.error(msg, 'Action failed');
+    }
   }
 
   const handleApproveAll = () => {

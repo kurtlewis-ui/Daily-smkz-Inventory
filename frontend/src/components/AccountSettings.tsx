@@ -7,6 +7,7 @@ import { useMe, useUpdateProfile, useChangeOwnPassword } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { getApiErrorMessage } from '@/lib/api';
 import { fileToResizedDataUrl } from '@/lib/image';
+import { useToast } from '@/components/Toast';
 
 /**
  * Account settings (profile + change password). Shared by the admin dashboard
@@ -17,6 +18,7 @@ export default function AccountSettings() {
   const { data: me, isLoading } = useMe();
   const updateProfile = useUpdateProfile();
   const changePassword = useChangeOwnPassword();
+  const toast = useToast();
   const updateUser = useAuthStore((s) => s.updateUser);
   const logout = useAuthStore((s) => s.logout);
 
@@ -82,8 +84,11 @@ export default function AccountSettings() {
         avatarUrl: updated.avatarUrl,
       });
       setProfileOk('Profile updated.');
+      toast.success('Profile updated.');
     } catch (e) {
-      setProfileError(getApiErrorMessage(e));
+      const msg = getApiErrorMessage(e);
+      setProfileError(msg);
+      toast.error(msg, "Couldn't update profile");
     }
   }
 
@@ -101,6 +106,7 @@ export default function AccountSettings() {
     try {
       await changePassword.mutateAsync({ currentPassword, newPassword, confirmPassword });
       setPwOk('Password changed. Please log in again with your new password.');
+      toast.success('Password changed. Please log in again.', 'Password updated');
       // The server invalidates all sessions on password change, so send the
       // user back to login after a short moment.
       setTimeout(() => {
@@ -108,7 +114,9 @@ export default function AccountSettings() {
         router.replace('/login');
       }, 1500);
     } catch (e) {
-      setPwError(getApiErrorMessage(e));
+      const msg = getApiErrorMessage(e);
+      setPwError(msg);
+      toast.error(msg, "Couldn't change password");
     }
   }
 
