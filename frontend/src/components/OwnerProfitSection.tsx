@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useSalesOverview, useSalesRecords, useDisposals, useExpenses, useBranches } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { Download, Store, CalendarDays, RotateCcw } from 'lucide-react';
+import { Select } from '@/components/Select';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -143,21 +144,22 @@ function ProfitContent() {
             <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
               <CalendarDays size={12} /> Period
             </label>
-            <select
+            <Select
               value={activeRange === 'custom' ? 'custom' : activeRange}
-              onChange={(e) => {
-                const v = e.target.value;
+              onChange={(v) => {
                 if (v === 'custom') { setActiveRange('custom'); return; }
                 applyQuickRange(v as QuickRange);
               }}
-              className="w-[150px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
-            >
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="all">All Time</option>
-              {activeRange === 'custom' && <option value="custom">Custom Range</option>}
-            </select>
+              ariaLabel="Period"
+              className="w-[150px]"
+              options={[
+                { value: 'today', label: 'Today' },
+                { value: 'week', label: 'This Week' },
+                { value: 'month', label: 'This Month' },
+                { value: 'all', label: 'All Time' },
+                ...(activeRange === 'custom' ? [{ value: 'custom', label: 'Custom Range' }] : []),
+              ]}
+            />
           </div>
 
           {/* From */}
@@ -200,14 +202,13 @@ function ProfitContent() {
             <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
               <Store size={12} /> Shop
             </label>
-            <select
+            <Select
               value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-              className="w-full sm:w-[180px] rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-input-focus"
-            >
-              <option value="">All Shops</option>
-              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+              onChange={setBranchId}
+              ariaLabel="Shop"
+              className="w-full sm:w-[180px]"
+              options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+            />
           </div>
         </div>
       </div>

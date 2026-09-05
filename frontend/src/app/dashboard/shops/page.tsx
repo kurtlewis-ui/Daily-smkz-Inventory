@@ -10,6 +10,7 @@ import {
 } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
 import { usePagination, Pagination } from '@/components/Pagination';
+import { Select } from '@/components/Select';
 import type { Branch } from '@/lib/types';
 
 export default function ShopsPage() {
@@ -98,14 +99,13 @@ export default function ShopsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-text-secondary">
           <span>Show</span>
-          <select
+          <Select
             value={entriesPerPage.toString()}
-            onChange={(e) => { const v = e.target.value; setEntriesPerPage(v === 'All' ? 'All' : parseInt(v)); resetPage(); }}
-            className="glass-select rounded px-2 py-1 text-sm text-text-primary focus:outline-none"
-          >
-            {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-            <option value="All">All</option>
-          </select>
+            onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : parseInt(v)); resetPage(); }}
+            ariaLabel="Entries per page"
+            className="w-auto min-w-[72px]"
+            options={[...[10, 25, 50, 100].map((n) => ({ value: n.toString(), label: n.toString() })), { value: 'All', label: 'All' }]}
+          />
           <span>entries</span>
         </div>
         <div className="relative w-full max-w-sm">

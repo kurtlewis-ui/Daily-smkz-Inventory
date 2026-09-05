@@ -10,6 +10,7 @@ import {
 } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
 import { ImageCropModal } from '@/components/ImageCropModal';
+import { Select } from '@/components/Select';
 import type { Brand } from '@/lib/types';
 
 const PAGE_SIZES = [5, 10, 25, 50, 'All'] as const;
@@ -99,13 +100,13 @@ export default function BrandsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="flex items-center gap-2 text-sm text-text-secondary">
           Show
-          <select
+          <Select
             value={String(pageSize)}
-            onChange={(e) => { const v = e.target.value; setPageSize(v === 'All' ? 'All' : (Number(v) as PageSize)); setCurrentPage(1); }}
-            className="glass-select rounded px-2 py-1 text-sm focus:outline-none"
-          >
-            {PAGE_SIZES.map((s) => <option key={String(s)} value={String(s)}>{s}</option>)}
-          </select>
+            onChange={(v) => { setPageSize(v === 'All' ? 'All' : (Number(v) as PageSize)); setCurrentPage(1); }}
+            ariaLabel="Entries per page"
+            className="w-auto min-w-[72px]"
+            options={PAGE_SIZES.map((s) => ({ value: String(s), label: String(s) }))}
+          />
           entries
         </label>
         <div className="relative max-w-sm">

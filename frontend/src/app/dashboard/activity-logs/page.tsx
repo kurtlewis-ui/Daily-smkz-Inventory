@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { useActivityLogs } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
+import { Select } from '@/components/Select';
 
 const categories = ['All', 'Authentications', 'Accounts', 'Shops', 'Products', 'Brands', 'Reports', 'Users'];
 
@@ -66,10 +67,13 @@ export default function ActivityLogsPage() {
         <div className="p-4 flex items-center justify-between border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
-            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); resetToFirstPage(); }} className="glass-select px-2 py-1 rounded text-sm focus:outline-none">
-              {[5, 10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-              <option value="All">All</option>
-            </select>
+            <Select
+              value={String(entriesPerPage)}
+              onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); resetToFirstPage(); }}
+              ariaLabel="Entries per page"
+              className="w-auto min-w-[72px]"
+              options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]}
+            />
             <span className="text-sm text-text-secondary">entries</span>
           </div>
           <div className="relative">
