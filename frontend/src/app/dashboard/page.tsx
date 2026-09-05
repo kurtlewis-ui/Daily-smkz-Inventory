@@ -23,6 +23,7 @@ import { useThemeStore } from '@/lib/theme';
 import { useAuthStore } from '@/lib/store';
 import { OwnerProfitSection } from '@/components/OwnerProfitSection';
 import { useToast } from '@/components/Toast';
+import { Select } from '@/components/Select';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -169,16 +170,25 @@ function OwnerDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h2 className="text-lg font-bold text-text-primary">Sales Overview</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <select value={period} onChange={(e) => setPeriod(e.target.value)} className="glass-select rounded px-3 py-1.5 text-sm text-text-primary focus:outline-none">
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-            <select value={overviewShop} onChange={(e) => setOverviewShop(e.target.value)} className="glass-select rounded px-3 py-1.5 text-sm text-text-primary focus:outline-none">
-              <option value="">All Shops</option>
-              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            <Select
+              value={period}
+              onChange={setPeriod}
+              ariaLabel="Period"
+              className="w-auto min-w-[120px]"
+              options={[
+                { value: 'daily', label: 'Daily' },
+                { value: 'weekly', label: 'Weekly' },
+                { value: 'monthly', label: 'Monthly' },
+                { value: 'yearly', label: 'Yearly' },
+              ]}
+            />
+            <Select
+              value={overviewShop}
+              onChange={setOverviewShop}
+              ariaLabel="Shop"
+              className="w-auto min-w-[140px]"
+              options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+            />
           </div>
         </div>
         {ovLoading ? (
@@ -209,10 +219,13 @@ function OwnerDashboard() {
       <div className="bg-card-bg border border-card-border rounded-xl p-6 shadow-sm shadow-black/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h2 className="text-lg font-bold text-text-primary">Top Selling Products</h2>
-          <select value={topShop} onChange={(e) => setTopShop(e.target.value)} className="glass-select rounded px-3 py-1.5 text-sm text-text-primary focus:outline-none">
-            <option value="">All Shops</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          <Select
+            value={topShop}
+            onChange={setTopShop}
+            ariaLabel="Shop"
+            className="w-auto min-w-[140px]"
+            options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+          />
         </div>
         {tpLoading ? (
           <ChartPlaceholder message="Loading..." />
@@ -305,10 +318,13 @@ function OwnerDashboard() {
       <div className="bg-card-bg border border-card-border rounded-xl p-6 shadow-sm shadow-black/20">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h2 className="text-lg font-bold text-text-primary flex items-center gap-2"><Recycle size={20} /> Most Disposed Products</h2>
-          <select value={disposalShop} onChange={(e) => setDisposalShop(e.target.value)} className="glass-select rounded px-3 py-1.5 text-sm text-text-primary focus:outline-none">
-            <option value="">All Shops</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          <Select
+            value={disposalShop}
+            onChange={setDisposalShop}
+            ariaLabel="Shop"
+            className="w-auto min-w-[140px]"
+            options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+          />
         </div>
         {disposedProducts.length === 0 ? (
           <ChartPlaceholder message="No approved disposals yet" />
