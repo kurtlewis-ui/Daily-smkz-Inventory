@@ -21,6 +21,7 @@ import { fileToResizedDataUrl } from '@/lib/image';
 import { useAuthStore } from '@/lib/store';
 import type { Product, ImportResult, RestockResult } from '@/lib/types';
 import { StockHistoryModal } from '@/components/StockHistoryModal';
+import { Select } from '@/components/Select';
 
 const ENTRIES_OPTIONS = [5, 10, 25, 50, 100, 'All'] as const;
 
@@ -184,10 +185,13 @@ export default function ProductsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <select value={shopFilter} onChange={(e) => setShopFilter(e.target.value)} className="glass-select rounded px-3 py-2 text-sm text-text-primary focus:outline-none min-w-[180px]">
-          <option value="">All Shops</option>
-          {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-        </select>
+        <Select
+          value={shopFilter}
+          onChange={setShopFilter}
+          ariaLabel="Shop filter"
+          className="min-w-[180px] w-auto"
+          options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
+        />
         <button onClick={() => setShowRestockModal(true)} className="flex items-center gap-1 bg-btn-primary text-btn-primary-text px-3 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition"><RefreshCw size={14} /> Restock</button>
         <button onClick={handleTemplate} className="flex items-center gap-1 btn-secondary text-text-primary px-3 py-2 rounded-lg text-sm font-medium"><FileDown size={14} /> Restock Template</button>
       </div>
@@ -195,9 +199,13 @@ export default function ProductsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2 text-sm text-text-secondary">
           <span>Show</span>
-          <select value={entriesPerPage.toString()} onChange={(e) => { const v = e.target.value; setEntriesPerPage(v === 'All' ? 'All' : parseInt(v)); setCurrentPage(1); }} className="glass-select rounded px-2 py-1 text-sm">
-            {ENTRIES_OPTIONS.map((o) => <option key={o} value={o.toString()}>{o}</option>)}
-          </select>
+          <Select
+            value={entriesPerPage.toString()}
+            onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : parseInt(v)); setCurrentPage(1); }}
+            ariaLabel="Entries per page"
+            className="w-auto min-w-[72px]"
+            options={ENTRIES_OPTIONS.map((o) => ({ value: o.toString(), label: o.toString() }))}
+          />
           <span>entries</span>
         </div>
         <input type="text" placeholder="Search products..." value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} className="border border-input-border rounded px-3 py-1.5 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus w-48" />
@@ -663,10 +671,13 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Brand <span className="text-accent-red">*</span></label>
-          <select value={formBrand} onChange={(e) => setFormBrand(e.target.value)} className="glass-select w-full rounded px-3 py-2 text-sm focus:outline-none">
-            <option value="">Select a brand</option>
-            {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          <Select
+            value={formBrand}
+            onChange={setFormBrand}
+            ariaLabel="Brand"
+            placeholder="Select a brand"
+            options={brands.map((b) => ({ value: b.id, label: b.name }))}
+          />
           {brands.length === 0 && <p className="text-xs text-text-muted mt-1">No brands yet. Create a brand first.</p>}
         </div>
         <div>
