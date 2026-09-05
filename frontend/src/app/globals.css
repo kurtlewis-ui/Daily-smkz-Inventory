@@ -309,7 +309,7 @@ select optgroup {
 }
 
 @keyframes toast-in-kf {
-  0% { transform: translateY(10px) scale(0.94); opacity: 0; }
+  0% { transform: translateY(-10px) scale(0.94); opacity: 0; }
   60% { transform: translateY(0) scale(1.01); opacity: 1; }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
@@ -340,7 +340,7 @@ select optgroup {
 /* Stage 1: spinning swirl arc (fades out as the ring takes over). */
 .toast-icon-swirl {
   transform-origin: center;
-  animation: toast-swirl-spin 0.5s linear, toast-swirl-fade 0.12s ease-out 0.44s forwards;
+  animation: toast-swirl-spin 0.3s linear, toast-swirl-fade 0.1s ease-out 0.24s forwards;
 }
 
 @keyframes toast-swirl-spin {
@@ -356,7 +356,7 @@ select optgroup {
 .toast-icon-ring {
   stroke-dasharray: 63;
   stroke-dashoffset: 63;
-  animation: toast-ring-draw 0.34s ease-out 0.46s forwards;
+  animation: toast-ring-draw 0.26s ease-out 0.28s forwards;
 }
 
 @keyframes toast-ring-draw {
@@ -367,7 +367,7 @@ select optgroup {
 .toast-icon-mark {
   stroke-dasharray: 24;
   stroke-dashoffset: 24;
-  animation: toast-mark-draw 0.24s ease-out 0.78s forwards;
+  animation: toast-mark-draw 0.2s ease-out 0.52s forwards;
 }
 
 @keyframes toast-mark-draw {
@@ -377,7 +377,7 @@ select optgroup {
 /* Whole icon spring bounce + glow pulse once the mark lands. */
 .toast-icon-pop {
   transform-origin: center;
-  animation: toast-icon-pop-kf 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) 0.82s both;
+  animation: toast-icon-pop-kf 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) 0.54s both;
 }
 
 @keyframes toast-icon-pop-kf {
@@ -387,11 +387,11 @@ select optgroup {
 }
 
 .toast-icon-glow-success {
-  animation: toast-glow-success 0.5s ease-out 0.82s both;
+  animation: toast-glow-success 0.45s ease-out 0.54s both;
 }
 
 .toast-icon-glow-error {
-  animation: toast-glow-error 0.5s ease-out 0.82s both;
+  animation: toast-glow-error 0.45s ease-out 0.54s both;
 }
 
 @keyframes toast-glow-success {
