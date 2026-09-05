@@ -108,11 +108,25 @@ table tbody tr:hover {
   color: transparent;
 }
 
-/* Native dropdown (select) option list */
+/* Roomier NATIVE dropdowns everywhere (no custom component). Applies to every
+   <select> on the site — a ~15px font + comfortable min-height. Many desktop
+   browsers scale the OPEN option rows relative to the select's font size, so a
+   bigger font makes the open list feel less cramped too. */
+select {
+  font-size: 0.9375rem; /* 15px */
+  min-height: 44px;
+}
+
+/* Native dropdown (select) option list. The browser owns the open list, but
+   most desktop browsers DO honor padding/line-height on <option>, so we add
+   breathing room where allowed; it's harmless where ignored (Safari/mobile). */
 select option,
 select optgroup {
   background-color: var(--content-input-bg, #1a1a1a);
   color: var(--content-text-primary, #f0f0f0);
+  padding: 10px 14px;
+  line-height: 1.9;
+  min-height: 2.25rem;
 }
 
 /* Scrollbar styling */
@@ -327,6 +341,9 @@ select optgroup {
   -webkit-backdrop-filter: blur(4px) saturate(110%);
   border: 1px solid color-mix(in srgb, var(--content-input-border, #333333) 85%, transparent);
   transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  /* Sizing (min-height 44px + 15px font) comes from the global `select` rule,
+     so it stays consistent with non-glass selects too. */
+  line-height: 1.4;
 }
 
 .glass-select:hover {
