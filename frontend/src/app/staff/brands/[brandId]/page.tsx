@@ -30,6 +30,9 @@ export default function BrandProductsPage() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<StaffProduct | null>(null);
   const [cooldown, setCooldown] = useState(false);
+  // Id of the product tile to briefly flash green after a successful add,
+  // giving an at-the-source "✓ added" confirmation on top of the toast.
+  const [flashedId, setFlashedId] = useState<string | null>(null);
   const toast = useToast();
 
   const user = useAuthStore((s) => s.user);
@@ -103,6 +106,8 @@ export default function BrandProductsPage() {
                 disabled={isOutOfStock}
                 aria-disabled={isOutOfStock}
                 className={`relative flex flex-col overflow-hidden rounded-xl border bg-card-bg text-left shadow-sm ${
+                  flashedId === p.id ? 'flash-success' : ''
+                } ${
                   isOutOfStock
                     ? 'tile-disabled border-accent-red/40 opacity-60 grayscale-[40%]'
                     : isLowStock
@@ -111,12 +116,12 @@ export default function BrandProductsPage() {
                 }`}
               >
                 {isOutOfStock && (
-                  <div className="absolute top-2 right-2 z-10 rounded bg-accent-red px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
+                  <div className="glow-pulse-red absolute top-2 right-2 z-10 rounded bg-accent-red px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
                     OUT
                   </div>
                 )}
                 {isLowStock && (
-                  <div className="absolute top-2 right-2 z-10 rounded bg-accent-orange px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
+                  <div className="glow-pulse-orange absolute top-2 right-2 z-10 rounded bg-accent-orange px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
                     LOW
                   </div>
                 )}
@@ -148,8 +153,15 @@ export default function BrandProductsPage() {
           product={selected}
           onClose={() => setSelected(null)}
           onSaved={(msg) => {
+            const savedId = selected?.id ?? null;
             setSelected(null);
             toast.success(msg);
+            // Flash the just-added tile green, then clear after the ~800ms
+            // animation so it can replay on the next add.
+            if (savedId) {
+              setFlashedId(savedId);
+              setTimeout(() => setFlashedId((cur) => (cur === savedId ? null : cur)), 850);
+            }
             setCooldown(true);
             setTimeout(() => setCooldown(false), 1000);
           }}
