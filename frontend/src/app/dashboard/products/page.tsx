@@ -184,7 +184,7 @@ export default function ProductsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <select value={shopFilter} onChange={(e) => setShopFilter(e.target.value)} className="border border-input-border rounded px-3 py-2 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus min-w-[180px]">
+        <select value={shopFilter} onChange={(e) => setShopFilter(e.target.value)} className="glass-select rounded px-3 py-2 text-sm text-text-primary focus:outline-none min-w-[180px]">
           <option value="">All Shops</option>
           {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
@@ -195,7 +195,7 @@ export default function ProductsPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2 text-sm text-text-secondary">
           <span>Show</span>
-          <select value={entriesPerPage.toString()} onChange={(e) => { const v = e.target.value; setEntriesPerPage(v === 'All' ? 'All' : parseInt(v)); setCurrentPage(1); }} className="border border-input-border rounded px-2 py-1 text-sm bg-input-bg">
+          <select value={entriesPerPage.toString()} onChange={(e) => { const v = e.target.value; setEntriesPerPage(v === 'All' ? 'All' : parseInt(v)); setCurrentPage(1); }} className="glass-select rounded px-2 py-1 text-sm">
             {ENTRIES_OPTIONS.map((o) => <option key={o} value={o.toString()}>{o}</option>)}
           </select>
           <span>entries</span>
@@ -663,7 +663,7 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Brand <span className="text-accent-red">*</span></label>
-          <select value={formBrand} onChange={(e) => setFormBrand(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus">
+          <select value={formBrand} onChange={(e) => setFormBrand(e.target.value)} className="glass-select w-full rounded px-3 py-2 text-sm focus:outline-none">
             <option value="">Select a brand</option>
             {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>

@@ -48,7 +48,7 @@ export default function StaffProductsPage() {
         <select
           value={brandId}
           onChange={(e) => { setBrandId(e.target.value); setPage(1); }}
-          className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-input-focus"
+          className="glass-select w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
         >
           <option value="">All Brands</option>
           {brands.map((b) => (
@@ -67,7 +67,7 @@ export default function StaffProductsPage() {
                 setPageSize(Number(e.target.value) as PageSize);
                 setPage(1);
               }}
-              className="rounded-lg border border-input-border bg-input-bg px-2 py-1 text-sm focus:outline-none"
+              className="glass-select rounded-lg px-2 py-1 text-sm focus:outline-none"
             >
               {PAGE_SIZES.map((s) => (
                 <option key={s} value={String(s)}>{s}</option>

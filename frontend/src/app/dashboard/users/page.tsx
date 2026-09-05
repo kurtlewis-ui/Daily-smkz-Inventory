@@ -93,7 +93,7 @@ function AdminStaffView() {
         <div className="p-4 flex items-center justify-between border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
-            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); setCurrentPage(1); }} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
+            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); setCurrentPage(1); }} className="glass-select px-2 py-1 rounded text-sm focus:outline-none">
               {[5, 10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
               <option value="All">All</option>
             </select>
@@ -207,7 +207,7 @@ function AdminStaffView() {
               <select
                 value={selectedBranchId}
                 onChange={(e) => setSelectedBranchId(e.target.value)}
-                className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm"
+                className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm"
               >
                 <option value="">Select a branch</option>
                 {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -445,29 +445,29 @@ function OwnerUsersView() {
       <div className="grid grid-cols-12 gap-2">
         <div className="col-span-5">
           <label className="block text-sm font-medium text-text-primary mb-1">First Name <span className="text-accent-red">*</span></label>
-          <input type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" />
+          <input type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm" />
         </div>
         <div className="col-span-2">
           <label className="block text-sm font-medium text-text-primary mb-1">M.I.</label>
-          <input type="text" value={formData.middleInitial} onChange={(e) => setFormData({ ...formData, middleInitial: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" maxLength={2} />
+          <input type="text" value={formData.middleInitial} onChange={(e) => setFormData({ ...formData, middleInitial: e.target.value })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm" maxLength={2} />
         </div>
         <div className="col-span-5">
           <label className="block text-sm font-medium text-text-primary mb-1">Last Name <span className="text-accent-red">*</span></label>
-          <input type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" />
+          <input type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Status</label>
-          <select value={formData.isActive ? 'Active' : 'Disabled'} onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'Active' })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm">
+          <select value={formData.isActive ? 'Active' : 'Disabled'} onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'Active' })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm">
             <option value="Active">Active</option>
             <option value="Disabled">Disabled</option>
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Role <span className="text-accent-red">*</span></label>
-          <select value={formData.roleId} onChange={(e) => setFormData({ ...formData, roleId: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm">
+          <select value={formData.roleId} onChange={(e) => setFormData({ ...formData, roleId: e.target.value })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm">
             <option value="">Select role</option>
             {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
@@ -477,7 +477,7 @@ function OwnerUsersView() {
       {isStaffRole && (
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Shop</label>
-          <select value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm">
+          <select value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm">
             <option value="">Select shop</option>
             {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
@@ -486,7 +486,7 @@ function OwnerUsersView() {
 
       <div>
         <label className="block text-sm font-medium text-text-primary mb-1">Email <span className="text-accent-red">*</span></label>
-        <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-3 py-2 border border-input-border rounded-lg bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus text-sm" />
+        <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm" />
       </div>
 
       <div>
@@ -540,7 +540,7 @@ function OwnerUsersView() {
         <div className="p-4 flex items-center justify-between border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
-            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); setCurrentPage(1); }} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
+            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); setCurrentPage(1); }} className="glass-select px-2 py-1 rounded text-sm focus:outline-none">
               {[5, 10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
               <option value="All">All</option>
             </select>

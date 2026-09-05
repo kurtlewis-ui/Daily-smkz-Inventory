@@ -913,7 +913,7 @@ function EditPaymentInline({
 
   return (
     <div className="mt-2 rounded border border-card-border bg-white/5 p-2 space-y-2">
-      <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} className="w-full rounded border border-input-border bg-input-bg px-2 py-1 text-xs">
+      <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} className="glass-select w-full rounded px-2 py-1 text-xs">
         <option value="Cash">Cash</option>
         <option value="Gcash">Gcash</option>
         <option value="Split">Split Payment</option>

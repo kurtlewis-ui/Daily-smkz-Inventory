@@ -450,7 +450,7 @@ function AddPurchaseModal({
             <select
               value={disposalReason}
               onChange={(e) => setDisposalReason(e.target.value)}
-              className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2.5 text-sm focus:outline-none focus:border-input-focus"
+              className="glass-select w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
             >
               <option value="">Select reason...</option>
               <option value="Leak">Leak</option>

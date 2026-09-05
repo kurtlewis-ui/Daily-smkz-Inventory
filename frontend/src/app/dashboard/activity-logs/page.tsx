@@ -66,7 +66,7 @@ export default function ActivityLogsPage() {
         <div className="p-4 flex items-center justify-between border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
-            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); resetToFirstPage(); }} className="px-2 py-1 border border-input-border rounded text-sm bg-input-bg focus:outline-none focus:ring-2 focus:ring-input-focus">
+            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); resetToFirstPage(); }} className="glass-select px-2 py-1 rounded text-sm focus:outline-none">
               {[5, 10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
               <option value="All">All</option>
             </select>

@@ -210,9 +210,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   </Link>
                 )}
 
-                {/* Dropdown sub-items */}
+                {/* Dropdown sub-items — subtle glass sub-panel so it reads as
+                    a flyout within the already-glass sidebar. */}
                 {hasDropdown && isOpen && (
-                  <div className="ml-9 mt-1 space-y-0.5">
+                  <div className="ml-6 mt-1 space-y-0.5 rounded-lg border border-white/10 bg-white/[0.03] p-1 backdrop-blur-sm">
                     {item.dropdown!.map((sub) => {
                       const subActive = pathname === sub.href;
                       return (
