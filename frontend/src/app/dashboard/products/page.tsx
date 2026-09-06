@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Plus, Pencil, Archive, X, Loader2, Upload, Download, RefreshCw, FileDown, ClipboardList, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, Pencil, Archive, X, Loader2, Upload, Download, RefreshCw, FileDown, ClipboardList, Trash2, GripVertical, ArrowUpDown, Check } from 'lucide-react';
 import {
   useProducts,
   useBrands,
@@ -11,9 +11,12 @@ import {
   useArchiveProduct,
   useImportProducts,
   useRestock,
+  useReorderProducts,
   type ImportProductRow,
   type RestockItem,
 } from '@/lib/hooks';
+import { useDragReorder } from '@/lib/useDragReorder';
+import { useToast } from '@/components/Toast';
 import { getApiErrorMessage } from '@/lib/api';
 import { parseCsv, readFileAsText } from '@/lib/csv';
 import { generateRestockXlsx, parseRestockXlsx, matchSlugToShopName, readFileAsArrayBuffer, type ProductRow } from '@/lib/xlsx-utils';
@@ -53,6 +56,15 @@ export default function ProductsPage() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const archiveProduct = useArchiveProduct();
+  const reorderProducts = useReorderProducts();
+  const toast = useToast();
+
+  // Manual reorder mode. Dragging only makes sense when the visible list is the
+  // full, true order — i.e. no search, no brand filter, and "All" entries shown
+  // on the first page — otherwise dragging a filtered/paged subset would corrupt
+  // the global order. Only admins/owners (who can already edit) may reorder.
+  const [reorderMode, setReorderMode] = useState(false);
+  const canReorder = isAdmin && !search && !brandFilter && entriesPerPage === 'All';
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -85,6 +97,22 @@ export default function ProductsPage() {
     if (shopFilter) return branches.filter((b) => b.id === shopFilter);
     return branches;
   }, [branches, shopFilter]);
+
+  // Drag-to-reorder over the full product list. `items` mirrors `products`
+  // and is what we render while in reorder mode; on drop it persists the new
+  // order to the backend (optimistic — the list re-syncs on the refetch).
+  const { items: orderedProducts, dragIndex, overIndex, startDrag, syncFromSource } = useDragReorder(products, {
+    getId: (p: Product) => p.id,
+    onCommit: (orderedIds) => {
+      reorderProducts.mutate(orderedIds, {
+        onError: (e) => toast.error(getApiErrorMessage(e), "Couldn't save order"),
+      });
+    },
+  });
+  // Keep the drag copy in step with fresh server data when not dragging.
+  useEffect(() => { syncFromSource(); }, [products, syncFromSource]);
+  // Leaving a state where reordering is allowed turns the mode off.
+  useEffect(() => { if (!canReorder) setReorderMode(false); }, [canReorder]);
 
   function qtyForBranch(product: Product, branchId: string) {
     return product.quantities.find((q) => q.branchId === branchId)?.quantity ?? 0;
@@ -196,7 +224,22 @@ export default function ProductsPage() {
         <Select value={shopFilter} onChange={setShopFilter} ariaLabel="Shop filter" className="min-w-[180px] w-auto" options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]} />
         <button onClick={() => setShowRestockModal(true)} className="flex items-center gap-1 bg-btn-primary text-btn-primary-text px-3 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition"><RefreshCw size={14} /> Restock</button>
         <button onClick={handleTemplate} className="flex items-center gap-1 btn-secondary text-text-primary px-3 py-2 rounded-lg text-sm font-medium"><FileDown size={14} /> Restock Template</button>
+        {isAdmin && (
+          <button
+            onClick={() => setReorderMode((v) => !v)}
+            disabled={!canReorder && !reorderMode}
+            title={canReorder ? 'Drag products to reorder them' : 'To reorder: clear search/brand filters and set entries to “All”'}
+            className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed ${reorderMode ? 'bg-accent-green text-white hover:opacity-90' : 'btn-secondary text-text-primary'}`}
+          >
+            {reorderMode ? <><Check size={14} /> Done Reordering</> : <><ArrowUpDown size={14} /> Reorder</>}
+          </button>
+        )}
       </div>
+      {reorderMode && (
+        <div className="rounded-lg border border-accent-green/30 bg-accent-green/10 px-4 py-2 text-sm text-text-secondary">
+          Drag the <GripVertical size={14} className="inline align-text-bottom" /> handle on a product to move it up or down. Changes save automatically.
+        </div>
+      )}
 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2 text-sm text-text-secondary">
@@ -212,6 +255,7 @@ export default function ProductsPage() {
         <table className="hidden w-full md:table">
           <thead>
             <tr className="bg-table-header">
+              {reorderMode && <th className="w-8 px-2 py-3" aria-label="Drag handle" />}
               <th className="text-left px-3 py-3 text-xs font-semibold uppercase text-table-header-text w-10">#</th>
               <th className="text-left px-3 py-3 text-xs font-semibold uppercase text-table-header-text w-16">Image</th>
               <th className="text-left px-3 py-3 text-xs font-semibold uppercase text-table-header-text">Name</th>
@@ -224,15 +268,33 @@ export default function ProductsPage() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={8} className="text-center py-8 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading products...</td></tr>
+              <tr><td colSpan={reorderMode ? 9 : 8} className="text-center py-8 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading products...</td></tr>
             ) : isError ? (
-              <tr><td colSpan={8} className="text-center py-8 text-accent-red">{getApiErrorMessage(error)}</td></tr>
-            ) : displayProducts.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-8 text-text-muted">No products found. Add one or import a CSV.</td></tr>
+              <tr><td colSpan={reorderMode ? 9 : 8} className="text-center py-8 text-accent-red">{getApiErrorMessage(error)}</td></tr>
+            ) : (reorderMode ? orderedProducts : displayProducts).length === 0 ? (
+              <tr><td colSpan={reorderMode ? 9 : 8} className="text-center py-8 text-text-muted">No products found. Add one or import a CSV.</td></tr>
             ) : (
-              displayProducts.map((product, i) => (
-                <tr key={product.id} className="border-t border-card-border transition-colors align-top">
-                  <td className="px-3 py-3 text-sm text-accent-blue font-medium">{(entriesPerPage === 'All' ? 0 : (currentPage - 1) * (entriesPerPage as number)) + i + 1}</td>
+              (reorderMode ? orderedProducts : displayProducts).map((product, i) => (
+                <tr
+                  key={product.id}
+                  data-reorder-row={reorderMode ? '' : undefined}
+                  data-reorder-id={reorderMode ? product.id : undefined}
+                  className={`border-t border-card-border align-top transition-colors ${reorderMode && dragIndex === i ? 'opacity-50' : ''} ${reorderMode && overIndex === i && dragIndex !== i ? 'bg-accent-green/10' : ''}`}
+                >
+                  {reorderMode && (
+                    <td className="px-2 py-3 align-middle">
+                      <button
+                        type="button"
+                        onPointerDown={(e) => startDrag(i, e)}
+                        className="flex h-8 w-6 cursor-grab touch-none items-center justify-center rounded text-text-muted hover:text-text-primary active:cursor-grabbing"
+                        title="Drag to reorder"
+                        aria-label={`Drag ${product.name} to reorder`}
+                      >
+                        <GripVertical size={16} />
+                      </button>
+                    </td>
+                  )}
+                  <td className="px-3 py-3 text-sm text-accent-blue font-medium">{reorderMode ? i + 1 : (entriesPerPage === 'All' ? 0 : (currentPage - 1) * (entriesPerPage as number)) + i + 1}</td>
                   <td className="px-3 py-3">
                     {product.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -322,13 +384,29 @@ export default function ProductsPage() {
             <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading products...</div>
           ) : isError ? (
             <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
-          ) : displayProducts.length === 0 ? (
+          ) : (reorderMode ? orderedProducts : displayProducts).length === 0 ? (
             <div className="py-8 text-center text-text-muted">No products found. Add one or import a CSV.</div>
           ) : (
             <ul className="divide-y divide-card-border">
-              {displayProducts.map((product, i) => (
-                <li key={product.id} className="p-4">
+              {(reorderMode ? orderedProducts : displayProducts).map((product, i) => (
+                <li
+                  key={product.id}
+                  data-reorder-row={reorderMode ? '' : undefined}
+                  data-reorder-id={reorderMode ? product.id : undefined}
+                  className={`p-4 transition-colors ${reorderMode && dragIndex === i ? 'opacity-50' : ''} ${reorderMode && overIndex === i && dragIndex !== i ? 'bg-accent-green/10' : ''}`}
+                >
                   <div className="flex items-start gap-3">
+                    {reorderMode && (
+                      <button
+                        type="button"
+                        onPointerDown={(e) => startDrag(i, e)}
+                        className="flex h-12 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded text-text-muted active:cursor-grabbing"
+                        title="Drag to reorder"
+                        aria-label={`Drag ${product.name} to reorder`}
+                      >
+                        <GripVertical size={20} />
+                      </button>
+                    )}
                     {product.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={product.image} alt={product.name} loading="lazy" className="h-12 w-12 shrink-0 rounded object-cover bg-white/10" />
@@ -337,7 +415,7 @@ export default function ProductsPage() {
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-text-primary">
-                        <span className="text-text-muted mr-1.5">{(entriesPerPage === 'All' ? 0 : (currentPage - 1) * (entriesPerPage as number)) + i + 1}.</span>
+                        <span className="text-text-muted mr-1.5">{reorderMode ? i + 1 : (entriesPerPage === 'All' ? 0 : (currentPage - 1) * (entriesPerPage as number)) + i + 1}.</span>
                         {product.name}
                       </p>
                       <p className="mt-0.5 text-xs text-text-secondary">{product.brand?.name ?? '—'}</p>

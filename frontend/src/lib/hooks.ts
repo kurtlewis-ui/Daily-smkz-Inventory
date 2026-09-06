@@ -316,6 +316,18 @@ export function useArchiveProduct() {
   });
 }
 
+// Persist a manual product order. `orderedIds` is the full list of product IDs
+// in the desired top-to-bottom order.
+export function useReorderProducts() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (orderedIds: string[]) =>
+      api.patch('/products/reorder', { orderedIds }).then((r) => r.data.data),
+    onSuccess: () => { invalidate(['products']); },
+    onError: (err) => { throw err; },
+  });
+}
+
 export function useRestoreProduct() {
   const invalidate = useInvalidate();
   const t = useMutationToasts('Product restored');
