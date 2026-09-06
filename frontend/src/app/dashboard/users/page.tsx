@@ -15,6 +15,7 @@ import { getApiErrorMessage } from '@/lib/api';
 import { ImageCropModal } from '@/components/ImageCropModal';
 import { useAuthStore } from '@/lib/store';
 import { Select } from '@/components/Select';
+import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
 import type { FullUser } from '@/lib/types';
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -50,8 +51,11 @@ function AdminStaffView() {
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formDirty, setFormDirty] = useState(false);
   const [entriesPerPage, setEntriesPerPage] = useState<number | 'All'>(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const closeBranchModal = useUnsavedGuard(formDirty, () => { setShowBranchModal(false); setSelectedUser(null); });
 
   const totalPages = entriesPerPage === 'All' ? 1 : Math.max(1, Math.ceil(visibleUsers.length / entriesPerPage));
   const pageStart = entriesPerPage === 'All' ? 0 : (currentPage - 1) * entriesPerPage;
@@ -61,6 +65,7 @@ function AdminStaffView() {
     setSelectedUser(user);
     setSelectedBranchId(user.branchId ?? '');
     setFormError(null);
+    setFormDirty(false);
     setShowBranchModal(true);
   };
 
@@ -72,10 +77,11 @@ function AdminStaffView() {
     }
     setFormError(null);
     try {
-      await updateUser.mutateAsync({
+      await withScrollPreserved(() => updateUser.mutateAsync({
         id: selectedUser.id,
         branchId: selectedBranchId,
-      });
+      }));
+      setFormDirty(false);
       setShowBranchModal(false);
       setSelectedUser(null);
     } catch (e) {
@@ -176,7 +182,7 @@ function AdminStaffView() {
 
       {/* Assign Branch Modal */}
       {showBranchModal && selectedUser && (
-        <Modal title="Assign Branch" onClose={() => setShowBranchModal(false)}>
+        <Modal title="Assign Branch" onClose={closeBranchModal}>
           <div className="space-y-4">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-card-border">
               {selectedUser.avatarUrl ? (
@@ -202,7 +208,7 @@ function AdminStaffView() {
 
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">New Branch</label>
-              <Select value={selectedBranchId} onChange={setSelectedBranchId} ariaLabel="New branch" placeholder="Select a branch" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
+              <Select value={selectedBranchId} onChange={(v) => { setSelectedBranchId(v); setFormDirty(true); }} ariaLabel="New branch" placeholder="Select a branch" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
             </div>
 
             {formError && (
@@ -210,7 +216,7 @@ function AdminStaffView() {
             )}
 
             <div className="flex gap-3 justify-end pt-2">
-              <button onClick={() => setShowBranchModal(false)} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
+              <button onClick={closeBranchModal} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
               <button onClick={handleSaveBranch} disabled={updateUser.isPending} className="px-4 py-2 btn-grad rounded-lg text-sm font-medium disabled:opacity-60">
                 {updateUser.isPending ? 'Saving...' : 'Save'}
               </button>
@@ -259,7 +265,11 @@ function OwnerUsersView() {
   const [selectedUser, setSelectedUser] = useState<FullUser | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formDirty, setFormDirty] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
+
+  const closeAdd = useUnsavedGuard(formDirty, () => setShowAddModal(false));
+  const closeEdit = useUnsavedGuard(formDirty, () => { setShowEditModal(false); setSelectedUser(null); });
 
   const [formData, setFormData] = useState<FormData>({
     firstName: '', middleInitial: '', lastName: '', email: '',
@@ -286,11 +296,12 @@ function OwnerUsersView() {
     setFormError(null);
   };
 
-  const handleAdd = () => { resetForm(); setShowAddModal(true); };
+  const handleAdd = () => { resetForm(); setFormDirty(false); setShowAddModal(true); };
 
   const handleEdit = (user: FullUser) => {
     setSelectedUser(user);
     setFormError(null);
+    setFormDirty(false);
     setFormData({
       firstName: user.firstName,
       middleInitial: user.middleInitial ?? '',
@@ -346,6 +357,7 @@ function OwnerUsersView() {
         branchId: isStaffRole ? formData.branchId : undefined,
         avatarUrl: formData.avatarUrl || undefined,
       });
+      setFormDirty(false);
       setShowAddModal(false);
     } catch (e) { setFormError(getApiErrorMessage(e)); }
   };
@@ -353,7 +365,7 @@ function OwnerUsersView() {
   const handleUpdateUser = async () => {
     if (!selectedUser || !validate(false)) return;
     try {
-      await updateUser.mutateAsync({
+      await withScrollPreserved(() => updateUser.mutateAsync({
         id: selectedUser.id,
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -363,7 +375,7 @@ function OwnerUsersView() {
         branchId: isStaffRole ? formData.branchId : null,
         isActive: formData.isActive,
         avatarUrl: formData.avatarUrl,
-      });
+      }));
       if (formData.password) {
         await resetPassword.mutateAsync({
           id: selectedUser.id,
@@ -371,6 +383,7 @@ function OwnerUsersView() {
           confirmPassword: formData.confirmPassword,
         });
       }
+      setFormDirty(false);
       setShowEditModal(false);
       setSelectedUser(null);
     } catch (e) { setFormError(getApiErrorMessage(e)); }
@@ -391,12 +404,13 @@ function OwnerUsersView() {
     setFormData((f) => ({ ...f, password: shuffled, confirmPassword: shuffled }));
     setShowPassword(true);
     setShowConfirmPassword(true);
+    setFormDirty(true);
   };
 
   const isSaving = createUser.isPending || updateUser.isPending || resetPassword.isPending;
 
   const renderUserForm = (isEdit: boolean) => (
-    <div className="space-y-4">
+    <div className="space-y-4" onInput={() => setFormDirty(true)}>
       <div className="flex items-center gap-4">
         {formData.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -420,7 +434,7 @@ function OwnerUsersView() {
             />
           </div>
           {formData.avatarUrl && (
-            <button type="button" onClick={() => setFormData((f) => ({ ...f, avatarUrl: '' }))} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
+            <button type="button" onClick={() => { setFormData((f) => ({ ...f, avatarUrl: '' })); setFormDirty(true); }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
               <Trash2 size={12} /> Remove
             </button>
           )}
@@ -447,18 +461,18 @@ function OwnerUsersView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Status</label>
-          <Select value={formData.isActive ? 'Active' : 'Disabled'} onChange={(v) => setFormData({ ...formData, isActive: v === 'Active' })} ariaLabel="Status" className="w-full" options={[{ value: 'Active', label: 'Active' }, { value: 'Disabled', label: 'Disabled' }]} />
+          <Select value={formData.isActive ? 'Active' : 'Disabled'} onChange={(v) => { setFormData({ ...formData, isActive: v === 'Active' }); setFormDirty(true); }} ariaLabel="Status" className="w-full" options={[{ value: 'Active', label: 'Active' }, { value: 'Disabled', label: 'Disabled' }]} />
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Role <span className="text-accent-red">*</span></label>
-          <Select value={formData.roleId} onChange={(v) => setFormData({ ...formData, roleId: v })} ariaLabel="Role" placeholder="Select role" className="w-full" options={roles.map((r) => ({ value: r.id, label: r.name }))} />
+          <Select value={formData.roleId} onChange={(v) => { setFormData({ ...formData, roleId: v }); setFormDirty(true); }} ariaLabel="Role" placeholder="Select role" className="w-full" options={roles.map((r) => ({ value: r.id, label: r.name }))} />
         </div>
       </div>
 
       {isStaffRole && (
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Shop</label>
-          <Select value={formData.branchId} onChange={(v) => setFormData({ ...formData, branchId: v })} ariaLabel="Shop" placeholder="Select shop" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
+          <Select value={formData.branchId} onChange={(v) => { setFormData({ ...formData, branchId: v }); setFormDirty(true); }} ariaLabel="Shop" placeholder="Select shop" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
         </div>
       )}
 
@@ -611,10 +625,10 @@ function OwnerUsersView() {
       </div>
 
       {showAddModal && (
-        <Modal title="Add New User" onClose={() => setShowAddModal(false)}>{renderUserForm(false)}</Modal>
+        <Modal title="Add New User" onClose={closeAdd}>{renderUserForm(false)}</Modal>
       )}
       {showEditModal && (
-        <Modal title="Edit User" onClose={() => setShowEditModal(false)}>{renderUserForm(true)}</Modal>
+        <Modal title="Edit User" onClose={closeEdit}>{renderUserForm(true)}</Modal>
       )}
       {showArchiveModal && selectedUser && (
         <Modal title="Archive User" onClose={() => setShowArchiveModal(false)}>
@@ -637,7 +651,7 @@ function OwnerUsersView() {
           title="Crop profile photo"
           shape="circle"
           onCancel={() => setCropFile(null)}
-          onCropped={(dataUrl) => { setFormData((f) => ({ ...f, avatarUrl: dataUrl })); setCropFile(null); }}
+          onCropped={(dataUrl) => { setFormData((f) => ({ ...f, avatarUrl: dataUrl })); setCropFile(null); setFormDirty(true); }}
         />
       )}
     </div>

@@ -24,6 +24,7 @@ import {
 import { getApiErrorMessage } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { Select } from '@/components/Select';
+import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
 import type { Sale, PaymentMethod, PaymentSplit } from '@/lib/types';
 
 function peso(n: number) {
@@ -180,6 +181,35 @@ export default function SalesPendingPage() {
   };
 
   const busy = approveSale.isPending || declineSale.isPending || deleteSale.isPending;
+
+  // Owner-only bulk action: submit EVERY staff draft on their behalf, so all
+  // in-progress carts become pending sales in one click. Runs the same
+  // per-staff save the individual "Save Draft" buttons use, sequentially so a
+  // single failure surfaces without aborting the rest, then reports a summary.
+  const handleAcceptAllDrafts = () => {
+    const n = drafts.length;
+    if (n === 0) return;
+    if (confirmAction !== 'accept-all-drafts') { setConfirmAction('accept-all-drafts'); return; }
+    setConfirmAction(null);
+    runSafe(async () => {
+      const failures: string[] = [];
+      let saved = 0;
+      for (const d of drafts) {
+        try {
+          const result = await saveDraftForStaff.mutateAsync(d.staff.id);
+          if (result.errors.length > 0) failures.push(`${d.staff.name}: ${result.errors.join('; ')}`);
+          else saved += 1;
+        } catch (e) {
+          failures.push(`${d.staff.name}: ${getApiErrorMessage(e)}`);
+        }
+      }
+      setActionStatus(
+        failures.length > 0
+          ? `Saved ${saved} of ${n} draft${n === 1 ? '' : 's'} — issues: ${failures.join(' | ')}`
+          : `✓ All ${n} staff draft${n === 1 ? '' : 's'} submitted for approval.`,
+      );
+    });
+  };
 
   return (
     <div className="p-6 bg-page-bg min-h-screen">
@@ -344,7 +374,20 @@ export default function SalesPendingPage() {
             <ShoppingBag size={18} /> Staff Drafts
             {drafts.length > 0 && <span className="badge badge-neutral">{drafts.length}</span>}
           </h2>
-          <p className="text-xs text-text-muted">Carts staff are currently building — not yet submitted for approval.</p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <p className="text-xs text-text-muted">Carts staff are currently building — not yet submitted for approval.</p>
+            <button
+              onClick={handleAcceptAllDrafts}
+              disabled={saveDraftForStaff.isPending || drafts.length === 0}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60 ${confirmAction === 'accept-all-drafts' ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
+              title="Submit every staff member's draft on their behalf"
+            >
+              <Send size={14} /> {confirmAction === 'accept-all-drafts' ? 'Confirm Accept All?' : 'Accept All Drafts'}
+            </button>
+            {confirmAction === 'accept-all-drafts' && (
+              <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium hover:bg-white/15 transition">Cancel</button>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -584,7 +627,7 @@ export default function SalesPendingPage() {
           onSave={async (payload) => {
             setActionError(null);
             try {
-              await updateSale.mutateAsync({ id: editingSale.id, ...payload });
+              await withScrollPreserved(() => updateSale.mutateAsync({ id: editingSale.id, ...payload }));
               setEditingSale(null);
             } catch (e) {
               throw new Error(getApiErrorMessage(e));
@@ -630,6 +673,8 @@ function EditSaleModal({
   const [rows, setRows] = useState<EditRow[]>([]);
   const [customerName, setCustomerName] = useState(sale.customerName ?? '');
   const [err, setErr] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const guardedClose = useUnsavedGuard(dirty, onClose);
 
   useEffect(() => {
     // Seed rows from the sale's current items (skip items whose product was
@@ -654,14 +699,16 @@ function EditSaleModal({
   const computedTotal = rows.reduce((sum, r) => sum + priceOf(r.productId) * r.quantity - (r.discount ?? 0), 0);
 
   const setRow = (idx: number, patch: Partial<EditRow>) => {
+    setDirty(true);
     setRows((rs) => rs.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
   };
   const addRow = () => {
     const first = products[0];
     if (!first) return;
+    setDirty(true);
     setRows((rs) => [...rs, { productId: first.id, quantity: 1, paymentMethod: 'Cash' as PaymentMethod }]);
   };
-  const removeRow = (idx: number) => setRows((rs) => rs.filter((_, i) => i !== idx));
+  const removeRow = (idx: number) => { setDirty(true); setRows((rs) => rs.filter((_, i) => i !== idx)); };
 
   const handleSubmit = async () => {
     if (rows.length === 0) { setErr('A sale must have at least one item.'); return; }
@@ -680,14 +727,15 @@ function EditSaleModal({
           paymentSplit: r.paymentSplit ?? undefined,
         })),
       });
+      setDirty(false);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Failed to save sale.');
     }
   };
 
   return (
-    <Modal title={`Edit Sale #${sale.number}`} onClose={onClose}>
-      <div className="space-y-4">
+    <Modal title={`Edit Sale #${sale.number}`} onClose={guardedClose}>
+      <div className="space-y-4" onInput={() => setDirty(true)}>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Customer (optional)</label>
           <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
@@ -722,7 +770,7 @@ function EditSaleModal({
         {err && <p className="text-sm text-accent-red">{err}</p>}
 
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
+          <button onClick={guardedClose} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
           <button onClick={handleSubmit} disabled={isSaving} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>

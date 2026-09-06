@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '@/lib/api';
 import type { ApiEnvelope, Branch } from '@/lib/types';
+import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
 import { Modal } from './Modal';
 
 interface BranchModalProps {
@@ -24,6 +25,8 @@ export function BranchModal({ open, onClose, branch }: BranchModalProps) {
   const [address, setAddress] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const guardedClose = useUnsavedGuard(dirty, onClose);
 
   // Sync the form whenever the modal opens with a (potentially different) branch.
   useEffect(() => {
@@ -32,6 +35,7 @@ export function BranchModal({ open, onClose, branch }: BranchModalProps) {
       setAddress(branch?.address ?? '');
       setIsActive(branch?.isActive ?? true);
       setFormError(null);
+      setDirty(false);
     }
   }, [open, branch]);
 
@@ -72,8 +76,8 @@ export function BranchModal({ open, onClose, branch }: BranchModalProps) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit branch' : 'Add new branch'}>
-      <form onSubmit={handleSubmit} className="space-y-3">
+    <Modal open={open} onClose={guardedClose} title={isEdit ? 'Edit branch' : 'Add new branch'}>
+      <form onSubmit={handleSubmit} className="space-y-3" onInput={() => setDirty(true)}>
         <div>
           <label className="mb-1 block text-sm font-medium text-text-secondary">Branch name</label>
           <input
@@ -116,7 +120,7 @@ export function BranchModal({ open, onClose, branch }: BranchModalProps) {
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={guardedClose}
             className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium text-text-secondary hover:opacity-80 transition-colors"
           >
             Cancel

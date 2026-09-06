@@ -11,6 +11,7 @@ import {
 import { getApiErrorMessage } from '@/lib/api';
 import { ImageCropModal } from '@/components/ImageCropModal';
 import { Select } from '@/components/Select';
+import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
 import type { Brand } from '@/lib/types';
 
 const PAGE_SIZES = [5, 10, 25, 50, 'All'] as const;
@@ -51,12 +52,17 @@ export default function BrandsPage() {
   const [formName, setFormName] = useState('');
   const [formCoverImage, setFormCoverImage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formDirty, setFormDirty] = useState(false);
+
+  const closeAdd = useUnsavedGuard(formDirty, () => setShowAddModal(false));
+  const closeEdit = useUnsavedGuard(formDirty, () => { setShowEditModal(false); setEditingBrand(null); });
 
   async function handleAdd() {
     if (!formName.trim()) { setFormError('Brand name is required.'); return; }
     setFormError(null);
     try {
       await createBrand.mutateAsync({ name: formName.trim(), coverImage: formCoverImage ?? undefined });
+      setFormDirty(false);
       setFormName('');
       setFormCoverImage(null);
       setShowAddModal(false);
@@ -67,7 +73,8 @@ export default function BrandsPage() {
     if (!editingBrand || !formName.trim()) { setFormError('Brand name is required.'); return; }
     setFormError(null);
     try {
-      await updateBrand.mutateAsync({ id: editingBrand.id, name: formName.trim(), coverImage: formCoverImage ?? '' });
+      await withScrollPreserved(() => updateBrand.mutateAsync({ id: editingBrand.id, name: formName.trim(), coverImage: formCoverImage ?? '' }));
+      setFormDirty(false);
       setFormName('');
       setFormCoverImage(null);
       setEditingBrand(null);
@@ -89,7 +96,7 @@ export default function BrandsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-text-primary">Brands</h1>
         <button
-          onClick={() => { setFormName(''); setFormCoverImage(null); setFormError(null); setShowAddModal(true); }}
+          onClick={() => { setFormName(''); setFormCoverImage(null); setFormError(null); setFormDirty(false); setShowAddModal(true); }}
           className="flex items-center gap-2 btn-grad px-4 py-2 rounded-lg text-sm font-medium"
         >
           <Plus size={16} />
@@ -152,7 +159,7 @@ export default function BrandsPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => { setEditingBrand(brand); setFormName(brand.name); setFormCoverImage(brand.coverImage ?? null); setFormError(null); setShowEditModal(true); }}
+                        onClick={() => { setEditingBrand(brand); setFormName(brand.name); setFormCoverImage(brand.coverImage ?? null); setFormError(null); setFormDirty(false); setShowEditModal(true); }}
                         className="icon-btn text-accent-blue hover:bg-accent-blue/10"
                       >
                         <Pencil size={16} />
@@ -188,13 +195,13 @@ export default function BrandsPage() {
       </div>
 
       {showAddModal && (
-        <Modal title="Add New Brand" onClose={() => setShowAddModal(false)}>
-          <div className="space-y-4">
+        <Modal title="Add New Brand" onClose={closeAdd}>
+          <div className="space-y-4" onInput={() => setFormDirty(true)}>
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Name</label>
               <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus" />
             </div>
-            <CoverImageField coverImage={formCoverImage} setCoverImage={setFormCoverImage} />
+            <CoverImageField coverImage={formCoverImage} setCoverImage={setFormCoverImage} onDirty={() => setFormDirty(true)} />
             {formError && <p className="text-sm text-accent-red">{formError}</p>}
             <div className="flex justify-end">
               <button onClick={handleAdd} disabled={createBrand.isPending} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">{createBrand.isPending ? 'Saving...' : 'Save Brand'}</button>
@@ -204,13 +211,13 @@ export default function BrandsPage() {
       )}
 
       {showEditModal && editingBrand && (
-        <Modal title="Edit Brand" onClose={() => { setShowEditModal(false); setEditingBrand(null); }}>
-          <div className="space-y-4">
+        <Modal title="Edit Brand" onClose={closeEdit}>
+          <div className="space-y-4" onInput={() => setFormDirty(true)}>
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Name</label>
               <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm text-text-primary bg-input-bg focus:outline-none focus:border-input-focus" />
             </div>
-            <CoverImageField coverImage={formCoverImage} setCoverImage={setFormCoverImage} />
+            <CoverImageField coverImage={formCoverImage} setCoverImage={setFormCoverImage} onDirty={() => setFormDirty(true)} />
             {formError && <p className="text-sm text-accent-red">{formError}</p>}
             <div className="flex justify-end">
               <button onClick={handleEdit} disabled={updateBrand.isPending} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">{updateBrand.isPending ? 'Saving...' : 'Save Brand'}</button>
@@ -235,7 +242,7 @@ export default function BrandsPage() {
   );
 }
 
-function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | null; setCoverImage: (v: string | null) => void }) {
+function CoverImageField({ coverImage, setCoverImage, onDirty }: { coverImage: string | null; setCoverImage: (v: string | null) => void; onDirty?: () => void }) {
   const [imageError, setImageError] = useState<string | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
 
@@ -261,7 +268,7 @@ function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | n
             <input type="file" accept="image/*" onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.currentTarget.value = ''; }} className="w-full text-xs text-text-secondary file:mr-2 file:py-1.5 file:px-3 file:rounded file:border file:border-input-border file:bg-btn-primary file:text-btn-primary-text file:text-xs file:cursor-pointer" />
           </div>
           {coverImage && (
-            <button type="button" onClick={() => { setCoverImage(null); setImageError(null); }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
+            <button type="button" onClick={() => { setCoverImage(null); setImageError(null); onDirty?.(); }} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent-red/10 border border-accent-red/30 text-xs font-medium text-accent-red hover:bg-accent-red/20 transition-colors">
               <X size={12} /> Remove
             </button>
           )}
@@ -273,7 +280,7 @@ function CoverImageField({ coverImage, setCoverImage }: { coverImage: string | n
           file={cropFile}
           title="Crop cover image"
           onCancel={() => setCropFile(null)}
-          onCropped={(dataUrl) => { setCoverImage(dataUrl); setCropFile(null); }}
+          onCropped={(dataUrl) => { setCoverImage(dataUrl); setCropFile(null); onDirty?.(); }}
         />
       )}
     </div>

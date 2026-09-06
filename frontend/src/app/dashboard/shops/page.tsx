@@ -11,6 +11,7 @@ import {
 import { getApiErrorMessage } from '@/lib/api';
 import { usePagination, Pagination } from '@/components/Pagination';
 import { Select } from '@/components/Select';
+import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
 import type { Branch } from '@/lib/types';
 
 export default function ShopsPage() {
@@ -31,6 +32,10 @@ export default function ShopsPage() {
   const [newName, setNewName] = useState('');
   const [newAddress, setNewAddress] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [formDirty, setFormDirty] = useState(false);
+
+  const closeAdd = useUnsavedGuard(formDirty, () => setShowAddModal(false));
+  const closeEdit = useUnsavedGuard(formDirty, () => { setShowEditModal(false); setEditingShop(null); });
 
   const filteredShops = shops.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()),
@@ -47,6 +52,7 @@ export default function ShopsPage() {
     setFormError(null);
     try {
       await createBranch.mutateAsync({ name: newName.trim(), address: newAddress.trim() || undefined });
+      setFormDirty(false);
       setNewName('');
       setNewAddress('');
       setShowAddModal(false);
@@ -62,7 +68,8 @@ export default function ShopsPage() {
     }
     setFormError(null);
     try {
-      await updateBranch.mutateAsync({ id: editingShop.id, name: newName.trim(), address: newAddress.trim() || undefined });
+      await withScrollPreserved(() => updateBranch.mutateAsync({ id: editingShop.id, name: newName.trim(), address: newAddress.trim() || undefined }));
+      setFormDirty(false);
       setNewName('');
       setNewAddress('');
       setEditingShop(null);
@@ -88,7 +95,7 @@ export default function ShopsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-text-primary">Shops</h1>
         <button
-          onClick={() => { setNewName(''); setNewAddress(''); setFormError(null); setShowAddModal(true); }}
+          onClick={() => { setNewName(''); setNewAddress(''); setFormError(null); setFormDirty(false); setShowAddModal(true); }}
           className="flex items-center gap-2 btn-grad px-4 py-2 rounded-lg text-sm font-medium"
         >
           <Plus size={16} />
@@ -143,7 +150,7 @@ export default function ShopsPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
-                        onClick={() => { setEditingShop(shop); setNewName(shop.name); setNewAddress(shop.address ?? ''); setFormError(null); setShowEditModal(true); }}
+                        onClick={() => { setEditingShop(shop); setNewName(shop.name); setNewAddress(shop.address ?? ''); setFormError(null); setFormDirty(false); setShowEditModal(true); }}
                         className="icon-btn text-accent-blue hover:bg-accent-blue/10"
                         title="Edit"
                       >
@@ -188,7 +195,7 @@ export default function ShopsPage() {
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <button
-                        onClick={() => { setEditingShop(shop); setNewName(shop.name); setNewAddress(shop.address ?? ''); setFormError(null); setShowEditModal(true); }}
+                        onClick={() => { setEditingShop(shop); setNewName(shop.name); setNewAddress(shop.address ?? ''); setFormError(null); setFormDirty(false); setShowEditModal(true); }}
                         className="flex h-12 w-12 items-center justify-center rounded-lg text-accent-blue hover:bg-accent-blue/10 transition-colors"
                         title="Edit"
                         aria-label={`Edit ${shop.name}`}
@@ -217,8 +224,8 @@ export default function ShopsPage() {
       </div>
 
       {showAddModal && (
-        <Modal title="Add New Shop" onClose={() => setShowAddModal(false)}>
-          <div className="space-y-4">
+        <Modal title="Add New Shop" onClose={closeAdd}>
+          <div className="space-y-4" onInput={() => setFormDirty(true)}>
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Name <span className="text-accent-red">*</span></label>
               <input
@@ -249,8 +256,8 @@ export default function ShopsPage() {
       )}
 
       {showEditModal && editingShop && (
-        <Modal title="Edit Shop" onClose={() => { setShowEditModal(false); setEditingShop(null); }}>
-          <div className="space-y-4">
+        <Modal title="Edit Shop" onClose={closeEdit}>
+          <div className="space-y-4" onInput={() => setFormDirty(true)}>
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">Name <span className="text-accent-red">*</span></label>
               <input
