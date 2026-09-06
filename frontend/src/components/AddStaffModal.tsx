@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '@/lib/api';
 import { Select } from '@/components/Select';
+import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
 import type { ApiEnvelope, Branch, RoleOption } from '@/lib/types';
 import { Modal } from './Modal';
 
@@ -28,6 +29,7 @@ export function AddStaffModal({ open, onClose, roles, branches }: AddStaffModalP
   const [roleId, setRoleId] = useState('');
   const [branchId, setBranchId] = useState<string>('');
   const [formError, setFormError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   // Default the select to "Staff" (or the first role) until the user picks one.
   const defaultRoleId =
@@ -73,12 +75,16 @@ export function AddStaffModal({ open, onClose, roles, branches }: AddStaffModalP
     setRoleId('');
     setBranchId('');
     setFormError(null);
+    setDirty(false);
   }
 
+  // Bare close (used after a successful create) — resets and closes without a
+  // prompt. The guarded variant is what the X / backdrop / Escape / Cancel use.
   function handleClose() {
     resetForm();
     onClose();
   }
+  const guardedClose = useUnsavedGuard(dirty, handleClose);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -100,8 +106,8 @@ export function AddStaffModal({ open, onClose, roles, branches }: AddStaffModalP
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Add new staff">
-      <form onSubmit={handleSubmit} className="space-y-3">
+    <Modal open={open} onClose={guardedClose} title="Add new staff">
+      <form onSubmit={handleSubmit} className="space-y-3" onInput={() => setDirty(true)}>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">First name</label>
@@ -139,7 +145,7 @@ export function AddStaffModal({ open, onClose, roles, branches }: AddStaffModalP
           <label className="mb-1 block text-sm font-medium text-text-secondary">Role</label>
           <Select
             value={selectedRoleId}
-            onChange={setRoleId}
+            onChange={(v) => { setRoleId(v); setDirty(true); }}
             ariaLabel="Role"
             placeholder={roles.length === 0 ? 'Loading roles…' : 'Select role'}
             className="w-full"
@@ -153,7 +159,7 @@ export function AddStaffModal({ open, onClose, roles, branches }: AddStaffModalP
           </label>
           <Select
             value={branchId}
-            onChange={setBranchId}
+            onChange={(v) => { setBranchId(v); setDirty(true); }}
             ariaLabel="Branch"
             className="w-full"
             options={[
@@ -199,7 +205,7 @@ export function AddStaffModal({ open, onClose, roles, branches }: AddStaffModalP
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
-            onClick={handleClose}
+            onClick={guardedClose}
             className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium text-text-secondary hover:opacity-80 transition-colors"
           >
             Cancel

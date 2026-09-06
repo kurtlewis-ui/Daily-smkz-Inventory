@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '@/lib/api';
 import { Select } from '@/components/Select';
+import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
 import type { ApiEnvelope, Branch, RoleOption, UserListItem } from '@/lib/types';
 import { Modal } from './Modal';
 
@@ -27,6 +28,8 @@ export function EditStaffModal({ user, onClose, roles, branches }: EditStaffModa
   const [branchId, setBranchId] = useState<string>('');
   const [isActive, setIsActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const guardedClose = useUnsavedGuard(dirty, onClose);
 
   // Reset the form whenever a different user is opened.
   useEffect(() => {
@@ -38,6 +41,7 @@ export function EditStaffModal({ user, onClose, roles, branches }: EditStaffModa
       setBranchId(user.branchId ?? '');
       setIsActive(user.isActive);
       setFormError(null);
+      setDirty(false);
     }
   }, [user]);
 
@@ -79,8 +83,8 @@ export function EditStaffModal({ user, onClose, roles, branches }: EditStaffModa
   const activeBranches = branches.filter((b) => b.isActive);
 
   return (
-    <Modal open={!!user} onClose={onClose} title={title}>
-      <form onSubmit={handleSubmit} className="space-y-3">
+    <Modal open={!!user} onClose={guardedClose} title={title}>
+      <form onSubmit={handleSubmit} className="space-y-3" onInput={() => setDirty(true)}>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-text-secondary">First name</label>
@@ -117,7 +121,7 @@ export function EditStaffModal({ user, onClose, roles, branches }: EditStaffModa
           <label className="mb-1 block text-sm font-medium text-text-secondary">Role</label>
           <Select
             value={roleId}
-            onChange={setRoleId}
+            onChange={(v) => { setRoleId(v); setDirty(true); }}
             ariaLabel="Role"
             placeholder="Select role"
             className="w-full"
@@ -129,7 +133,7 @@ export function EditStaffModal({ user, onClose, roles, branches }: EditStaffModa
           <label className="mb-1 block text-sm font-medium text-text-secondary">Branch</label>
           <Select
             value={branchId}
-            onChange={setBranchId}
+            onChange={(v) => { setBranchId(v); setDirty(true); }}
             ariaLabel="Branch"
             className="w-full"
             options={[
@@ -160,7 +164,7 @@ export function EditStaffModal({ user, onClose, roles, branches }: EditStaffModa
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={guardedClose}
             className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium text-text-secondary hover:opacity-80 transition-colors"
           >
             Cancel

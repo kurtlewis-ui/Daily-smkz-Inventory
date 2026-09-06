@@ -10,6 +10,7 @@ import { getApiErrorMessage } from '@/lib/api';
 import { GridSkeleton } from '@/components/Skeleton';
 import { Select } from '@/components/Select';
 import { useToast } from '@/components/Toast';
+import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -193,6 +194,8 @@ function AddPurchaseModal({
   const [disposalReason, setDisposalReason] = useState('');
   const [disposalNote, setDisposalNote] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const guardedClose = useUnsavedGuard(dirty, onClose);
   const addItem = useDraftStore((s) => s.addItem);
   const addDisposalItem = useDraftStore((s) => s.addDisposalItem);
   const draftItems = useDraftStore((s) => s.items);
@@ -265,6 +268,7 @@ function AddPurchaseModal({
       },
       qty,
     );
+    setDirty(false);
     onSaved(`Added ${qty}× ${product.name} to your draft order.`);
   }
 
@@ -286,18 +290,19 @@ function AddPurchaseModal({
       },
       qty,
     );
+    setDirty(false);
     onSaved(`Added ${qty}× ${product.name} to your draft order's Dispose list.`);
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={guardedClose} />
       {/* max-h + overflow-y-auto so the whole form (incl. Save/Dispose buttons)
           stays reachable on small phone screens; lighter padding on mobile. */}
       <div className="glass relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl p-5 sm:p-8 shadow-xl">
         <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-bold text-text-primary">Add Purchase</h3>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
+          <button onClick={guardedClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
         </div>
 
         {/* Product Info Card */}
@@ -320,7 +325,7 @@ function AddPurchaseModal({
           </div>
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-5" onInput={() => setDirty(true)}>
           {/* Quantity */}
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Quantity</label>
@@ -359,7 +364,7 @@ function AddPurchaseModal({
             <div className="grid grid-cols-3 gap-3">
               <button
                 type="button"
-                onClick={() => setPaymentMethod('Cash')}
+                onClick={() => { setPaymentMethod('Cash'); setDirty(true); }}
                 className={`py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   paymentMethod === 'Cash'
                     ? 'bg-btn-primary text-btn-primary-text shadow-md'
@@ -370,7 +375,7 @@ function AddPurchaseModal({
               </button>
               <button
                 type="button"
-                onClick={() => setPaymentMethod('Gcash')}
+                onClick={() => { setPaymentMethod('Gcash'); setDirty(true); }}
                 className={`py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   paymentMethod === 'Gcash'
                     ? 'bg-accent-blue text-white shadow-md'
@@ -381,7 +386,7 @@ function AddPurchaseModal({
               </button>
               <button
                 type="button"
-                onClick={() => setPaymentMethod('Split')}
+                onClick={() => { setPaymentMethod('Split'); setDirty(true); }}
                 className={`py-2.5 rounded-lg text-sm font-semibold transition-all ${
                   paymentMethod === 'Split'
                     ? 'bg-btn-primary text-btn-primary-text shadow-md'
@@ -448,7 +453,7 @@ function AddPurchaseModal({
           {/* Disposal Reason */}
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Disposal Reason (if disposing)</label>
-            <Select value={disposalReason} onChange={setDisposalReason} ariaLabel="Disposal reason" placeholder="Select reason..." className="w-full" options={[
+            <Select value={disposalReason} onChange={(v) => { setDisposalReason(v); setDirty(true); }} ariaLabel="Disposal reason" placeholder="Select reason..." className="w-full" options={[
               { value: 'Leak', label: 'Leak' },
               { value: 'Damage', label: 'Damage' },
               { value: 'Crack', label: 'Crack' },

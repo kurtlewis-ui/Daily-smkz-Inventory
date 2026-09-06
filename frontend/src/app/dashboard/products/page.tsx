@@ -22,6 +22,7 @@ import { ImageCropModal } from '@/components/ImageCropModal';
 import type { Product, ImportResult, RestockResult } from '@/lib/types';
 import { StockHistoryModal } from '@/components/StockHistoryModal';
 import { Select } from '@/components/Select';
+import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
 
 const ENTRIES_OPTIONS = [5, 10, 25, 50, 100, 'All'] as const;
 
@@ -70,6 +71,11 @@ export default function ProductsPage() {
   const [formImage, setFormImage] = useState<string | null>(null);
   const [formQuantities, setFormQuantities] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  // Tracks whether the open Add/Edit form has unsaved edits, to guard close.
+  const [formDirty, setFormDirty] = useState(false);
+
+  const closeAdd = useUnsavedGuard(formDirty, () => { setShowAddModal(false); setFormDirty(false); });
+  const closeEdit = useUnsavedGuard(formDirty, () => { setShowEditModal(false); setEditingProduct(null); setFormDirty(false); });
 
   const totalPages = entriesPerPage === 'All' ? 1 : Math.max(1, Math.ceil(products.length / entriesPerPage));
   const displayProducts = entriesPerPage === 'All' ? products : products.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
@@ -90,7 +96,7 @@ export default function ProductsPage() {
     setFormName(''); setFormBrand(brands[0]?.id ?? ''); setFormPrice(''); setFormCostPrice(''); setFormAlert('');
     setFormImage(null);
     const q: Record<string, string> = {}; branchesForForm.forEach((b) => (q[b.id] = ''));
-    setFormQuantities(q); setFormError(null); setShowAddModal(true);
+    setFormQuantities(q); setFormError(null); setFormDirty(false); setShowAddModal(true);
   }
   function openEditModal(product: Product) {
     setEditingProduct(product);
@@ -105,7 +111,7 @@ export default function ProductsPage() {
     setFormImage(product.image ?? null);
     const q: Record<string, string> = {};
     branchesForEdit.forEach((b) => { q[b.id] = (product.quantities.find((x) => x.branchId === b.id)?.quantity ?? 0).toString(); });
-    setFormQuantities(q); setFormError(null); setShowEditModal(true);
+    setFormQuantities(q); setFormError(null); setFormDirty(false); setShowEditModal(true);
   }
   function buildQuantitiesPayload() {
     // Only send quantities for branches shown in the form
@@ -123,7 +129,7 @@ export default function ProductsPage() {
     setFormError(null);
     try {
       await createProduct.mutateAsync({ name: formName.trim(), brandId: formBrand, sellingPrice: parseFloat(formPrice) || 0, costPrice: parseFloat(formCostPrice) || 0, quantityAlert: parseInt(formAlert) || 0, image: formImage ?? undefined, quantities: buildQuantitiesPayload() });
-      setShowAddModal(false);
+      setFormDirty(false); setShowAddModal(false);
     } catch (e) { setFormError(getApiErrorMessage(e)); }
   }
   async function handleEdit() {
@@ -137,8 +143,8 @@ export default function ProductsPage() {
         // All Shops → update the global/default selling price
         updateData.sellingPrice = parseFloat(formPrice) || 0;
       }
-      await updateProduct.mutateAsync(updateData);
-      setEditingProduct(null); setShowEditModal(false);
+      await withScrollPreserved(() => updateProduct.mutateAsync(updateData));
+      setFormDirty(false); setEditingProduct(null); setShowEditModal(false);
     } catch (e) { setFormError(getApiErrorMessage(e)); }
   }
   async function handleArchive() {
@@ -414,10 +420,10 @@ export default function ProductsPage() {
       </div>
 
       {showAddModal && (
-        <ProductFormModal title="Add New Product" onClose={() => setShowAddModal(false)} onSubmit={handleAdd} error={formError} buttonLabel={createProduct.isPending ? 'Saving...' : 'Save Product'} disabled={createProduct.isPending} formName={formName} setFormName={setFormName} formBrand={formBrand} setFormBrand={setFormBrand} formPrice={formPrice} setFormPrice={setFormPrice} formCostPrice={formCostPrice} setFormCostPrice={setFormCostPrice} isOwner={isOwner} formAlert={formAlert} setFormAlert={setFormAlert} formImage={formImage} setFormImage={setFormImage} isAdmin={isAdmin} formQuantities={formQuantities} setFormQuantities={setFormQuantities} branches={branchesForForm} brands={brands} />
+        <ProductFormModal title="Add New Product" onClose={closeAdd} onDirty={() => setFormDirty(true)} onSubmit={handleAdd} error={formError} buttonLabel={createProduct.isPending ? 'Saving...' : 'Save Product'} disabled={createProduct.isPending} formName={formName} setFormName={setFormName} formBrand={formBrand} setFormBrand={setFormBrand} formPrice={formPrice} setFormPrice={setFormPrice} formCostPrice={formCostPrice} setFormCostPrice={setFormCostPrice} isOwner={isOwner} formAlert={formAlert} setFormAlert={setFormAlert} formImage={formImage} setFormImage={setFormImage} isAdmin={isAdmin} formQuantities={formQuantities} setFormQuantities={setFormQuantities} branches={branchesForForm} brands={brands} />
       )}
       {showEditModal && editingProduct && (
-        <ProductFormModal title="Edit Product" onClose={() => { setShowEditModal(false); setEditingProduct(null); }} onSubmit={handleEdit} error={formError} buttonLabel={updateProduct.isPending ? 'Saving...' : 'Update Product'} disabled={updateProduct.isPending} formName={formName} setFormName={setFormName} formBrand={formBrand} setFormBrand={setFormBrand} formPrice={formPrice} setFormPrice={setFormPrice} formCostPrice={formCostPrice} setFormCostPrice={setFormCostPrice} isOwner={isOwner} formAlert={formAlert} setFormAlert={setFormAlert} formImage={formImage} setFormImage={setFormImage} isAdmin={isAdmin} formQuantities={formQuantities} setFormQuantities={setFormQuantities} branches={branchesForEdit} brands={brands} />
+        <ProductFormModal title="Edit Product" onClose={closeEdit} onDirty={() => setFormDirty(true)} onSubmit={handleEdit} error={formError} buttonLabel={updateProduct.isPending ? 'Saving...' : 'Update Product'} disabled={updateProduct.isPending} formName={formName} setFormName={setFormName} formBrand={formBrand} setFormBrand={setFormBrand} formPrice={formPrice} setFormPrice={setFormPrice} formCostPrice={formCostPrice} setFormCostPrice={setFormCostPrice} isOwner={isOwner} formAlert={formAlert} setFormAlert={setFormAlert} formImage={formImage} setFormImage={setFormImage} isAdmin={isAdmin} formQuantities={formQuantities} setFormQuantities={setFormQuantities} branches={branchesForEdit} brands={brands} />
       )}
       {showArchiveModal && archivingProduct && (
         <Modal title="Confirm Archive" onClose={() => { setShowArchiveModal(false); setArchivingProduct(null); }}>
@@ -616,8 +622,8 @@ function RestockModal({ products, branches, onClose }: { products: Product[]; br
   );
 }
 
-function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, error, formName, setFormName, formBrand, setFormBrand, formPrice, setFormPrice, formCostPrice, setFormCostPrice, isOwner, formAlert, setFormAlert, formImage, setFormImage, isAdmin, formQuantities, setFormQuantities, branches, brands }: {
-  title: string; onClose: () => void; onSubmit: () => void; buttonLabel: string; disabled?: boolean; error?: string | null;
+function ProductFormModal({ title, onClose, onDirty, onSubmit, buttonLabel, disabled, error, formName, setFormName, formBrand, setFormBrand, formPrice, setFormPrice, formCostPrice, setFormCostPrice, isOwner, formAlert, setFormAlert, formImage, setFormImage, isAdmin, formQuantities, setFormQuantities, branches, brands }: {
+  title: string; onClose: () => void; onDirty: () => void; onSubmit: () => void; buttonLabel: string; disabled?: boolean; error?: string | null;
   formName: string; setFormName: (v: string) => void; formBrand: string; setFormBrand: (v: string) => void;
   formPrice: string; setFormPrice: (v: string) => void; formCostPrice: string; setFormCostPrice: (v: string) => void; isOwner: boolean; formAlert: string; setFormAlert: (v: string) => void;
   formImage: string | null; setFormImage: (v: string | null) => void; isAdmin: boolean;
@@ -635,7 +641,9 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
 
   return (
     <Modal title={title} onClose={onClose}>
-      <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-8">
+      {/* onInput anywhere in the form marks it dirty so the close guard can warn
+          about unsaved edits (covers inputs, the Select, and file picks). */}
+      <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-8" onInput={onDirty}>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Name <span className="text-accent-red">*</span></label>
           <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />

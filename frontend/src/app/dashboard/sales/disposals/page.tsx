@@ -6,6 +6,7 @@ import { useDisposals, useCreateDisposal, useBranches, useProducts } from '@/lib
 import { getApiErrorMessage } from '@/lib/api';
 import { usePagination, Pagination } from '@/components/Pagination';
 import { Select } from '@/components/Select';
+import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -134,6 +135,8 @@ function RecordDisposalModal({ branches, onClose }: { branches: { id: string; na
   const [quantity, setQuantity] = useState('');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const guardedClose = useUnsavedGuard(dirty, onClose);
 
   const selected = products.find((p) => p.id === productId);
   const available = selected?.quantities.find((q) => q.branchId === branchId)?.quantity ?? 0;
@@ -146,27 +149,28 @@ function RecordDisposalModal({ branches, onClose }: { branches: { id: string; na
     setError(null);
     try {
       await createDisposal.mutateAsync({ branchId, productId, quantity: qty, reason: reason.trim() || undefined });
+      setDirty(false);
       onClose();
     } catch (e) { setError(getApiErrorMessage(e)); }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={guardedClose} />
       <div className="glass relative rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-text-primary">Request Disposal</h3>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
+          <button onClick={guardedClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-4" onInput={() => setDirty(true)}>
           <p className="text-xs text-text-muted">Request to write off damaged/expired/unsellable stock. It goes to <strong>Pending Sales</strong> for an admin to approve. Stock is only deducted once approved.</p>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Shop <span className="text-accent-red">*</span></label>
-            <Select value={branchId} onChange={(v) => { setBranchId(v); setProductId(''); }} ariaLabel="Shop" placeholder="Select shop" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
+            <Select value={branchId} onChange={(v) => { setBranchId(v); setProductId(''); setDirty(true); }} ariaLabel="Shop" placeholder="Select shop" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
           </div>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Product <span className="text-accent-red">*</span></label>
-            <Select value={productId} onChange={setProductId} ariaLabel="Product" placeholder="Select product" className="w-full" options={products.map((p) => ({ value: p.id, label: p.name }))} />
+            <Select value={productId} onChange={(v) => { setProductId(v); setDirty(true); }} ariaLabel="Product" placeholder="Select product" className="w-full" options={products.map((p) => ({ value: p.id, label: p.name }))} />
             {selected && <p className="text-xs text-text-muted mt-1">In stock at this shop: <strong>{available}</strong></p>}
           </div>
           <div>
@@ -179,7 +183,7 @@ function RecordDisposalModal({ branches, onClose }: { branches: { id: string; na
           </div>
           {error && <p className="text-sm text-accent-red">{error}</p>}
           <div className="flex justify-end gap-2">
-            <button onClick={onClose} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">Cancel</button>
+            <button onClick={guardedClose} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">Cancel</button>
             <button onClick={submit} disabled={createDisposal.isPending} className="bg-btn-danger text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-60">{createDisposal.isPending ? 'Submitting...' : 'Submit Request'}</button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '@/lib/api';
 import type { ApiEnvelope, UserListItem } from '@/lib/types';
+import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
 import { Modal } from './Modal';
 
 interface ChangePasswordModalProps {
@@ -45,6 +46,10 @@ export function ChangePasswordModal({ user, onClose }: ChangePasswordModalProps)
     onClose();
   }
 
+  // Prompt only when there's an unsaved password typed and it wasn't saved.
+  const dirty = !success && (newPassword.length > 0 || confirmPassword.length > 0);
+  const guardedClose = useUnsavedGuard(dirty, handleClose);
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setFormError(null);
@@ -61,7 +66,7 @@ export function ChangePasswordModal({ user, onClose }: ChangePasswordModalProps)
     : 'Change password';
 
   return (
-    <Modal open={!!user} onClose={handleClose} title={title}>
+    <Modal open={!!user} onClose={guardedClose} title={title}>
       {success ? (
         <div className="space-y-4">
           <div className="rounded-lg bg-accent-green/10 border border-accent-green/30 px-3 py-2 text-sm text-accent-green">
@@ -113,7 +118,7 @@ export function ChangePasswordModal({ user, onClose }: ChangePasswordModalProps)
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={handleClose}
+              onClick={guardedClose}
               className="rounded-lg border border-card-border px-4 py-2 text-sm font-medium text-text-secondary hover:opacity-80 transition-colors"
             >
               Cancel
