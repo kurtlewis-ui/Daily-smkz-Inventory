@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
-import { Search, Pencil, Trash2, X, CheckCircle, XCircle, Plus, Loader2, Recycle, ShoppingBag, Receipt, Send, Archive } from 'lucide-react';
+import { Search, Pencil, Trash2, X, CheckCircle, XCircle, Plus, Loader2, Recycle, ShoppingBag, Receipt, Send } from 'lucide-react';
 import {
   useSalesPending,
   useBranches,
@@ -252,16 +252,16 @@ export default function SalesPendingPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Sale</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Brand</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Sub Total</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Payment</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Staff</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Actions</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Sale</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Name</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Qty</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Brand</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Price</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Sub Total</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Payment</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Staff</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Date</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -274,8 +274,8 @@ export default function SalesPendingPage() {
               ) : sales.map((sale) => (
                 <Fragment key={sale.id}>
                   {sale.items.map((item, idx) => (
-                    <tr key={item.id} className="border-b border-card-border transition">
-                      <td className="px-4 py-3 text-sm text-text-primary font-medium">
+                    <tr key={item.id} className="border-b border-card-border/60 transition">
+                      <td className="px-4 py-4 text-sm text-text-primary font-medium">
                         {idx === 0 && (
                           <>
                             {`#${sale.number}`}
@@ -283,30 +283,30 @@ export default function SalesPendingPage() {
                           </>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-text-primary">{item.name}</td>
-                      <td className="px-4 py-3 text-sm text-text-primary">{item.quantity}</td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{item.brandName}</td>
-                      <td className="px-4 py-3 text-sm text-text-primary">{peso(item.unitPrice)}</td>
-                      <td className="px-4 py-3 text-sm text-text-primary font-medium">
+                      <td className="px-4 py-4 text-sm text-text-primary">{item.name}</td>
+                      <td className="px-4 py-4 text-sm text-text-primary">{item.quantity}</td>
+                      <td className="px-4 py-4 text-sm text-text-secondary">{item.brandName}</td>
+                      <td className="px-4 py-4 text-sm text-text-primary">{peso(item.unitPrice)}</td>
+                      <td className="px-4 py-4 text-sm text-text-primary font-medium">
                         {peso(item.subTotal)}
                         {!!item.discount && <p className="text-xs font-normal text-accent-orange">−{peso(item.discount)} discount</p>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-4">
                         <span className="badge badge-neutral">
                           <span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />
                           {itemPaymentLabel(item)}
                         </span>
                         {item.note && <p className="mt-0.5 text-[11px] text-text-muted truncate max-w-[140px]">{item.note}</p>}
                       </td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{sale.staff?.name ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{idx === 0 ? formatDate(sale.createdAt) : ''}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-4 text-sm text-text-secondary">{sale.staff?.name ?? '—'}</td>
+                      <td className="px-4 py-4 text-sm text-text-secondary">{idx === 0 ? formatDate(sale.createdAt) : ''}</td>
+                      <td className="px-4 py-4">
                         {idx === 0 && (
-                          <div className="flex items-center gap-1.5">
-                            <button onClick={() => runSafe(async () => { await approveSale.mutateAsync(sale.id); setActionStatus(`✓ Sale #${sale.number} approved.`); })} className="p-1.5 bg-accent-green text-white rounded hover:opacity-90 transition" title="Approve"><CheckCircle size={15} /></button>
-                            <button onClick={() => runSafe(async () => { await declineSale.mutateAsync(sale.id); setActionStatus(`Sale #${sale.number} declined.`); })} className="p-1.5 bg-accent-orange text-white rounded hover:opacity-90 transition" title="Decline"><XCircle size={15} /></button>
-                            <button onClick={() => { setActionError(null); setEditingSale(sale); }} className="p-1.5 text-accent-blue hover:bg-blue-500/10 rounded transition" title="Edit"><Pencil size={15} /></button>
-                            <button onClick={() => { setActionError(null); setDeletingSale(sale); }} className="p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Delete"><Archive size={15} /></button>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => runSafe(async () => { await approveSale.mutateAsync(sale.id); setActionStatus(`✓ Sale #${sale.number} approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
+                            <button onClick={() => runSafe(async () => { await declineSale.mutateAsync(sale.id); setActionStatus(`Sale #${sale.number} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
+                            <button onClick={() => { setActionError(null); setEditingSale(sale); }} className="act-btn act-edit" title="Edit"><Pencil size={16} /></button>
+                            <button onClick={() => { setActionError(null); setDeletingSale(sale); }} className="act-btn act-delete" title="Delete"><Trash2 size={16} /></button>
                           </div>
                         )}
                       </td>
@@ -314,7 +314,7 @@ export default function SalesPendingPage() {
                   ))}
                   <tr className="bg-accent-orange/10 border-b border-card-border">
                     <td colSpan={10} className="px-4 py-2 text-sm font-semibold text-accent-orange">
-                      Total for Sale #{sale.number}{sale.branch ? ` (${sale.branch.name})` : ''}: {peso(sale.total)}
+                      Total for Sale #{sale.number}: {peso(sale.total)}
                     </td>
                   </tr>
                 </Fragment>
@@ -334,7 +334,7 @@ export default function SalesPendingPage() {
       </div>
 
       {/* Staff Drafts (in-progress carts, not yet submitted) */}
-      <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mt-6">
+      <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mt-8">
         <div className="p-4 border-b border-card-border flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
             <ShoppingBag size={18} /> Staff Drafts
@@ -346,29 +346,27 @@ export default function SalesPendingPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Staff</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Shop</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">To Sell</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">To Dispose</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Expenses</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Last Updated</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Actions</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Staff</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">To Sell</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">To Dispose</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Expenses</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Total</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Last Updated</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Actions</th>
               </tr>
             </thead>
             <tbody>
               {draftsLoading ? (
-                <tr><td colSpan={8} className="text-center py-6 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</td></tr>
+                <tr><td colSpan={7} className="text-center py-6 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</td></tr>
               ) : drafts.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-6 text-text-muted">No staff currently building an order.</td></tr>
+                <tr><td colSpan={7} className="text-center py-6 text-text-muted">No staff currently building an order.</td></tr>
               ) : drafts.map((d) => (
-                <tr key={d.id} className="border-b border-card-border transition align-top">
-                  <td className="px-4 py-3">
+                <tr key={d.id} className="border-b border-card-border/60 transition align-top">
+                  <td className="px-4 py-4">
                     <p className="text-sm font-medium text-text-primary">{d.staff.name}</p>
                     <p className="text-xs text-text-muted">{d.staff.email}</p>
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{d.branch?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">
+                  <td className="px-4 py-4 text-sm text-text-secondary">
                     {d.items.length === 0 ? '—' : (
                       <ul className="space-y-1">
                         {d.items.map((item: any) => (
@@ -384,29 +382,29 @@ export default function SalesPendingPage() {
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">
+                  <td className="px-4 py-4 text-sm text-text-secondary">
                     {d.disposalItems.length === 0 ? '—' : (
-                      <ul className="space-y-0.5">
+                      <ul className="space-y-1">
                         {d.disposalItems.map((item) => <li key={item.productId}>{item.quantity}× {item.name}</li>)}
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">
+                  <td className="px-4 py-4 text-sm text-text-secondary">
                     {d.expenses.length === 0 ? '—' : (
-                      <ul className="space-y-0.5">
+                      <ul className="space-y-1">
                         {d.expenses.map((exp, idx) => <li key={idx}>{peso(exp.amount)} — {exp.note}</li>)}
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-primary font-medium">
+                  <td className="px-4 py-4 text-sm text-text-primary font-medium">
                     {d.items.length > 0 && <p>{peso(d.total)}</p>}
                     {d.expenses.length > 0 && <p className="text-xs text-accent-red">-{peso(d.expensesTotal)}</p>}
                     {d.items.length > 0 && d.expenses.length > 0 && (
                       <p className="text-xs font-semibold text-accent-purple-light">Net: {peso(d.total - d.expensesTotal)}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{formatDate(d.updatedAt)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-4 text-sm text-text-secondary">{formatDate(d.updatedAt)}</td>
+                  <td className="px-4 py-4">
                     <button
                       onClick={() => {
                         if (confirmAction !== `save-draft-${d.staff.id}`) { setConfirmAction(`save-draft-${d.staff.id}`); return; }
@@ -438,7 +436,7 @@ export default function SalesPendingPage() {
       </div>
 
       {/* Pending Disposals */}
-      <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mt-6">
+      <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mt-8">
         <div className="p-4 border-b border-card-border flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
             <Recycle size={18} /> Pending Disposals
@@ -471,36 +469,34 @@ export default function SalesPendingPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Product</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Brand</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Shop</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Qty</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Value</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Reason</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Requested By</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Actions</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Product</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Brand</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Qty</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Value</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Reason</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Requested By</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Date</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Actions</th>
               </tr>
             </thead>
             <tbody>
               {dispLoading ? (
-                <tr><td colSpan={9} className="text-center py-6 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</td></tr>
+                <tr><td colSpan={8} className="text-center py-6 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</td></tr>
               ) : disposals.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-6 text-text-muted">No pending disposals.</td></tr>
+                <tr><td colSpan={8} className="text-center py-6 text-text-muted">No pending disposals.</td></tr>
               ) : disposals.map((d) => (
-                <tr key={d.id} className="border-b border-card-border transition">
-                  <td className="px-4 py-3 text-sm text-text-primary">{d.name}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{d.brandName}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{d.branch?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-text-primary">{d.quantity}</td>
-                  <td className="px-4 py-3 text-sm text-text-primary font-medium">{peso(d.value)}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary max-w-[180px] truncate">{d.reason ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{d.createdBy}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{formatDate(d.createdAt)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => runSafe(async () => { await approveDisposal.mutateAsync(d.id); setActionStatus(`✓ Disposal of ${d.quantity}× ${d.name} approved (stock deducted).`); })} className="p-1.5 bg-accent-green text-white rounded hover:opacity-90 transition" title="Approve"><CheckCircle size={15} /></button>
-                      <button onClick={() => runSafe(async () => { await declineDisposal.mutateAsync(d.id); setActionStatus(`Disposal of ${d.name} declined.`); })} className="p-1.5 bg-accent-orange text-white rounded hover:opacity-90 transition" title="Decline"><XCircle size={15} /></button>
+                <tr key={d.id} className="border-b border-card-border/60 transition">
+                  <td className="px-4 py-4 text-sm text-text-primary">{d.name}</td>
+                  <td className="px-4 py-4 text-sm text-text-secondary">{d.brandName}</td>
+                  <td className="px-4 py-4 text-sm text-text-primary">{d.quantity}</td>
+                  <td className="px-4 py-4 text-sm text-text-primary font-medium">{peso(d.value)}</td>
+                  <td className="px-4 py-4 text-sm text-text-secondary max-w-[180px] truncate">{d.reason ?? '—'}</td>
+                  <td className="px-4 py-4 text-sm text-text-secondary">{d.createdBy}</td>
+                  <td className="px-4 py-4 text-sm text-text-secondary">{formatDate(d.createdAt)}</td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => runSafe(async () => { await approveDisposal.mutateAsync(d.id); setActionStatus(`✓ Disposal of ${d.quantity}× ${d.name} approved (stock deducted).`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
+                      <button onClick={() => runSafe(async () => { await declineDisposal.mutateAsync(d.id); setActionStatus(`Disposal of ${d.name} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                     </div>
                   </td>
                 </tr>
@@ -511,7 +507,7 @@ export default function SalesPendingPage() {
       </div>
 
       {/* Pending Expenses */}
-      <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mt-6">
+      <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mt-8">
         <div className="p-4 border-b border-card-border flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
             <Receipt size={18} /> Pending Expenses
@@ -544,30 +540,28 @@ export default function SalesPendingPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Staff</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Shop</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Note</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Actions</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Staff</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Amount</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Note</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Date</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Actions</th>
               </tr>
             </thead>
             <tbody>
               {expLoading ? (
-                <tr><td colSpan={6} className="text-center py-6 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</td></tr>
+                <tr><td colSpan={5} className="text-center py-6 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</td></tr>
               ) : expenses.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-6 text-text-muted">No pending expenses.</td></tr>
+                <tr><td colSpan={5} className="text-center py-6 text-text-muted">No pending expenses.</td></tr>
               ) : expenses.map((e) => (
-                <tr key={e.id} className="border-b border-card-border transition">
-                  <td className="px-4 py-3 text-sm text-text-primary">{e.staff?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{e.branch?.name ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-text-primary font-medium">{peso(e.amount)}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary max-w-[220px] truncate">{e.note}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{formatDate(e.createdAt)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => runSafe(async () => { await approveExpense.mutateAsync(e.id); setActionStatus(`✓ Expense "${e.note}" approved.`); })} className="p-1.5 bg-accent-green text-white rounded hover:opacity-90 transition" title="Approve"><CheckCircle size={15} /></button>
-                      <button onClick={() => runSafe(async () => { await declineExpense.mutateAsync(e.id); setActionStatus(`Expense "${e.note}" declined.`); })} className="p-1.5 bg-accent-orange text-white rounded hover:opacity-90 transition" title="Decline"><XCircle size={15} /></button>
+                <tr key={e.id} className="border-b border-card-border/60 transition">
+                  <td className="px-4 py-4 text-sm text-text-primary">{e.staff?.name ?? '—'}</td>
+                  <td className="px-4 py-4 text-sm text-text-primary font-medium">{peso(e.amount)}</td>
+                  <td className="px-4 py-4 text-sm text-text-secondary max-w-[220px] truncate">{e.note}</td>
+                  <td className="px-4 py-4 text-sm text-text-secondary">{formatDate(e.createdAt)}</td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => runSafe(async () => { await approveExpense.mutateAsync(e.id); setActionStatus(`✓ Expense "${e.note}" approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
+                      <button onClick={() => runSafe(async () => { await declineExpense.mutateAsync(e.id); setActionStatus(`Expense "${e.note}" declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                     </div>
                   </td>
                 </tr>

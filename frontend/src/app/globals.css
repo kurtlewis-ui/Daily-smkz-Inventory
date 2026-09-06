@@ -356,6 +356,32 @@ select optgroup {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--content-input-focus, #ffffff) 18%, transparent);
 }
 
+/* Clean icon action buttons (table rows). A consistent ~36px tap target with
+   a subtle colored hover tint (no heavy filled backgrounds), so action
+   columns read calm and uniform. Color via a modifier class. */
+.act-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  width: 34px;
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.act-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.act-approve { color: var(--content-text-secondary, #b0b0b0); }
+.act-approve:hover:not(:disabled) { color: #10b981; background-color: rgba(16, 185, 129, 0.12); }
+
+.act-decline { color: var(--content-text-secondary, #b0b0b0); }
+.act-decline:hover:not(:disabled) { color: #f59e0b; background-color: rgba(245, 158, 11, 0.12); }
+
+.act-edit { color: var(--content-text-secondary, #b0b0b0); }
+.act-edit:hover:not(:disabled) { color: #60a5fa; background-color: rgba(96, 165, 250, 0.12); }
+
+.act-delete { color: var(--content-text-secondary, #b0b0b0); }
+.act-delete:hover:not(:disabled) { color: #ef4444; background-color: rgba(239, 68, 68, 0.12); }
+
 /* Custom dropdown (Select.tsx) open-list pop-in. Fade only (no transform) so
    it never fights the upward-open translateY positioning set inline. */
 .dropdown-pop {
