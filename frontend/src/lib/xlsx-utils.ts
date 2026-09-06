@@ -2,7 +2,7 @@
  * xlsx utility functions for generating and reading Excel files.
  * Requires: npm install xlsx
  */
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 export interface ProductRow {
   productId: string | number;
@@ -28,6 +28,23 @@ function shopColumnName(shopName: string): string {
  * - All products pre-filled with ProductId, ProductName, Brand, SellingPrice
  * - Quantity columns use the slug format (restock-{shop-slug}-quantity)
  */
+/**
+ * Make the first (header) row bold + centered. Works with xlsx-js-style, which
+ * reads a `s` (style) object on each cell. `colCount` is how many header
+ * columns to style.
+ */
+export function styleHeaderRow(ws: XLSX.WorkSheet, colCount: number): void {
+  for (let c = 0; c < colCount; c++) {
+    const addr = XLSX.utils.encode_cell({ r: 0, c });
+    const cell = (ws as any)[addr];
+    if (!cell) continue;
+    cell.s = {
+      font: { bold: true },
+      alignment: { horizontal: 'center', vertical: 'center' },
+    };
+  }
+}
+
 export function generateRestockXlsx(
   products: ProductRow[],
   shops: { id: string; name: string }[],
@@ -63,6 +80,9 @@ export function generateRestockXlsx(
     return { wch: Math.max(20, h.length + 2) }; // shop columns
   });
   ws['!cols'] = colWidths;
+
+  // Bold + centered header row.
+  styleHeaderRow(ws, headers.length);
 
   // Create workbook and download
   const wb = XLSX.utils.book_new();

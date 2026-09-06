@@ -3,7 +3,8 @@
  * disposals, expenses, and inventory. Admin-only feature.
  * Uses pagination to fetch ALL records regardless of backend limit.
  */
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
+import { styleHeaderRow } from './xlsx-utils';
 import { api } from './api';
 
 function formatSplitBreakdown(split: { cash: number; gcash: number } | null): string {
@@ -152,18 +153,22 @@ export async function exportAllData(
 
   const wsSales = XLSX.utils.aoa_to_sheet([salesHeaders, ...salesRows]);
   wsSales['!cols'] = salesHeaders.map((h) => ({ wch: Math.max(14, h.length + 2) }));
+  styleHeaderRow(wsSales, salesHeaders.length);
   XLSX.utils.book_append_sheet(wb, wsSales, 'Sales');
 
   const wsDisposals = XLSX.utils.aoa_to_sheet([disposalsHeaders, ...disposalsRows]);
   wsDisposals['!cols'] = disposalsHeaders.map((h) => ({ wch: Math.max(14, h.length + 2) }));
+  styleHeaderRow(wsDisposals, disposalsHeaders.length);
   XLSX.utils.book_append_sheet(wb, wsDisposals, 'Disposals');
 
   const wsExpenses = XLSX.utils.aoa_to_sheet([expensesHeaders, ...expensesRows]);
   wsExpenses['!cols'] = expensesHeaders.map((h) => ({ wch: Math.max(14, h.length + 2) }));
+  styleHeaderRow(wsExpenses, expensesHeaders.length);
   XLSX.utils.book_append_sheet(wb, wsExpenses, 'Expenses');
 
   const wsInventory = XLSX.utils.aoa_to_sheet([inventoryHeaders, ...inventoryRows]);
   wsInventory['!cols'] = inventoryHeaders.map((h) => ({ wch: Math.max(14, h.length + 2) }));
+  styleHeaderRow(wsInventory, inventoryHeaders.length);
   XLSX.utils.book_append_sheet(wb, wsInventory, 'Inventory');
 
   // --- Download ---
