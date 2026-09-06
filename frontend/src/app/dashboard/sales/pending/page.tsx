@@ -221,7 +221,7 @@ export default function SalesPendingPage() {
         <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
           <div className="p-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Today (Approved)</p>
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               <div>
                 <p className="text-xs text-text-secondary">Total Sales</p>
                 <p className="text-lg font-bold text-accent-green">{peso(branchSummary.totalSales)}</p>
@@ -229,6 +229,10 @@ export default function SalesPendingPage() {
               <div>
                 <p className="text-xs text-text-secondary">Total Expenses</p>
                 <p className="text-lg font-bold text-accent-red">{peso(branchSummary.totalExpenses)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-secondary">Total Disposals</p>
+                <p className="text-lg font-bold text-accent-orange">{peso(branchSummary.totalDisposals)}</p>
               </div>
               <div>
                 <p className="text-xs text-text-secondary">Net</p>

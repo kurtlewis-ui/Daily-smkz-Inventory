@@ -238,6 +238,7 @@ export interface BranchSummary {
   branchId: string;
   totalSales: number;
   totalExpenses: number;
+  totalDisposals: number;
   net: number;
 }
 
