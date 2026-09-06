@@ -643,7 +643,7 @@ function ProductFormModal({ title, onClose, onDirty, onSubmit, buttonLabel, disa
     <Modal title={title} onClose={onClose}>
       {/* onInput anywhere in the form marks it dirty so the close guard can warn
           about unsaved edits (covers inputs, the Select, and file picks). */}
-      <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-8" onInput={onDirty}>
+      <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1 sm:pr-2" onInput={onDirty}>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Name <span className="text-accent-red">*</span></label>
           <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
@@ -656,9 +656,9 @@ function ProductFormModal({ title, onClose, onDirty, onSubmit, buttonLabel, disa
           <div className="divide-y divide-card-border border border-card-border rounded-lg overflow-hidden">
             {branches.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No shops yet. Create a shop first.</p>}
             {branches.map((b) => (
-              <div key={b.id} className="flex items-center gap-3 px-3 py-3">
-                <span className="text-xs font-semibold text-text-primary bg-white/10 border-l-[3px] border-accent-blue px-2.5 py-1.5 rounded-r min-w-[140px] uppercase">{b.name}</span>
-                <input type="number" min="0" placeholder="0" value={formQuantities[b.id] ?? ''} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="flex-1 border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+              <div key={b.id} className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:gap-3">
+                <span className="w-full text-xs font-semibold text-text-primary bg-white/10 border-l-[3px] border-accent-blue px-2.5 py-1.5 rounded-r uppercase break-words sm:w-auto sm:min-w-[140px] sm:max-w-[200px]">{b.name}</span>
+                <input type="number" min="0" placeholder="0" value={formQuantities[b.id] ?? ''} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="w-full border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus sm:flex-1" />
               </div>
             ))}
           </div>
@@ -684,7 +684,7 @@ function ProductFormModal({ title, onClose, onDirty, onSubmit, buttonLabel, disa
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">Product Image</label>
           <div className="flex items-center gap-4">
-            <div className="w-24 h-24 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0 border border-card-border">
+            <div className="w-16 h-16 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0 border border-card-border">
               {formImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={formImage} alt="Product preview" className="w-full h-full object-cover" />
@@ -730,7 +730,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="glass relative rounded-xl shadow-xl w-full max-w-2xl mx-4 p-8">
+      <div className="glass relative rounded-xl shadow-xl w-full max-w-2xl mx-4 p-5 sm:p-8 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-text-primary">{title}</h3>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>

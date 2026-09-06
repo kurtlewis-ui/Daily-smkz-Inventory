@@ -22,7 +22,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="glass relative rounded-lg shadow-xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="glass relative rounded-lg shadow-xl w-full max-w-md mx-4 p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-text-primary">{title}</h3>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
@@ -414,9 +414,9 @@ function OwnerUsersView() {
       <div className="flex items-center gap-4">
         {formData.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={formData.avatarUrl} alt="" className="w-24 h-24 rounded-full object-cover border border-card-border" />
+          <img src={formData.avatarUrl} alt="" className="w-16 h-16 rounded-full object-cover border border-card-border" />
         ) : (
-          <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center text-white text-2xl font-bold border border-card-border">
+          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center text-white text-xl font-bold border border-card-border">
             {(formData.firstName[0] ?? '').toUpperCase()}{(formData.lastName[0] ?? '').toUpperCase()}
           </div>
         )}

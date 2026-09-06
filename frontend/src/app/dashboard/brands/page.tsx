@@ -255,7 +255,7 @@ function CoverImageField({ coverImage, setCoverImage, onDirty }: { coverImage: s
     <div>
       <label className="block text-sm font-medium text-text-primary mb-1">Cover Image</label>
       <div className="flex items-center gap-4">
-        <div className="w-24 h-24 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0 border border-card-border">
+        <div className="w-16 h-16 rounded bg-white/10 overflow-hidden flex items-center justify-center shrink-0 border border-card-border">
           {coverImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={coverImage} alt="Brand cover preview" className="w-full h-full object-cover" />
@@ -291,7 +291,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="glass relative rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+      <div className="glass relative rounded-lg shadow-xl w-full max-w-md mx-4 p-4 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-text-primary">{title}</h3>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
