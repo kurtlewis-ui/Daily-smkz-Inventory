@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '@/lib/api';
+import { Select } from '@/components/Select';
 import type { ApiEnvelope, Branch, RoleOption, UserListItem } from '@/lib/types';
 import { Modal } from './Modal';
 
@@ -114,33 +115,28 @@ export function EditStaffModal({ user, onClose, roles, branches }: EditStaffModa
 
         <div>
           <label className="mb-1 block text-sm font-medium text-text-secondary">Role</label>
-          <select
-            className={inputClass}
+          <Select
             value={roleId}
-            onChange={(e) => setRoleId(e.target.value)}
-          >
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+            onChange={setRoleId}
+            ariaLabel="Role"
+            placeholder="Select role"
+            className="w-full"
+            options={roles.map((r) => ({ value: r.id, label: r.name }))}
+          />
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-medium text-text-secondary">Branch</label>
-          <select
-            className={inputClass}
+          <Select
             value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-          >
-            <option value="">— No branch (Admin) —</option>
-            {activeBranches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+            onChange={setBranchId}
+            ariaLabel="Branch"
+            className="w-full"
+            options={[
+              { value: '', label: '— No branch (Admin) —' },
+              ...activeBranches.map((b) => ({ value: b.id, label: b.name })),
+            ]}
+          />
           <p className="mt-1 text-xs text-text-muted">
             Staff are restricted to selling from their assigned branch. Admins can be left
             unassigned.

@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from '@/lib/store';
 import { getApiErrorMessage } from '@/lib/api';
 import { TableSkeleton } from '@/components/Skeleton';
+import { Select } from '@/components/Select';
 
 function peso(n: number) {
   return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -126,14 +127,10 @@ export default function StaffDailyReportPage() {
       </div>
 
       <div className="mb-3 max-w-xs">
-        <select
-          value={view}
-          onChange={(e) => setView(e.target.value as ViewMode)}
-          className="glass-select w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-        >
-          <option value="sale">View by Sale</option>
-          <option value="product">View by Product</option>
-        </select>
+        <Select value={view} onChange={(v) => setView(v as ViewMode)} ariaLabel="View mode" className="w-full" options={[
+          { value: 'sale', label: 'View by Sale' },
+          { value: 'product', label: 'View by Product' },
+        ]} />
       </div>
 
       <div className="mb-4 flex max-w-2xl items-center gap-2">
