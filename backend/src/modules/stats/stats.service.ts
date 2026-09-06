@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { SaleStatus, ExpenseStatus } from '@prisma/client';
+import { SaleStatus, ExpenseStatus, DisposalStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
 import {
@@ -124,7 +124,7 @@ export class StatsService {
     // previous day until the clock passes 2 AM.
     const start = startOfBusinessDay();
 
-    const [salesAgg, expensesAgg] = await Promise.all([
+    const [salesAgg, expensesAgg, disposalsAgg] = await Promise.all([
       this.prisma.sale.aggregate({
         where: { branchId: resolvedBranchId, status: SaleStatus.APPROVED, decidedAt: { gte: start } },
         _sum: { total: true },
@@ -137,16 +137,28 @@ export class StatsService {
         },
         _sum: { amount: true },
       }),
+      // Approved disposals today = inventory value written off (a loss), so it
+      // reduces Net alongside expenses.
+      this.prisma.disposal.aggregate({
+        where: {
+          branchId: resolvedBranchId,
+          status: DisposalStatus.APPROVED,
+          decidedAt: { gte: start },
+        },
+        _sum: { value: true },
+      }),
     ]);
 
     const totalSales = Number(salesAgg._sum.total ?? 0);
     const totalExpenses = Number(expensesAgg._sum.amount ?? 0);
+    const totalDisposals = Number(disposalsAgg._sum.value ?? 0);
 
     return {
       branchId: resolvedBranchId,
       totalSales,
       totalExpenses,
-      net: totalSales - totalExpenses,
+      totalDisposals,
+      net: totalSales - totalExpenses - totalDisposals,
     };
   }
 
