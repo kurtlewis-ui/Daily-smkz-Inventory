@@ -221,11 +221,14 @@ export function Select({
             role="listbox"
             id={listboxId}
             aria-activedescendant={activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined}
-            className="dropdown-pop glass fixed z-[80] max-h-72 overflow-y-auto rounded-xl p-1.5 shadow-2xl shadow-black/40"
+            className="dropdown-pop glass fixed z-[80] max-h-72 w-max overflow-y-auto rounded-xl p-1.5 shadow-2xl shadow-black/40"
             style={{
               left: pos.left,
-              width: pos.width,
+              // At least as wide as the trigger, but allowed to grow to fit the
+              // option labels (so short triggers don't truncate 'All' etc.),
+              // capped so a long label can't overflow the screen.
               minWidth: pos.width,
+              maxWidth: 'min(20rem, calc(100vw - 24px))',
               ...(drop === 'down'
                 ? { top: pos.top + 6 }
                 : { top: pos.top - 6, transform: 'translateY(-100%)' }),

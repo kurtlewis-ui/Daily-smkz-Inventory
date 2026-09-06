@@ -85,7 +85,9 @@ export default function ProductsPage() {
   }
 
   function openAddModal() {
-    setFormName(''); setFormBrand(brands[0]?.id ?? ''); setFormPrice('0'); setFormCostPrice('0'); setFormAlert('0');
+    // Start numeric fields EMPTY so they show a gray "0" placeholder instead of
+    // a literal 0 the user must delete before typing. Submit defaults to 0.
+    setFormName(''); setFormBrand(brands[0]?.id ?? ''); setFormPrice(''); setFormCostPrice(''); setFormAlert('');
     setFormImage(null);
     const q: Record<string, string> = {}; branchesForForm.forEach((b) => (q[b.id] = ''));
     setFormQuantities(q); setFormError(null); setShowAddModal(true);
@@ -641,14 +643,14 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">Quantity</label>
           {branches.length === 1 ? (
-            <input type="number" min="0" placeholder="Quantity" value={formQuantities[branches[0].id] ?? '0'} onChange={(e) => setFormQuantities({ ...formQuantities, [branches[0].id]: e.target.value })} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+            <input type="number" min="0" placeholder="0" value={formQuantities[branches[0].id] ?? ''} onChange={(e) => setFormQuantities({ ...formQuantities, [branches[0].id]: e.target.value })} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
           ) : (
           <div className="divide-y divide-card-border border border-card-border rounded-lg overflow-hidden">
             {branches.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No shops yet. Create a shop first.</p>}
             {branches.map((b) => (
               <div key={b.id} className="flex items-center gap-3 px-3 py-3">
                 <span className="text-xs font-semibold text-text-primary bg-white/10 border-l-[3px] border-accent-blue px-2.5 py-1.5 rounded-r min-w-[140px] uppercase">{b.name}</span>
-                <input type="number" min="0" placeholder={`Quantity for ${b.name}`} value={formQuantities[b.id] ?? '0'} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="flex-1 border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+                <input type="number" min="0" placeholder="0" value={formQuantities[b.id] ?? ''} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="flex-1 border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
               </div>
             ))}
           </div>
@@ -665,11 +667,11 @@ function ProductFormModal({ title, onClose, onSubmit, buttonLabel, disabled, err
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Selling Price (₱)</label>
-          <input type="number" step="0.01" min="0" value={formPrice || '0'} onChange={(e) => setFormPrice(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+          <input type="number" step="0.01" min="0" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} placeholder="0" className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Quantity Alert</label>
-          <input type="number" min="0" value={formAlert} onChange={(e) => setFormAlert(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+          <input type="number" min="0" value={formAlert} onChange={(e) => setFormAlert(e.target.value)} placeholder="0" className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">Product Image</label>

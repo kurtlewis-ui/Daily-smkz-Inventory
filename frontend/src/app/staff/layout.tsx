@@ -130,7 +130,7 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-nav-border">
+        <div className="flex items-center gap-4 px-4 py-5 border-b border-nav-border">
           <div className="logo-shimmer rounded-full ring-2 ring-white">
             <img src="/logo.png" alt="Daily Smokz" className="h-11 w-11 object-contain" />
           </div>
@@ -219,7 +219,7 @@ export default function StaffLayout({ children }: { children: ReactNode }) {
         >
           {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3.5">
           <img src="/logo.png" alt="Daily Smokz" className="h-8 w-8 rounded-full object-contain ring-2 ring-white" />
           <span className="text-sm font-bold text-white">Daily Smokz</span>
         </div>
