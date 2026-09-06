@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api, getApiErrorMessage, warmUpBackend } from '@/lib/api';
 import { useAuthStore } from '@/lib/store';
 import type { ApiEnvelope, AuthUser } from '@/lib/types';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
 
 type LoginData = {
   accessToken: string;
@@ -43,7 +43,18 @@ export default function LoginPage() {
       setAuth(accessToken, user);
       router.replace(user.role?.name === 'Staff' ? '/staff' : '/dashboard');
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Login failed. Check your email and password.'));
+      // Show a single, generic, professional message for any bad-credentials
+      // response (wrong email OR wrong password — the backend deliberately
+      // returns the same thing). A disabled account still gets its own message;
+      // a genuine network/server issue falls through to a neutral notice.
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        setError('Invalid email or password.');
+      } else if (status === 403) {
+        setError(getApiErrorMessage(err, 'Your account is disabled. Please contact an administrator.'));
+      } else {
+        setError(getApiErrorMessage(err, 'Something went wrong. Please try again.'));
+      }
     } finally {
       clearTimeout(slowTimer);
       setSlow(false);
@@ -128,8 +139,12 @@ export default function LoginPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 px-4 py-3 text-sm text-[#ef4444]">
-                {error}
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 px-4 py-3 text-sm text-[#ef4444]"
+              >
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 

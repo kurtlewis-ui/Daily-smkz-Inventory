@@ -25,7 +25,7 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
-      <div className="glass relative w-full max-w-md rounded-2xl p-6 shadow-2xl shadow-black/40">
+      <div className="glass relative w-full max-w-md rounded-2xl p-4 sm:p-6 shadow-2xl shadow-black/40 max-h-[90vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
           <button
