@@ -94,7 +94,8 @@ export class ProductsService {
       this.prisma.product.findMany({
         where,
         include: this.includeFull(branchId),
-        orderBy: { name: 'asc' },
+        // Creation order (first-added stays first), not alphabetical.
+        orderBy: { createdAt: 'asc' },
         skip,
         take: limit,
       }),
