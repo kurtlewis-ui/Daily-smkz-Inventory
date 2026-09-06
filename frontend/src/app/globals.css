@@ -356,6 +356,21 @@ select optgroup {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--content-input-focus, #ffffff) 18%, transparent);
 }
 
+/* Custom dropdown (Select.tsx) open-list pop-in. Fade only (no transform) so
+   it never fights the upward-open translateY positioning set inline. */
+.dropdown-pop {
+  animation: dropdown-pop-kf 0.14s ease-out;
+}
+
+@keyframes dropdown-pop-kf {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown-pop { animation: none; }
+}
+
 /* Solid fallback where backdrop-filter isn't supported. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass-select {

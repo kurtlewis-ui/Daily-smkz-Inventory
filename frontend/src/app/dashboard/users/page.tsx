@@ -14,6 +14,7 @@ import {
 import { getApiErrorMessage } from '@/lib/api';
 import { ImageCropModal } from '@/components/ImageCropModal';
 import { useAuthStore } from '@/lib/store';
+import { Select } from '@/components/Select';
 import type { FullUser } from '@/lib/types';
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -93,10 +94,7 @@ function AdminStaffView() {
         <div className="p-4 flex items-center justify-between border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
-            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); setCurrentPage(1); }} className="glass-select px-2 py-1 rounded text-sm focus:outline-none">
-              {[5, 10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-              <option value="All">All</option>
-            </select>
+            <Select value={String(entriesPerPage)} onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); setCurrentPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]} />
             <span className="text-sm text-text-secondary">entries</span>
           </div>
           <div className="relative">
@@ -204,14 +202,7 @@ function AdminStaffView() {
 
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1">New Branch</label>
-              <select
-                value={selectedBranchId}
-                onChange={(e) => setSelectedBranchId(e.target.value)}
-                className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm"
-              >
-                <option value="">Select a branch</option>
-                {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
+              <Select value={selectedBranchId} onChange={setSelectedBranchId} ariaLabel="New branch" placeholder="Select a branch" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
             </div>
 
             {formError && (
@@ -456,27 +447,18 @@ function OwnerUsersView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Status</label>
-          <select value={formData.isActive ? 'Active' : 'Disabled'} onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'Active' })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm">
-            <option value="Active">Active</option>
-            <option value="Disabled">Disabled</option>
-          </select>
+          <Select value={formData.isActive ? 'Active' : 'Disabled'} onChange={(v) => setFormData({ ...formData, isActive: v === 'Active' })} ariaLabel="Status" className="w-full" options={[{ value: 'Active', label: 'Active' }, { value: 'Disabled', label: 'Disabled' }]} />
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Role <span className="text-accent-red">*</span></label>
-          <select value={formData.roleId} onChange={(e) => setFormData({ ...formData, roleId: e.target.value })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm">
-            <option value="">Select role</option>
-            {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
+          <Select value={formData.roleId} onChange={(v) => setFormData({ ...formData, roleId: v })} ariaLabel="Role" placeholder="Select role" className="w-full" options={roles.map((r) => ({ value: r.id, label: r.name }))} />
         </div>
       </div>
 
       {isStaffRole && (
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Shop</label>
-          <select value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} className="glass-select w-full px-3 py-2 rounded-lg focus:outline-none text-sm">
-            <option value="">Select shop</option>
-            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
+          <Select value={formData.branchId} onChange={(v) => setFormData({ ...formData, branchId: v })} ariaLabel="Shop" placeholder="Select shop" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
         </div>
       )}
 
@@ -536,10 +518,7 @@ function OwnerUsersView() {
         <div className="p-4 flex items-center justify-between border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
-            <select value={entriesPerPage} onChange={(e) => { setEntriesPerPage(e.target.value === 'All' ? 'All' : Number(e.target.value)); setCurrentPage(1); }} className="glass-select px-2 py-1 rounded text-sm focus:outline-none">
-              {[5, 10, 25, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
-              <option value="All">All</option>
-            </select>
+            <Select value={String(entriesPerPage)} onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); setCurrentPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]} />
             <span className="text-sm text-text-secondary">entries</span>
           </div>
           <div className="relative">

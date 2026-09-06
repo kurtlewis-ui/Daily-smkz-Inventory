@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useBrands, useProducts } from '@/lib/hooks';
+import { Select } from '@/components/Select';
 import { useAuthStore } from '@/lib/store';
 import { getApiErrorMessage } from '@/lib/api';
 
@@ -45,34 +46,14 @@ export default function StaffProductsPage() {
       <h1 className="text-2xl font-bold text-text-primary mb-4">Products</h1>
 
       <div className="mb-4 max-w-sm">
-        <select
-          value={brandId}
-          onChange={(e) => { setBrandId(e.target.value); setPage(1); }}
-          className="glass-select w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-        >
-          <option value="">All Brands</option>
-          {brands.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
+        <Select value={brandId} onChange={(v) => { setBrandId(v); setPage(1); }} ariaLabel="Brand filter" className="w-full" options={[{ value: '', label: 'All Brands' }, ...brands.map((b) => ({ value: b.id, label: b.name }))]} />
       </div>
 
       <div className="rounded-xl border border-card-border bg-card-bg shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 p-4">
           <label className="flex items-center gap-2 text-sm text-text-secondary">
             Show
-            <select
-              value={String(pageSize)}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value) as PageSize);
-                setPage(1);
-              }}
-              className="glass-select rounded-lg px-2 py-1 text-sm focus:outline-none"
-            >
-              {PAGE_SIZES.map((s) => (
-                <option key={s} value={String(s)}>{s}</option>
-              ))}
-            </select>
+            <Select value={String(pageSize)} onChange={(v) => { setPageSize(Number(v) as PageSize); setPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={PAGE_SIZES.map((s) => ({ value: String(s), label: String(s) }))} />
             entries
           </label>
           <input

@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/store';
 import { useDraftStore, type DraftItem } from '@/lib/draft';
 import { useThemeStore } from '@/lib/theme';
 import { useSaveDraft, useClearDraftSync, useSaveMyDraft, useMyDraftExists, useMe } from '@/lib/hooks';
+import { Select } from '@/components/Select';
 import { getApiErrorMessage } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import type { PaymentMethod, PaymentSplit } from '@/lib/types';
@@ -913,11 +914,11 @@ function EditPaymentInline({
 
   return (
     <div className="mt-2 rounded border border-card-border bg-white/5 p-2 space-y-2">
-      <select value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)} className="glass-select w-full rounded px-2 py-1 text-xs">
-        <option value="Cash">Cash</option>
-        <option value="Gcash">Gcash</option>
-        <option value="Split">Split Payment</option>
-      </select>
+      <Select value={method} onChange={(v) => setMethod(v as PaymentMethod)} ariaLabel="Payment method" className="w-full" options={[
+        { value: 'Cash', label: 'Cash' },
+        { value: 'Gcash', label: 'Gcash' },
+        { value: 'Split', label: 'Split Payment' },
+      ]} />
       {method === 'Split' && (
         <div className="space-y-1">
           <div className="grid grid-cols-2 gap-1">

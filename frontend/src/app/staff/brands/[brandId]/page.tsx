@@ -8,6 +8,7 @@ import { useAuthStore } from '@/lib/store';
 import { useDraftStore } from '@/lib/draft';
 import { getApiErrorMessage } from '@/lib/api';
 import { GridSkeleton } from '@/components/Skeleton';
+import { Select } from '@/components/Select';
 import { useToast } from '@/components/Toast';
 
 function peso(n: number) {
@@ -447,19 +448,14 @@ function AddPurchaseModal({
           {/* Disposal Reason */}
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Disposal Reason (if disposing)</label>
-            <select
-              value={disposalReason}
-              onChange={(e) => setDisposalReason(e.target.value)}
-              className="glass-select w-full rounded-lg px-3 py-2.5 text-sm focus:outline-none"
-            >
-              <option value="">Select reason...</option>
-              <option value="Leak">Leak</option>
-              <option value="Damage">Damage</option>
-              <option value="Crack">Crack</option>
-              <option value="Expired">Expired</option>
-              <option value="Burned">Burned</option>
-              <option value="Not Working">Not Working</option>
-            </select>
+            <Select value={disposalReason} onChange={setDisposalReason} ariaLabel="Disposal reason" placeholder="Select reason..." className="w-full" options={[
+              { value: 'Leak', label: 'Leak' },
+              { value: 'Damage', label: 'Damage' },
+              { value: 'Crack', label: 'Crack' },
+              { value: 'Expired', label: 'Expired' },
+              { value: 'Burned', label: 'Burned' },
+              { value: 'Not Working', label: 'Not Working' },
+            ]} />
             <input
               type="text"
               value={disposalNote}

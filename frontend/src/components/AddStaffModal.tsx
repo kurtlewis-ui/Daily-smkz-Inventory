@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '@/lib/api';
+import { Select } from '@/components/Select';
 import type { ApiEnvelope, Branch, RoleOption } from '@/lib/types';
 import { Modal } from './Modal';
 
@@ -136,38 +137,30 @@ export function AddStaffModal({ open, onClose, roles, branches }: AddStaffModalP
 
         <div>
           <label className="mb-1 block text-sm font-medium text-text-secondary">Role</label>
-          <select
-            className={inputClass}
+          <Select
             value={selectedRoleId}
-            onChange={(e) => setRoleId(e.target.value)}
-          >
-            {roles.length === 0 && <option value="">Loading roles…</option>}
-            {roles.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+            onChange={setRoleId}
+            ariaLabel="Role"
+            placeholder={roles.length === 0 ? 'Loading roles…' : 'Select role'}
+            className="w-full"
+            options={roles.map((r) => ({ value: r.id, label: r.name }))}
+          />
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-medium text-text-secondary">
             Branch {isStaffRole && <span className="text-accent-red">*</span>}
           </label>
-          <select
-            className={inputClass}
+          <Select
             value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-          >
-            <option value="">
-              {isStaffRole ? '— Select a branch —' : '— No branch (Admin) —'}
-            </option>
-            {activeBranches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+            onChange={setBranchId}
+            ariaLabel="Branch"
+            className="w-full"
+            options={[
+              { value: '', label: isStaffRole ? '— Select a branch —' : '— No branch (Admin) —' },
+              ...activeBranches.map((b) => ({ value: b.id, label: b.name })),
+            ]}
+          />
           <p className="mt-1 text-xs text-text-muted">
             Staff can only sell from their assigned branch.
           </p>
