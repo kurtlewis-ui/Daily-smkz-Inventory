@@ -156,8 +156,13 @@ function AdminStaffView() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => handleChangeBranch(user)} className="inline-flex items-center gap-1.5 rounded-lg bg-accent-blue/10 px-2.5 py-1.5 text-sm font-medium text-accent-blue hover:bg-accent-blue/20 transition-colors" title="Change Branch">
-                      <Store size={14} /> Assign Branch
+                    <button
+                      onClick={() => handleChangeBranch(user)}
+                      title="Assign this staff member to a branch"
+                      className="group inline-flex items-center gap-2 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-3 py-1.5 text-sm font-semibold text-accent-blue shadow-sm transition-all hover:bg-accent-blue hover:text-white hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-accent-blue/40"
+                    >
+                      <Store size={14} className="transition-transform group-hover:scale-110" />
+                      Assign Branch
                     </button>
                   </td>
                 </tr>
