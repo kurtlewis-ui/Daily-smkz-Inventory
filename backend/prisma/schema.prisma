@@ -184,6 +184,10 @@ model Product {
   costPrice     Decimal   @default(0) @map("cost_price") @db.Decimal(10, 2)
   // Low-stock threshold; 0 = no alert.
   quantityAlert Int       @default(0) @map("quantity_alert")
+  // Manual display order for the products list (lower = higher up). Owners can
+  // drag rows to reorder; ties fall back to createdAt. Defaults to 0 for new
+  // rows, which the create flow overwrites with (max + 1) to append at the end.
+  sortOrder     Int       @default(0) @map("sort_order")
   isActive      Boolean   @default(true) @map("is_active")
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamp(6)
@@ -198,6 +202,7 @@ model Product {
 
   @@index([brandId])
   @@index([deletedAt])
+  @@index([sortOrder])
   @@map("products")
 }
 
