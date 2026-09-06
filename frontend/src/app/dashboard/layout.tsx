@@ -165,7 +165,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-4 px-4 py-5 border-b border-nav-border">
+        <div className="flex items-center gap-4 px-5 py-5 border-b border-nav-border">
           <div className="logo-shimmer rounded-full ring-2 ring-white">
             <img src="/logo.png" alt="Daily Smokz" className="h-11 w-11 object-contain" />
           </div>
