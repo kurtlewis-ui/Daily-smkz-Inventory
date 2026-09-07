@@ -24,48 +24,51 @@ body {
    Light: black buttons, dark glows, colorful charts
    ---------------------------------------------------------------------- */
 .content-light {
-  /* ---- Anti-glare WARM canvas -------------------------------------------
-     The base layer is a soft bone/cream (not pure white, not gray) so the
-     page never glares. Crisp #FFFFFF is reserved for data surfaces (cards,
-     tables, metrics) below, which now visibly "pop" against this warm ground.
-     Borders are low-alpha warm slate so panels blend tone-on-tone instead of
-     being cut out by hard gray lines. */
-  --content-page-bg: #f6f4ef;          /* soft warm bone — the anti-glare canvas */
+  /* ---- Anti-glare COOL canvas -------------------------------------------
+     The base layer is a soft cool gray-blue (not pure white) so the page
+     never glares. Crisp #FFFFFF is reserved for data surfaces (cards, tables,
+     metrics) below, which separate cleanly by being LIGHTER than this cool
+     ground — so panels stay distinct and easy to read while borders can stay
+     soft. Elements are calm and blended, but never so flat they melt together. */
+  --content-page-bg: #eef1f6;          /* soft cool gray-blue — the anti-glare canvas */
   --content-card-bg: #ffffff;          /* crisp white RESERVED for data cards/tables */
-  --content-card-border: rgba(60, 52, 40, 0.10);  /* whisper-soft warm border */
-  --content-table-header: #f1ece3;     /* warm, blends into the card */
-  --content-table-header-text: #514a3e;
-  /* Deep, warm near-black for maximum legibility of key data (SKU, totals). */
-  --content-text-primary: #1c1a15;
-  --content-text-secondary: #504a40;
-  /* Muted metadata — tuned for ~4.6:1 contrast on the bone canvas. */
-  --content-text-muted: #736b5d;
-  --content-text-link: #3c4043;
-  --content-surface-muted: #f1eee7;    /* soft warm chip/hover surface */
-  /* Inputs use a soft warm tint + hairline border so they blend tone-on-tone
-     yet still read as fields both on the bone canvas AND inside white cards.
-     The focus ring makes them obviously interactive. */
-  --content-input-bg: #f3efe7;
-  --content-input-border: rgba(60, 52, 40, 0.14);
+  /* Borders have gentle-but-present slate-blue tint. Cards mainly separate by
+     being lighter (white) than the cool canvas, so the border only needs to
+     define the edge softly — not carry the whole separation. */
+  --content-card-border: rgba(40, 52, 74, 0.12);
+  --content-table-header: #eaeef4;     /* cool, sits a step below the white card */
+  --content-table-header-text: #3f4757;
+  /* Deep cool slate for maximum legibility of key data (SKU, totals). */
+  --content-text-primary: #1a2130;
+  --content-text-secondary: #495264;
+  /* Muted metadata — tuned for ~4.6:1 contrast on the cool canvas. */
+  --content-text-muted: #6b7385;
+  --content-text-link: #3a4658;
+  --content-surface-muted: #e7ebf2;    /* soft cool chip/hover surface */
+  /* Inputs sit a touch below the canvas with a defined hairline border so they
+     read clearly as fields both on the canvas AND inside white cards, without
+     a harsh outline. The focus ring confirms interactivity. */
+  --content-input-bg: #eef1f6;
+  --content-input-border: rgba(40, 52, 74, 0.16);
   --content-btn-primary: #000000;      /* brand accent kept as-is (black in light) */
   --content-btn-primary-text: #ffffff;
-  --content-input-focus: #8a7d63;      /* warm focus tone (was cold gray) */
-  --content-row-alt: rgba(60, 52, 40, 0.022);   /* barely-there zebra striping */
-  --content-row-hover: rgba(60, 52, 40, 0.045);
-  --content-secondary-btn-bg: rgba(60, 52, 40, 0.05);
+  --content-input-focus: #5b6b8c;      /* cool slate-blue focus tone */
+  --content-row-alt: rgba(40, 52, 74, 0.025);   /* barely-there zebra striping */
+  --content-row-hover: rgba(40, 52, 74, 0.05);
+  --content-secondary-btn-bg: rgba(40, 52, 74, 0.05);
   /* ---- Desaturated status accents (LIGHT MODE ONLY) ----------------------
      Soft, elegant versions of the status colors so "In Stock / Low / Out"
      catch the eye without screaming. Dark mode keeps its vivid tokens. These
      override the global accent-* tokens only within .content-light. */
   --content-accent-green: #3f7a54;     /* In Stock — subtle green */
-  --content-accent-orange: #b27a12;    /* Low Stock — soft amber */
+  --content-accent-orange: #b0790f;    /* Low Stock — soft amber */
   --content-accent-red: #b4544e;       /* Out of Stock / errors — muted red */
-  --content-accent-blue: #3f6bb0;      /* info / edit — calmer blue */
+  --content-accent-blue: #3f6bb0;      /* info / edit — calm slate-blue */
   color-scheme: light;
-  /* A whisper of warm light from the top so the bone canvas feels gently lit
-     rather than a flat fill. Extremely subtle — purely ambient. */
+  /* A whisper of cool light from the top so the canvas feels gently lit rather
+     than a flat fill. Extremely subtle — purely ambient. */
   background-image:
-    radial-gradient(1100px circle at 50% -12%, rgba(255, 246, 230, 0.55), transparent 42%);
+    radial-gradient(1100px circle at 50% -12%, rgba(226, 234, 248, 0.7), transparent 42%);
   background-attachment: fixed;
 }
 
@@ -80,31 +83,31 @@ body {
 .content-light .bg-accent-orange { background-color: var(--content-accent-orange) !important; }
 .content-light .bg-accent-red { background-color: var(--content-accent-red) !important; }
 
-/* Force all form elements in light mode to use the deep warm text color */
+/* Force all form elements in light mode to use the deep cool text color */
 .content-light input,
 .content-light select,
 .content-light textarea,
 .content-light option {
-  color: #1c1a15 !important;
+  color: #1a2130 !important;
 }
 
 .content-light input::placeholder,
 .content-light textarea::placeholder {
-  color: #9a9284 !important;
+  color: #949cac !important;
 }
 
 .content-light select option {
   background-color: #ffffff;
-  color: #1c1a15;
+  color: #1a2130;
 }
 
 /* Light mode cards get a soft, elegant two-layer lift so crisp-white data
-   surfaces float gently above the warm bone canvas (premium emphasis, not a
-   hard drop shadow). Warm-tinted shadow to match the canvas. */
+   surfaces float gently above the cool canvas (premium emphasis, not a hard
+   drop shadow). Cool slate-tinted shadow to match the canvas. */
 .content-light .bg-card-bg {
   box-shadow:
-    0 1px 2px rgba(38, 32, 22, 0.04),
-    0 6px 16px -6px rgba(38, 32, 22, 0.08);
+    0 1px 2px rgba(30, 41, 59, 0.05),
+    0 6px 16px -6px rgba(30, 41, 59, 0.10);
 }
 
 /* ----------------------------------------------------------------------
