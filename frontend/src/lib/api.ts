@@ -62,6 +62,21 @@ function refreshAccessToken(): Promise<string> {
   return refreshPromise;
 }
 
+// Proactively refresh the access token in the background (called on a timer by
+// the Heartbeat while logged in). Refreshing BEFORE the token expires also
+// slides the server-side session's idle window forward, so a staff member who
+// leaves a page open (no clicks) for a while isn't silently logged out the
+// moment they act. A failure here is swallowed on purpose — a background
+// refresh must NEVER force a logout, since a transient blip (e.g. the free
+// backend waking from sleep) would otherwise kick the user out. The reactive
+// 401 path below still logs out on a genuine refresh failure after a user action.
+export function refreshTokenQuietly(): void {
+  if (!useAuthStore.getState().accessToken) return; // not logged in
+  refreshAccessToken().catch(() => {
+    /* ignore — never log out from a background refresh */
+  });
+}
+
 // If the token is rejected, try to silently refresh it and retry the request
 // once before giving up and sending the user back to login. Also auto-retry
 // transient failures: the free-tier backend sleeps after idle and the first

@@ -2,14 +2,16 @@
 
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/lib/store';
-import { warmUpBackend } from '@/lib/api';
+import { warmUpBackend, refreshTokenQuietly } from '@/lib/api';
 
 const HEARTBEAT_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
- * Pings the backend's /health endpoint every 10 minutes while a user is
- * logged in, keeping Render's free-tier from sleeping. Also silently
- * refreshes the auth token to prevent session expiry on idle tabs.
+ * While a user is logged in, every 10 minutes this:
+ *  1) pings /health to keep the free-tier backend from sleeping, and
+ *  2) proactively refreshes the auth token BEFORE it expires, which also
+ *     slides the server session's idle window forward — so an idle tab (no
+ *     clicks) doesn't get logged out the moment the user acts again.
  *
  * Renders nothing — mount once at the app root.
  */
@@ -27,12 +29,15 @@ export function Heartbeat() {
       return;
     }
 
-    // Initial ping on mount / login.
+    // Initial ping on mount / login. (No token refresh here — we just logged
+    // in / reloaded with a fresh token; refreshing starts on the interval.)
     warmUpBackend();
 
-    // Keep pinging every 10 minutes.
+    // Every 10 minutes: keep the backend awake AND refresh the token so the
+    // session never quietly expires under an idle tab.
     intervalRef.current = setInterval(() => {
       warmUpBackend();
+      refreshTokenQuietly();
     }, HEARTBEAT_MS);
 
     return () => {
