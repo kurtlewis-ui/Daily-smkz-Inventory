@@ -24,50 +24,87 @@ body {
    Light: black buttons, dark glows, colorful charts
    ---------------------------------------------------------------------- */
 .content-light {
-  --content-page-bg: #eef0f2;
-  --content-card-bg: #f8f9fa;
-  --content-card-border: #dfe1e5;
-  --content-table-header: #e8eaed;
-  --content-table-header-text: #3c4043;
-  --content-text-primary: #202124;
-  --content-text-secondary: #4b5056;
-  /* Darkened from #80868b for stronger contrast on the light surface (~4.6:1)
-     so muted subtitles / SKU metadata stay perfectly legible. */
-  --content-text-muted: #6b7076;
+  /* ---- Anti-glare WARM canvas -------------------------------------------
+     The base layer is a soft bone/cream (not pure white, not gray) so the
+     page never glares. Crisp #FFFFFF is reserved for data surfaces (cards,
+     tables, metrics) below, which now visibly "pop" against this warm ground.
+     Borders are low-alpha warm slate so panels blend tone-on-tone instead of
+     being cut out by hard gray lines. */
+  --content-page-bg: #f6f4ef;          /* soft warm bone — the anti-glare canvas */
+  --content-card-bg: #ffffff;          /* crisp white RESERVED for data cards/tables */
+  --content-card-border: rgba(60, 52, 40, 0.10);  /* whisper-soft warm border */
+  --content-table-header: #f1ece3;     /* warm, blends into the card */
+  --content-table-header-text: #514a3e;
+  /* Deep, warm near-black for maximum legibility of key data (SKU, totals). */
+  --content-text-primary: #1c1a15;
+  --content-text-secondary: #504a40;
+  /* Muted metadata — tuned for ~4.6:1 contrast on the bone canvas. */
+  --content-text-muted: #736b5d;
   --content-text-link: #3c4043;
-  --content-surface-muted: #f5f7fa;
-  --content-input-bg: #f1f3f4;
-  --content-input-border: #dadce0;
-  --content-btn-primary: #000000;
+  --content-surface-muted: #f1eee7;    /* soft warm chip/hover surface */
+  /* Inputs use a soft warm tint + hairline border so they blend tone-on-tone
+     yet still read as fields both on the bone canvas AND inside white cards.
+     The focus ring makes them obviously interactive. */
+  --content-input-bg: #f3efe7;
+  --content-input-border: rgba(60, 52, 40, 0.14);
+  --content-btn-primary: #000000;      /* brand accent kept as-is (black in light) */
   --content-btn-primary-text: #ffffff;
-  --content-input-focus: #5f6368;
-  --content-row-alt: #f1f3f4;
-  --content-row-hover: rgba(0, 0, 0, 0.03);
-  --content-secondary-btn-bg: rgba(0, 0, 0, 0.04);
+  --content-input-focus: #8a7d63;      /* warm focus tone (was cold gray) */
+  --content-row-alt: rgba(60, 52, 40, 0.022);   /* barely-there zebra striping */
+  --content-row-hover: rgba(60, 52, 40, 0.045);
+  --content-secondary-btn-bg: rgba(60, 52, 40, 0.05);
+  /* ---- Desaturated status accents (LIGHT MODE ONLY) ----------------------
+     Soft, elegant versions of the status colors so "In Stock / Low / Out"
+     catch the eye without screaming. Dark mode keeps its vivid tokens. These
+     override the global accent-* tokens only within .content-light. */
+  --content-accent-green: #3f7a54;     /* In Stock — subtle green */
+  --content-accent-orange: #b27a12;    /* Low Stock — soft amber */
+  --content-accent-red: #b4544e;       /* Out of Stock / errors — muted red */
+  --content-accent-blue: #3f6bb0;      /* info / edit — calmer blue */
   color-scheme: light;
+  /* A whisper of warm light from the top so the bone canvas feels gently lit
+     rather than a flat fill. Extremely subtle — purely ambient. */
+  background-image:
+    radial-gradient(1100px circle at 50% -12%, rgba(255, 246, 230, 0.55), transparent 42%);
+  background-attachment: fixed;
 }
 
-/* Force all form elements in light mode to use dark text */
+/* Apply the softened, light-mode-only status accents to the shared tokens the
+   badges/dots/action buttons use. Scoped to .content-light so dark mode is
+   untouched. */
+.content-light .text-accent-green { color: var(--content-accent-green) !important; }
+.content-light .text-accent-orange { color: var(--content-accent-orange) !important; }
+.content-light .text-accent-red { color: var(--content-accent-red) !important; }
+.content-light .text-accent-blue { color: var(--content-accent-blue) !important; }
+.content-light .bg-accent-green { background-color: var(--content-accent-green) !important; }
+.content-light .bg-accent-orange { background-color: var(--content-accent-orange) !important; }
+.content-light .bg-accent-red { background-color: var(--content-accent-red) !important; }
+
+/* Force all form elements in light mode to use the deep warm text color */
 .content-light input,
 .content-light select,
 .content-light textarea,
 .content-light option {
-  color: #202124 !important;
+  color: #1c1a15 !important;
 }
 
 .content-light input::placeholder,
 .content-light textarea::placeholder {
-  color: #80868b !important;
+  color: #9a9284 !important;
 }
 
 .content-light select option {
-  background-color: #f8f9fa;
-  color: #202124;
+  background-color: #ffffff;
+  color: #1c1a15;
 }
 
-/* Light mode cards get subtle shadow for depth */
+/* Light mode cards get a soft, elegant two-layer lift so crisp-white data
+   surfaces float gently above the warm bone canvas (premium emphasis, not a
+   hard drop shadow). Warm-tinted shadow to match the canvas. */
 .content-light .bg-card-bg {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow:
+    0 1px 2px rgba(38, 32, 22, 0.04),
+    0 6px 16px -6px rgba(38, 32, 22, 0.08);
 }
 
 /* ----------------------------------------------------------------------
