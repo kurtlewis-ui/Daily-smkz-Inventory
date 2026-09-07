@@ -115,6 +115,7 @@ export interface Product {
   sellingPrice: number;
   costPrice?: number; // Owner-only, confidential
   quantityAlert: number;
+  sortOrder: number; // manual display order (lower = higher up)
   isActive: boolean;
   quantities: ProductBranchQuantity[];
   totalQuantity: number;

@@ -25,6 +25,13 @@ export class ProductsService {
 
     await this.assertBranchesExist(dto.quantities);
 
+    // Append new products at the end of the manual order (max + 1), so a newly
+    // added product shows up last in the list — matching "newest at the bottom".
+    const maxOrder = await this.prisma.product.aggregate({
+      _max: { sortOrder: true },
+    });
+    const nextSortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+
     const product = await this.prisma.product.create({
       data: {
         name: dto.name.trim(),
@@ -34,6 +41,7 @@ export class ProductsService {
         sellingPrice: dto.sellingPrice,
         costPrice: dto.costPrice ?? 0,
         quantityAlert: dto.quantityAlert ?? 0,
+        sortOrder: nextSortOrder,
         inventory: dto.quantities?.length
           ? {
               create: dto.quantities.map((q) => ({
@@ -75,6 +83,42 @@ export class ProductsService {
     return this.serialize(product);
   }
 
+  /**
+   * Persist a manual display order. `orderedIds` is the full list of product
+   * IDs in the desired order (index 0 = top). Each product's sort_order is set
+   * to its index. Runs in one transaction so the list can't be left half-
+   * reordered. Only IDs that belong to existing active products are updated;
+   * unknown IDs are ignored so a stale client can't error the whole call.
+   */
+  async reorder(orderedIds: string[], userId: string) {
+    // Keep only IDs that map to real, non-archived products (preserving order).
+    const existing = await this.prisma.product.findMany({
+      where: { id: { in: orderedIds }, deletedAt: null },
+      select: { id: true },
+    });
+    const validIdSet = new Set(existing.map((p) => p.id));
+    const ids = orderedIds.filter((id) => validIdSet.has(id));
+
+    if (ids.length === 0) {
+      throw new BadRequestException('No valid products to reorder.');
+    }
+
+    await this.prisma.$transaction(
+      ids.map((id, index) =>
+        this.prisma.product.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+
+    await this.audit(userId, 'PRODUCT_REORDERED', ids[0], null, {
+      count: ids.length,
+    });
+
+    return { success: true, count: ids.length };
+  }
+
   async findAll(query: QueryProductDto) {
     const { page = 1, limit = 20, search, brandId, branchId } = query;
     const skip = (page - 1) * limit;
@@ -94,8 +138,9 @@ export class ProductsService {
       this.prisma.product.findMany({
         where,
         include: this.includeFull(branchId),
-        // Creation order (first-added stays first), not alphabetical.
-        orderBy: { createdAt: 'asc' },
+        // Manual display order (owners can drag to reorder); creation order is
+        // the tie-breaker so products without an explicit order stay stable.
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         skip,
         take: limit,
       }),
@@ -527,6 +572,7 @@ export class ProductsService {
         : null,
       sellingPrice: branchPrice,
       quantityAlert: product.quantityAlert,
+      sortOrder: product.sortOrder,
       isActive: product.isActive,
       quantities,
       totalQuantity,
