@@ -26,6 +26,43 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Options for the refresh-token cookie. Must be IDENTICAL between res.cookie()
+   * and res.clearCookie(), or the browser won't match the cookie to clear it.
+   *
+   * When the frontend and backend are on DIFFERENT sites (e.g. frontend on
+   * dailysmokzvs.com, backend on *.onrender.com), the browser only sends the
+   * cookie on cross-site requests if it's SameSite=None + Secure. That's the
+   * production default here. For a same-site setup (API on a subdomain of the
+   * frontend) set COOKIE_SAMESITE=lax, which is a bit stricter/safer.
+   *
+   * Env overrides:
+   *   COOKIE_SAMESITE = 'none' | 'lax' | 'strict'  (default: 'none' in prod)
+   *   COOKIE_SECURE   = 'true' | 'false'           (default: true in prod;
+   *                     forced true whenever sameSite='none', a browser rule)
+   */
+  private refreshCookieOptions() {
+    const isProd = process.env.NODE_ENV === 'production';
+    const sameSite = (process.env.COOKIE_SAMESITE?.toLowerCase() as
+      | 'none'
+      | 'lax'
+      | 'strict'
+      | undefined) ?? (isProd ? 'none' : 'lax');
+    // Browsers REQUIRE Secure when SameSite=None. Also secure by default in prod.
+    const secure =
+      sameSite === 'none'
+        ? true
+        : process.env.COOKIE_SECURE
+          ? process.env.COOKIE_SECURE === 'true'
+          : isProd;
+    return {
+      httpOnly: true as const,
+      secure,
+      sameSite,
+      path: '/',
+    };
+  }
+
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -43,11 +80,9 @@ export class AuthController {
 
     const result = await this.authService.login(loginDto, ipAddress, userAgent);
 
-    // Set refresh token in HTTP-only cookie
+    // Set refresh token in HTTP-only cookie (cross-site friendly in prod).
     res.cookie('refreshToken', result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      ...this.refreshCookieOptions(),
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -71,8 +106,9 @@ export class AuthController {
   ) {
     await this.authService.logout(user.userId, user.sessionId!);
 
-    // Clear refresh token cookie
-    res.clearCookie('refreshToken');
+    // Clear refresh token cookie — options MUST match those used to set it,
+    // otherwise the browser won't recognise/remove it.
+    res.clearCookie('refreshToken', this.refreshCookieOptions());
 
     return;
   }
