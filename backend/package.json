@@ -24,7 +24,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "migrate:images-to-cloudinary": "ts-node prisma/migrate-images-to-cloudinary.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -38,6 +39,7 @@
     "@prisma/client": "^5.0.0",
     "bcrypt": "^5.1.0",
     "class-transformer": "^0.5.1",
+    "cloudinary": "^2.5.1",
     "class-validator": "^0.14.0",
     "cookie-parser": "^1.4.6",
     "helmet": "^7.0.0",

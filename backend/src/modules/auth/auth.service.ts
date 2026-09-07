@@ -12,6 +12,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtPayload, JwtRefreshPayload } from '../../common/interfaces/request-user.interface';
+import { UploadService } from '../../common/upload/upload.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private config: ConfigService,
+    private upload: UploadService,
   ) {}
 
   async login(loginDto: LoginDto, ipAddress: string, userAgent: string) {
@@ -206,7 +208,9 @@ export class AuthService {
     if (dto.lastName !== undefined) data.lastName = dto.lastName.trim();
     if (dto.middleInitial !== undefined) data.middleInitial = dto.middleInitial.trim() || null;
     if (dto.email !== undefined) data.email = dto.email;
-    if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl || null;
+    if (dto.avatarUrl !== undefined) {
+      data.avatarUrl = (await this.upload.uploadDataUrl(dto.avatarUrl || null, 'avatars')) ?? null;
+    }
 
     const user = await this.prisma.user.update({
       where: { id: userId },

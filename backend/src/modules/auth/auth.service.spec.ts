@@ -9,6 +9,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { UploadService } from '../../common/upload/upload.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -70,6 +71,10 @@ describe('AuthService', () => {
               return config[key];
             }),
           },
+        },
+        {
+          provide: UploadService,
+          useValue: { uploadDataUrl: jest.fn(async (v: unknown) => v), isConfigured: jest.fn(() => false) },
         },
       ],
     }).compile();

@@ -10,10 +10,14 @@ import { QueryProductDto } from './dto/query-product.dto';
 import { ImportProductRowDto } from './dto/import-products.dto';
 import { RestockItemDto } from './dto/restock.dto';
 import { slugify } from '../../common/utils/string.util';
+import { UploadService } from '../../common/upload/upload.service';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private upload: UploadService,
+  ) {}
 
   async create(dto: CreateProductDto, createdBy: string) {
     const brand = await this.prisma.brand.findFirst({
@@ -32,11 +36,15 @@ export class ProductsService {
     });
     const nextSortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
 
+    // Upload a freshly-cropped image to Cloudinary (no-op if it's already a URL
+    // or Cloudinary isn't configured).
+    const imageValue = await this.upload.uploadDataUrl(dto.image?.trim() || null, 'products');
+
     const product = await this.prisma.product.create({
       data: {
         name: dto.name.trim(),
         slug: slugify(dto.name),
-        image: dto.image?.trim() || null,
+        image: imageValue || null,
         brandId: dto.brandId,
         sellingPrice: dto.sellingPrice,
         costPrice: dto.costPrice ?? 0,
@@ -213,7 +221,7 @@ export class ProductsService {
       data.name = dto.name.trim();
       data.slug = slugify(dto.name);
     }
-    if (dto.image !== undefined) data.image = dto.image?.trim() || null;
+    if (dto.image !== undefined) data.image = await this.upload.uploadDataUrl(dto.image?.trim() || null, 'products');
     if (dto.brandId !== undefined) data.brandId = dto.brandId;
     if (dto.sellingPrice !== undefined) data.sellingPrice = dto.sellingPrice;
     if (dto.quantityAlert !== undefined) data.quantityAlert = dto.quantityAlert;
