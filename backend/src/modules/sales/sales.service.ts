@@ -572,9 +572,17 @@ export class SalesService {
   ) {
     for (const item of items) {
       if (!item.productId) continue;
-      await tx.inventory.updateMany({
-        where: { productId: item.productId, branchId },
-        data: { quantity: { increment: item.quantity } },
+      // Upsert (not updateMany): if the branch's inventory row was removed while
+      // this sale was pending, recreate it with the restored quantity instead of
+      // silently losing the stock. Mirrors DisposalsService.decline.
+      await tx.inventory.upsert({
+        where: { productId_branchId: { productId: item.productId, branchId } },
+        create: {
+          productId: item.productId,
+          branchId,
+          quantity: item.quantity,
+        },
+        update: { quantity: { increment: item.quantity } },
       });
       // Log stock movement
       const inv = await tx.inventory.findUnique({
