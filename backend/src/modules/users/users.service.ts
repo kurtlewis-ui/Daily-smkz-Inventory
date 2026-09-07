@@ -12,12 +12,14 @@ import { QueryUserDto } from './dto/query-user.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
+import { UploadService } from '../../common/upload/upload.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
+    private upload: UploadService,
   ) {}
 
   async create(createUserDto: CreateUserDto, createdBy: string, actorRole?: string) {
@@ -60,6 +62,10 @@ export class UsersService {
     const bcryptRounds = parseInt(this.config.get<string>('BCRYPT_ROUNDS') ?? '12', 10) || 12;
     const passwordHash = await bcrypt.hash(createUserDto.password, bcryptRounds);
 
+    // Upload a freshly-cropped avatar to Cloudinary (no-op if already a URL or
+    // Cloudinary isn't configured).
+    const avatarUrl = await this.upload.uploadDataUrl(createUserDto.avatarUrl || null, 'avatars');
+
     // Create user
     const user = await this.prisma.user.create({
       data: {
@@ -71,7 +77,7 @@ export class UsersService {
         roleId: createUserDto.roleId,
         phone: createUserDto.phone,
         branchId: createUserDto.branchId ?? null,
-        avatarUrl: createUserDto.avatarUrl || null,
+        avatarUrl: avatarUrl || null,
         mustChangePassword: true, // Force password change on first login
       },
       include: {
@@ -266,6 +272,15 @@ export class UsersService {
       if (!branch) {
         throw new NotFoundException('Branch not found');
       }
+    }
+
+    // If a new avatar was provided, upload it to Cloudinary first and replace
+    // the DTO value with the resulting URL before it's spread into the update
+    // (no-op if it's already a URL or Cloudinary isn't configured).
+    if (updateUserDto.avatarUrl !== undefined) {
+      // Preserve the field's string type (empty string still clears it via the
+      // spread below, exactly as before).
+      updateUserDto.avatarUrl = (await this.upload.uploadDataUrl(updateUserDto.avatarUrl, 'avatars')) ?? undefined;
     }
 
     // Update user

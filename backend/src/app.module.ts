@@ -16,6 +16,7 @@ import { ExpensesModule } from './modules/expenses/expenses.module';
 import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { StockMovementsModule } from './modules/stock-movements/stock-movements.module';
+import { UploadModule } from './common/upload/upload.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 
 @Module({
@@ -36,6 +37,9 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 
     // Database
     PrismaModule,
+
+    // Global image upload (Cloudinary) — available to all feature modules.
+    UploadModule,
 
     // Feature modules
     AuthModule,

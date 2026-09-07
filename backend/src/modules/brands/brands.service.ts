@@ -8,6 +8,7 @@ import { CreateBrandDto } from './dto/create-brand.dto';
 import { UpdateBrandDto } from './dto/update-brand.dto';
 import { QueryBrandDto } from './dto/query-brand.dto';
 import { slugify } from '../../common/utils/string.util';
+import { UploadService } from '../../common/upload/upload.service';
 
 type BrandRow = {
   id: string;
@@ -23,7 +24,10 @@ type BrandRow = {
 
 @Injectable()
 export class BrandsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private upload: UploadService,
+  ) {}
 
   async create(dto: CreateBrandDto, createdBy: string) {
     const name = dto.name.trim();
@@ -35,11 +39,13 @@ export class BrandsService {
       throw new ConflictException('A brand with that name already exists');
     }
 
+    const coverImage = await this.upload.uploadDataUrl(dto.coverImage?.trim() || null, 'brands');
+
     const brand = await this.prisma.brand.create({
       data: {
         name,
         slug: slugify(name),
-        coverImage: dto.coverImage?.trim() || null,
+        coverImage: coverImage || null,
         isActive: dto.isActive ?? true,
       },
       include: { _count: { select: { products: true } } },
@@ -145,7 +151,7 @@ export class BrandsService {
       data.slug = slugify(name);
     }
     if (dto.coverImage !== undefined) {
-      data.coverImage = dto.coverImage?.trim() || null;
+      data.coverImage = await this.upload.uploadDataUrl(dto.coverImage?.trim() || null, 'brands');
     }
     if (dto.isActive !== undefined) {
       data.isActive = dto.isActive;
