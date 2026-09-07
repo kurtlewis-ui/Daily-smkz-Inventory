@@ -141,7 +141,7 @@ export class AuthService {
     // Without this, `expiresAt` (set once at login) is reached ~15 minutes in
     // regardless of activity, and every subsequent request/refresh gets
     // rejected by JwtStrategy/JwtRefreshStrategy's `expiresAt < now` check.
-    const sessionTimeout = parseInt(this.config.get<string>('SESSION_TIMEOUT') ?? '900', 10) || 900;
+    const sessionTimeout = parseInt(this.config.get<string>('SESSION_TIMEOUT') ?? '28800', 10) || 28800;
     await this.prisma.session.update({
       where: { id: sessionId },
       data: {
@@ -311,7 +311,9 @@ export class AuthService {
   }
 
   private async createSession(userId: string, ipAddress: string, userAgent: string) {
-    const sessionTimeout = parseInt(this.config.get<string>('SESSION_TIMEOUT') ?? '900', 10) || 900; // 15 minutes
+    // Idle session window. Defaults to 8 hours so a staff member isn't logged
+    // out mid-shift; slides forward on every refresh (see refreshToken).
+    const sessionTimeout = parseInt(this.config.get<string>('SESSION_TIMEOUT') ?? '28800', 10) || 28800; // 8 hours
     const expiresAt = new Date(Date.now() + sessionTimeout * 1000);
 
     return this.prisma.session.create({
@@ -328,7 +330,7 @@ export class AuthService {
   private generateAccessToken(payload: JwtPayload): string {
     return this.jwtService.sign(payload, {
       secret: this.config.get('JWT_SECRET'),
-      expiresIn: this.config.get('JWT_EXPIRATION') || '15m',
+      expiresIn: this.config.get('JWT_EXPIRATION') || '60m',
     });
   }
 
