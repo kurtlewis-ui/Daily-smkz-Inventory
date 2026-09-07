@@ -39,10 +39,13 @@ export function useDragReorder<T>(source: T[], options: DragReorderOptions<T>) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
 
-  // Refs so the pointer handlers (attached to window) always see fresh values.
+  // Refs so the pointer handlers (attached to window) always see fresh values
+  // without being re-created on every render.
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const draggingRef = useRef(false);
+  const dragIndexRef = useRef<number | null>(null);
+  const overIndexRef = useRef<number | null>(null);
   const rowRectsRef = useRef<{ id: string; top: number; bottom: number }[]>([]);
 
   // Re-sync the working copy from the latest server data when we're not mid-drag
@@ -57,6 +60,8 @@ export function useDragReorder<T>(source: T[], options: DragReorderOptions<T>) {
 
   const endDrag = useCallback(() => {
     draggingRef.current = false;
+    dragIndexRef.current = null;
+    overIndexRef.current = null;
     const finalItems = itemsRef.current;
     setDragIndex(null);
     setOverIndex(null);
@@ -74,7 +79,11 @@ export function useDragReorder<T>(source: T[], options: DragReorderOptions<T>) {
   const startDrag = useCallback(
     (index: number, e: { clientY: number; preventDefault: () => void }) => {
       e.preventDefault();
+      // Guard against a stale/invalid starting index.
+      if (index == null || index < 0 || index >= itemsRef.current.length) return;
       draggingRef.current = true;
+      dragIndexRef.current = index;
+      overIndexRef.current = index;
       setDragIndex(index);
       setOverIndex(index);
       document.body.style.userSelect = 'none';
@@ -91,7 +100,6 @@ export function useDragReorder<T>(source: T[], options: DragReorderOptions<T>) {
         if (!draggingRef.current) return;
         const y = ev.clientY;
         const rects = rowRectsRef.current;
-        const current = itemsRef.current;
         // Find the row whose vertical span contains the pointer.
         let target = -1;
         for (let i = 0; i < rects.length; i++) {
@@ -103,26 +111,46 @@ export function useDragReorder<T>(source: T[], options: DragReorderOptions<T>) {
           else if (rects.length && y > rects[rects.length - 1].bottom) target = rects.length - 1;
         }
         if (target === -1) return;
-        void current;
 
+        // Compute the reorder entirely from refs (no state-setter nesting, which
+        // could run twice under React strict mode and corrupt the array). Guard
+        // every index so we never splice out of range and get an undefined item.
+        const prevDrag = dragIndexRef.current;
+        const list = itemsRef.current;
+        if (
+          prevDrag == null ||
+          prevDrag === target ||
+          prevDrag < 0 ||
+          prevDrag >= list.length ||
+          target < 0 ||
+          target >= list.length
+        ) {
+          if (overIndexRef.current !== target) {
+            overIndexRef.current = target;
+            setOverIndex(target);
+          }
+          return;
+        }
+
+        const next = list.slice();
+        const [moved] = next.splice(prevDrag, 1);
+        if (moved === undefined) return; // extra safety — never render a hole
+        next.splice(target, 0, moved);
+
+        itemsRef.current = next;
+        dragIndexRef.current = target;
+        overIndexRef.current = target;
+        setItems(next);
+        setDragIndex(target);
         setOverIndex(target);
 
-        // Move the dragged item to the hovered slot in the working copy.
-        setDragIndex((prevDrag) => {
-          if (prevDrag == null || prevDrag === target) return prevDrag;
-          const next = [...itemsRef.current];
-          const [moved] = next.splice(prevDrag, 1);
-          next.splice(target, 0, moved);
-          setItems(next);
-          // Recompute rects after the DOM reflows on the next frame.
-          requestAnimationFrame(() => {
-            const nodes2 = document.querySelectorAll<HTMLElement>('[data-reorder-row]');
-            rowRectsRef.current = Array.from(nodes2).map((n) => {
-              const r = n.getBoundingClientRect();
-              return { id: n.dataset.reorderId ?? '', top: r.top, bottom: r.bottom };
-            });
+        // Recompute row rects after the DOM reflows on the next frame.
+        requestAnimationFrame(() => {
+          const nodes2 = document.querySelectorAll<HTMLElement>('[data-reorder-row]');
+          rowRectsRef.current = Array.from(nodes2).map((n) => {
+            const r = n.getBoundingClientRect();
+            return { id: n.dataset.reorderId ?? '', top: r.top, bottom: r.bottom };
           });
-          return target;
         });
       };
 
