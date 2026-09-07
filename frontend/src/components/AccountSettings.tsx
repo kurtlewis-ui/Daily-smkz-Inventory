@@ -32,6 +32,11 @@ export default function AccountSettings() {
   const [profileOk, setProfileOk] = useState<string | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Holds the post-password-change redirect timer so we can cancel it if the
+  // component unmounts before it fires (avoids logout()/navigation on an
+  // unmounted component).
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (redirectTimer.current) clearTimeout(redirectTimer.current); }, []);
 
   // Password form
   const [currentPassword, setCurrentPassword] = useState('');
@@ -105,8 +110,9 @@ export default function AccountSettings() {
       setPwOk('Password changed. Please log in again with your new password.');
       toast.success('Password changed. Please log in again.', 'Password updated');
       // The server invalidates all sessions on password change, so send the
-      // user back to login after a short moment.
-      setTimeout(() => {
+      // user back to login after a short moment. Stored in a ref so it's
+      // cancelled if the component unmounts first.
+      redirectTimer.current = setTimeout(() => {
         logout();
         router.replace('/login');
       }, 1500);

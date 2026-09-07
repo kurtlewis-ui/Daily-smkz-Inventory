@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Search, X } from 'lucide-react';
 import { useBrands, useProducts } from '@/lib/hooks';
@@ -216,6 +216,24 @@ function AddPurchaseModal({
   const discountNumber = Number(discount) || 0;
   const discountTooHigh = discountNumber > lineTotal + 0.001;
   const discountedTotal = Math.max(0, lineTotal - discountNumber);
+
+  // Keep the split payment balanced when the item total changes (e.g. the user
+  // sets the split first, then edits quantity or discount). We recompute the
+  // field that was NOT edited last so cash + gcash always equals the current
+  // total — avoiding a stale mismatch that would only surface at submit time.
+  useEffect(() => {
+    if (paymentMethod !== 'Split') return;
+    if (lastSplitEdited === 'cash') {
+      const cash = Math.min(Number(splitCash) || 0, discountedTotal);
+      setSplitGcash(Math.max(0, discountedTotal - cash).toFixed(2));
+    } else {
+      const gcash = Math.min(Number(splitGcash) || 0, discountedTotal);
+      setSplitCash(Math.max(0, discountedTotal - gcash).toFixed(2));
+    }
+    // Intentionally only re-run when the total or payment mode changes — not on
+    // every keystroke in the split fields (those are handled in their onChange).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discountedTotal, paymentMethod]);
 
   function validQty(): number | null {
     const qty = Number(quantity);

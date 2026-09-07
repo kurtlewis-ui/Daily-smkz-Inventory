@@ -139,7 +139,7 @@ function AdminStaffView() {
                       <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
-                        {user.firstName[0]}{user.lastName[0]}
+                        {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
                       </div>
                     )}
                   </td>
@@ -195,7 +195,7 @@ function AdminStaffView() {
                 <img src={selectedUser.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold text-text-primary">
-                  {selectedUser.firstName[0]}{selectedUser.lastName[0]}
+                  {selectedUser.firstName?.[0] ?? ''}{selectedUser.lastName?.[0] ?? ''}
                 </div>
               )}
               <div>
@@ -577,7 +577,7 @@ function OwnerUsersView() {
                       <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
-                        {user.firstName[0]}{user.lastName[0]}
+                        {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
                       </div>
                     )}
                   </td>

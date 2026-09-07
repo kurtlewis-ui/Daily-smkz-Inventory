@@ -752,7 +752,7 @@ function EditSaleModal({
           <div className="space-y-2">
             {rows.length === 0 && <p className="text-xs text-text-muted">No items. Add at least one.</p>}
             {rows.map((row, idx) => (
-              <div key={idx} className="flex items-center gap-2">
+              <div key={`${row.productId}-${idx}`} className="flex items-center gap-2">
                 <Select value={row.productId} onChange={(v) => setRow(idx, { productId: v })} ariaLabel="Product" className="flex-1" options={products.map((p) => ({ value: p.id, label: `${p.name}${p.brand ? ` (${p.brand.name})` : ''} — ${peso(p.sellingPrice)}` }))} />
                 <input type="number" min="1" value={row.quantity} onChange={(e) => setRow(idx, { quantity: parseInt(e.target.value) || 1 })} className="w-16 border border-input-border rounded px-2 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
                 <span className="w-20 text-right text-sm text-text-secondary">{peso(priceOf(row.productId) * row.quantity - (row.discount ?? 0))}</span>
