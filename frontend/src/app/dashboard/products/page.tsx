@@ -114,6 +114,10 @@ export default function ProductsPage() {
   // Leaving a state where reordering is allowed turns the mode off.
   useEffect(() => { if (!canReorder) setReorderMode(false); }, [canReorder]);
 
+  // The list actually rendered: the drag copy while reordering, else the paged
+  // slice. Filtered to defined items so a transient hole can never crash render.
+  const rowProducts = (reorderMode ? orderedProducts : displayProducts).filter(Boolean) as Product[];
+
   function qtyForBranch(product: Product, branchId: string) {
     return product.quantities.find((q) => q.branchId === branchId)?.quantity ?? 0;
   }
@@ -271,10 +275,10 @@ export default function ProductsPage() {
               <tr><td colSpan={reorderMode ? 9 : 8} className="text-center py-8 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading products...</td></tr>
             ) : isError ? (
               <tr><td colSpan={reorderMode ? 9 : 8} className="text-center py-8 text-accent-red">{getApiErrorMessage(error)}</td></tr>
-            ) : (reorderMode ? orderedProducts : displayProducts).length === 0 ? (
+            ) : rowProducts.length === 0 ? (
               <tr><td colSpan={reorderMode ? 9 : 8} className="text-center py-8 text-text-muted">No products found. Add one or import a CSV.</td></tr>
             ) : (
-              (reorderMode ? orderedProducts : displayProducts).map((product, i) => (
+              rowProducts.map((product, i) => (
                 <tr
                   key={product.id}
                   data-reorder-row={reorderMode ? '' : undefined}
@@ -384,11 +388,11 @@ export default function ProductsPage() {
             <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading products...</div>
           ) : isError ? (
             <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
-          ) : (reorderMode ? orderedProducts : displayProducts).length === 0 ? (
+          ) : rowProducts.length === 0 ? (
             <div className="py-8 text-center text-text-muted">No products found. Add one or import a CSV.</div>
           ) : (
             <ul className="divide-y divide-card-border">
-              {(reorderMode ? orderedProducts : displayProducts).map((product, i) => (
+              {rowProducts.map((product, i) => (
                 <li
                   key={product.id}
                   data-reorder-row={reorderMode ? '' : undefined}
