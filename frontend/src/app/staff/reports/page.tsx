@@ -1,25 +1,18 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Search, Loader2, X, Recycle, Pencil, Trash2, Plus, ShoppingCart } from 'lucide-react';
+import { Fragment, useMemo, useState } from 'react';
+import { Search, Loader2, X, Recycle, ShoppingCart } from 'lucide-react';
 import {
   useSalesRecords,
   useSalesPending,
   useDisposals,
   useDisposalsPending,
   useExpenses,
-  useProducts,
-  useUpdateSale,
-  useDeleteSale,
-  type SaleItemInput,
 } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { getApiErrorMessage } from '@/lib/api';
 import { TableSkeleton } from '@/components/Skeleton';
 import { Select } from '@/components/Select';
-import { useToast } from '@/components/Toast';
-import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
-import type { Sale, PaymentMethod, PaymentSplit } from '@/lib/types';
 
 function peso(n: number) {
   return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -71,24 +64,6 @@ export default function StaffDailyReportPage() {
     endDate: today,
   });
   const pendingSales = pendingData?.data ?? [];
-
-  // Products for the edit modal's item dropdown (scoped to this staff's branch
-  // by the backend for staff callers).
-  const { data: productData } = useProducts({ limit: 200 });
-  const products = productData?.data ?? [];
-
-  const updateSale = useUpdateSale();
-  const deleteSale = useDeleteSale();
-  const toast = useToast();
-
-  // Edit/Delete are only offered on the staff's OWN pending sales; the backend
-  // independently enforces pending-only + own-sale, so this is safe by design.
-  const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
-
-  async function runSafe(fn: () => Promise<unknown>) {
-    try { await fn(); } catch (e) { toast.error(getApiErrorMessage(e), 'Action failed'); }
-  }
 
   // Today's full picture: pending + approved, sorted oldest first.
   // Tables show PENDING only; summary totals count pending + approved.
@@ -179,7 +154,7 @@ export default function StaffDailyReportPage() {
       </h2>
 
       {isLoading ? (
-        <TableSkeleton rows={5} cols={9} />
+        <TableSkeleton rows={5} cols={8} />
       ) : isError ? (
         <div className="py-10 text-center text-accent-red">{getApiErrorMessage(error)}</div>
       ) : sales.length === 0 ? (
@@ -199,7 +174,6 @@ export default function StaffDailyReportPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Sub Total</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Payment</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Date</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -232,32 +206,11 @@ export default function StaffDailyReportPage() {
                         <span className="break-words">{itemPaymentLabel(item)}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-text-secondary">{idx === 0 ? formatDate(sale.createdAt) : ''}</td>
-                      <td className="px-4 py-3"></td>
                     </tr>
                   ))}
                   <tr className="bg-surface-muted border-t border-card-border">
                     <td colSpan={8} className="px-4 py-2 text-sm font-semibold text-text-primary">
                       Total for Sale #{sale.number}: {peso(sale.total)}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setEditingSale(sale)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-accent-blue hover:bg-accent-blue/10 transition-colors"
-                          title="Edit this sale"
-                          aria-label={`Edit sale #${sale.number}`}
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => setDeletingSale(sale)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-accent-red hover:bg-accent-red/10 transition-colors"
-                          title="Delete this sale"
-                          aria-label={`Delete sale #${sale.number}`}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
                     </td>
                   </tr>
                 </Fragment>
@@ -392,183 +345,6 @@ export default function StaffDailyReportPage() {
       </div>
 
       {showDisposals && <PendingDisposalsModal onClose={() => setShowDisposals(false)} />}
-
-      {editingSale && (
-        <EditSaleModal
-          sale={editingSale}
-          products={products}
-          isSaving={updateSale.isPending}
-          onClose={() => setEditingSale(null)}
-          onSave={async (payload) => {
-            await updateSale.mutateAsync({ id: editingSale.id, ...payload });
-            setEditingSale(null);
-          }}
-        />
-      )}
-
-      {deletingSale && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeletingSale(null)} />
-          <div className="glass relative w-full max-w-md rounded-lg p-4 sm:p-6 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-text-primary">Delete Sale</h3>
-              <button onClick={() => setDeletingSale(null)} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
-            </div>
-            <p className="mb-4 text-sm text-text-secondary">
-              Delete pending sale <strong>#{deletingSale.number}</strong>? This cannot be undone and the stock will be returned.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setDeletingSale(null)} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
-              <button
-                onClick={() => runSafe(async () => { await deleteSale.mutateAsync(deletingSale.id); setDeletingSale(null); })}
-                disabled={deleteSale.isPending}
-                className="px-4 py-2 bg-accent-red text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60"
-              >
-                {deleteSale.isPending ? 'Deleting...' : 'Yes, Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Payment method isn't editable here (matches the admin's edit modal): editing
-// quantities/discount/customer is enough for a quick fix; to change how an item
-// was paid, delete the sale and re-add it. Backend re-reserves stock on save.
-interface EditRow {
-  productId: string;
-  quantity: number;
-  discount?: number;
-  paymentMethod: PaymentMethod;
-  bankNote?: string | null;
-  note?: string | null;
-  paymentSplit?: PaymentSplit | null;
-}
-
-function EditSaleModal({
-  sale,
-  products,
-  isSaving,
-  onClose,
-  onSave,
-}: {
-  sale: Sale;
-  products: { id: string; name: string; sellingPrice: number; brand: { name: string } | null }[];
-  isSaving: boolean;
-  onClose: () => void;
-  onSave: (payload: { customerName?: string; items: SaleItemInput[] }) => Promise<void>;
-}) {
-  const [rows, setRows] = useState<EditRow[]>([]);
-  const [customerName, setCustomerName] = useState(sale.customerName ?? '');
-  const [err, setErr] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const guardedClose = useUnsavedGuard(dirty, onClose);
-
-  useEffect(() => {
-    setRows(
-      sale.items
-        .filter((i) => i.productId)
-        .map((i) => ({
-          productId: i.productId as string,
-          quantity: i.quantity,
-          discount: i.discount,
-          paymentMethod: i.paymentMethod,
-          bankNote: i.bankNote,
-          note: i.note,
-          paymentSplit: i.paymentSplit,
-        })),
-    );
-  }, [sale]);
-
-  const priceOf = (productId: string) => products.find((p) => p.id === productId)?.sellingPrice ?? 0;
-  const computedTotal = rows.reduce((sum, r) => sum + priceOf(r.productId) * r.quantity - (r.discount ?? 0), 0);
-
-  const setRow = (idx: number, patch: Partial<EditRow>) => {
-    setDirty(true);
-    setRows((rs) => rs.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
-  };
-  const addRow = () => {
-    const first = products[0];
-    if (!first) return;
-    setDirty(true);
-    setRows((rs) => [...rs, { productId: first.id, quantity: 1, paymentMethod: 'Cash' as PaymentMethod }]);
-  };
-  const removeRow = (idx: number) => { setDirty(true); setRows((rs) => rs.filter((_, i) => i !== idx)); };
-
-  const handleSubmit = async () => {
-    if (rows.length === 0) { setErr('A sale must have at least one item.'); return; }
-    if (rows.some((r) => r.quantity < 1)) { setErr('All quantities must be at least 1.'); return; }
-    setErr(null);
-    try {
-      await onSave({
-        customerName: customerName.trim() || undefined,
-        items: rows.map((r) => ({
-          productId: r.productId,
-          quantity: r.quantity,
-          discount: r.discount ?? undefined,
-          paymentMethod: r.paymentMethod,
-          bankNote: r.bankNote ?? undefined,
-          note: r.note ?? undefined,
-          paymentSplit: r.paymentSplit ?? undefined,
-        })),
-      });
-      setDirty(false);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Failed to save sale.');
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={guardedClose} />
-      <div className="glass relative w-full max-w-lg rounded-lg p-4 sm:p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-text-primary">Edit Sale #{sale.number}</h3>
-          <button onClick={guardedClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
-        </div>
-        <div className="space-y-4" onInput={() => setDirty(true)}>
-          <div>
-            <label className="block text-sm font-medium text-text-primary mb-1">Customer (optional)</label>
-            <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-text-primary">Items</label>
-              <button onClick={addRow} className="flex items-center gap-1 text-sm text-accent-blue hover:underline"><Plus size={14} /> Add item</button>
-            </div>
-            <p className="mb-2 text-xs text-text-muted">
-              Payment method isn&apos;t editable here — to change how an item was paid, delete the sale and re-add it.
-            </p>
-            <div className="space-y-2">
-              {rows.length === 0 && <p className="text-xs text-text-muted">No items. Add at least one.</p>}
-              {rows.map((row, idx) => (
-                <div key={`${row.productId}-${idx}`} className="flex items-center gap-2">
-                  <Select value={row.productId} onChange={(v) => setRow(idx, { productId: v })} ariaLabel="Product" className="flex-1" options={products.map((p) => ({ value: p.id, label: `${p.name}${p.brand ? ` (${p.brand.name})` : ''} — ${peso(p.sellingPrice)}` }))} />
-                  <input type="number" min="1" value={row.quantity} onChange={(e) => setRow(idx, { quantity: parseInt(e.target.value) || 1 })} className="w-16 border border-input-border rounded px-2 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
-                  <span className="w-20 text-right text-sm text-text-secondary">{peso(priceOf(row.productId) * row.quantity - (row.discount ?? 0))}</span>
-                  <button onClick={() => removeRow(idx)} className="p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Remove"><Trash2 size={15} /></button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between border-t border-card-border pt-3">
-            <span className="text-sm font-semibold text-text-primary">New total: {peso(computedTotal)}</span>
-          </div>
-
-          {err && <p className="text-sm text-accent-red">{err}</p>}
-
-          <div className="flex justify-end gap-2">
-            <button onClick={guardedClose} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
-            <button onClick={handleSubmit} disabled={isSaving} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
