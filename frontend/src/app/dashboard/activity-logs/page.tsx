@@ -64,20 +64,20 @@ export default function ActivityLogsPage() {
       </div>
 
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm">
-        <div className="p-4 flex items-center justify-between border-b border-card-border">
+        <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
             <Select value={String(entriesPerPage)} onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); resetToFirstPage(); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]} />
             <span className="text-sm text-text-secondary">entries</span>
           </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input type="text" placeholder="Search activity logs..." value={search} onChange={(e) => { setSearch(e.target.value); resetToFirstPage(); }} className="pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus w-64" />
+            <input type="text" placeholder="Search activity logs..." value={search} onChange={(e) => { setSearch(e.target.value); resetToFirstPage(); }} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">#</th>
@@ -116,6 +116,40 @@ export default function ActivityLogsPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: activity-log cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {isLoading ? (
+              <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading logs...</div>
+            ) : isError ? (
+              <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+            ) : displayedLogs.length === 0 ? (
+              <div className="py-12 text-center"><p className="text-accent-primary font-medium">No activity logs found</p></div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {displayedLogs.map((log, idx) => (
+                  <li key={log.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary break-words">
+                          <span className="text-text-muted mr-1.5">{startIdx + idx + 1}.</span>{log.userName}
+                        </p>
+                        <p className="text-xs text-text-muted break-words">{log.userEmail}</p>
+                      </div>
+                      <span className="shrink-0 badge badge-neutral">{log.action}</span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-text-muted">
+                      <span>{log.module}</span>
+                      <span className="font-mono">{log.ipAddress}</span>
+                      <span>{log.device}</span>
+                    </div>
+                    {log.description && <p className="mt-1 text-xs text-text-secondary break-words">{log.description}</p>}
+                    <p className="mt-0.5 text-[11px] text-text-muted">{formatDate(log.date)}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm text-text-secondary">

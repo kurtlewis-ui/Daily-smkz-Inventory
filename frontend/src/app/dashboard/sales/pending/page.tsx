@@ -283,7 +283,7 @@ export default function SalesPendingPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Sale</th>
@@ -355,6 +355,56 @@ export default function SalesPendingPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: pending-sale cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {isLoading ? (
+              <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading pending sales...</div>
+            ) : isError ? (
+              <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+            ) : sales.length === 0 ? (
+              <div className="py-8 text-center text-text-muted">No pending sales.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {sales.map((sale) => (
+                  <li key={sale.id} className="p-4">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-text-primary">#{sale.number}</p>
+                        {sale.customerName && <p className="text-[11px] text-accent-blue">{sale.customerName}</p>}
+                        <p className="text-[11px] text-text-muted">{sale.staff?.name ?? '—'} · {formatDate(sale.createdAt)}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button onClick={() => runSafe(async () => { await approveSale.mutateAsync(sale.id); setActionStatus(`✓ Sale #${sale.number} approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={18} /></button>
+                        <button onClick={() => runSafe(async () => { await declineSale.mutateAsync(sale.id); setActionStatus(`Sale #${sale.number} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={18} /></button>
+                        <button onClick={() => { setActionError(null); setEditingSale(sale); }} className="act-btn act-edit" title="Edit"><Pencil size={18} /></button>
+                        <button onClick={() => { setActionError(null); setDeletingSale(sale); }} className="act-btn act-delete" title="Delete"><Trash2 size={18} /></button>
+                      </div>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {sale.items.map((item) => (
+                        <li key={item.id} className="rounded-lg bg-surface-muted p-2.5 text-xs">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="min-w-0 font-medium text-text-primary break-words">{item.name}</span>
+                            <span className="shrink-0 font-medium text-text-primary">{peso(item.subTotal)}</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-text-muted">
+                            <span>{item.brandName}</span>
+                            <span>Qty: <span className="text-text-secondary">{item.quantity}</span></span>
+                            <span>{peso(item.unitPrice)}</span>
+                            <span className="inline-flex items-center gap-1"><span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />{itemPaymentLabel(item)}</span>
+                          </div>
+                          {!!item.discount && <p className="mt-0.5 text-accent-orange">−{peso(item.discount)} discount</p>}
+                          {item.note && <p className="mt-0.5 text-text-muted break-words">{item.note}</p>}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-right text-xs font-semibold text-accent-orange">Total: {peso(sale.total)}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {/* Summary */}
@@ -390,7 +440,7 @@ export default function SalesPendingPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Staff</th>
@@ -479,6 +529,80 @@ export default function SalesPendingPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: staff-draft cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {draftsLoading ? (
+              <div className="py-6 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</div>
+            ) : drafts.length === 0 ? (
+              <div className="py-6 text-center text-text-muted">No staff currently building an order.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {drafts.map((d) => (
+                  <li key={d.id} className="p-4">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary break-words">{d.staff.name}</p>
+                        <p className="text-xs text-text-muted break-words">{d.staff.email}</p>
+                        <p className="text-[11px] text-text-muted">Updated {formatDate(d.updatedAt)}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirmAction !== `save-draft-${d.staff.id}`) { setConfirmAction(`save-draft-${d.staff.id}`); return; }
+                          setConfirmAction(null);
+                          runSafe(async () => {
+                            const result = await saveDraftForStaff.mutateAsync(d.staff.id);
+                            setActionStatus(
+                              result.errors.length > 0
+                                ? `Saved ${d.staff.name}'s draft with issues: ${result.errors.join('; ')}`
+                                : `✓ Saved ${d.staff.name}'s draft — now pending approval.`,
+                            );
+                          });
+                        }}
+                        disabled={saveDraftForStaff.isPending}
+                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition disabled:opacity-70 ${confirmAction === `save-draft-${d.staff.id}` ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
+                      >
+                        <Send size={13} /> {confirmAction === `save-draft-${d.staff.id}` ? 'Confirm?' : 'Save'}
+                      </button>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      {d.items.length > 0 && (
+                        <div>
+                          <p className="font-semibold text-text-secondary">To Sell</p>
+                          <ul className="text-text-muted">
+                            {d.items.map((item: any) => (
+                              <li key={item.productId} className="break-words">{item.quantity}× {item.name} <span className="inline-flex items-center gap-1"><span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />{itemPaymentLabel(item)}</span></li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {d.disposalItems.length > 0 && (
+                        <div>
+                          <p className="font-semibold text-text-secondary">To Dispose</p>
+                          <ul className="text-text-muted">
+                            {d.disposalItems.map((item) => <li key={item.productId} className="break-words">{item.quantity}× {item.name}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {d.expenses.length > 0 && (
+                        <div>
+                          <p className="font-semibold text-text-secondary">Expenses</p>
+                          <ul className="text-text-muted">
+                            {d.expenses.map((exp, idx) => <li key={idx} className="break-words">{peso(exp.amount)} — {exp.note}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="pt-1 font-medium text-text-primary">
+                        {d.items.length > 0 && <span>{peso(d.total)}</span>}
+                        {d.expenses.length > 0 && <span className="ml-2 text-accent-red">-{peso(d.expensesTotal)}</span>}
+                        {d.items.length > 0 && d.expenses.length > 0 && <span className="ml-2 font-semibold text-accent-purple-light">Net: {peso(d.total - d.expensesTotal)}</span>}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 
@@ -513,7 +637,7 @@ export default function SalesPendingPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Product</th>
@@ -550,6 +674,34 @@ export default function SalesPendingPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: pending-disposal cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {dispLoading ? (
+              <div className="py-6 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</div>
+            ) : disposals.length === 0 ? (
+              <div className="py-6 text-center text-text-muted">No pending disposals.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {disposals.map((d) => (
+                  <li key={d.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary break-words">{d.quantity}× {d.name}</p>
+                        <p className="text-xs text-text-muted">{d.brandName} · {peso(d.value)}</p>
+                        {d.reason && <p className="text-xs text-text-secondary break-words">{d.reason}</p>}
+                        <p className="text-[11px] text-text-muted">{d.createdBy} · {formatDate(d.createdAt)}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button onClick={() => runSafe(async () => { await approveDisposal.mutateAsync(d.id); setActionStatus(`✓ Disposal of ${d.quantity}× ${d.name} approved (stock deducted).`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={18} /></button>
+                        <button onClick={() => runSafe(async () => { await declineDisposal.mutateAsync(d.id); setActionStatus(`Disposal of ${d.name} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={18} /></button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 
@@ -584,7 +736,7 @@ export default function SalesPendingPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Staff</th>
@@ -615,6 +767,33 @@ export default function SalesPendingPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: pending-expense cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {expLoading ? (
+              <div className="py-6 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</div>
+            ) : expenses.length === 0 ? (
+              <div className="py-6 text-center text-text-muted">No pending expenses.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {expenses.map((e) => (
+                  <li key={e.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary">{peso(e.amount)}</p>
+                        <p className="text-xs text-text-secondary break-words">{e.note}</p>
+                        <p className="text-[11px] text-text-muted">{e.staff?.name ?? '—'} · {formatDate(e.createdAt)}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button onClick={() => runSafe(async () => { await approveExpense.mutateAsync(e.id); setActionStatus(`✓ Expense "${e.note}" approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={18} /></button>
+                        <button onClick={() => runSafe(async () => { await declineExpense.mutateAsync(e.id); setActionStatus(`Expense "${e.note}" declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={18} /></button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
 

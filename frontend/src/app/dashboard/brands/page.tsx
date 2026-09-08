@@ -93,7 +93,7 @@ export default function BrandsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-text-primary">Brands</h1>
         <button
           onClick={() => { setFormName(''); setFormCoverImage(null); setFormError(null); setFormDirty(false); setShowAddModal(true); }}
@@ -123,7 +123,7 @@ export default function BrandsPage() {
       </div>
 
       <div className="bg-card-bg border border-card-border rounded-lg overflow-x-auto">
-        <table className="w-full">
+        <table className="hidden w-full md:table">
           <thead>
             <tr className="bg-table-header">
               <th className="text-left px-4 py-3 text-xs font-semibold uppercase text-table-header-text w-12">#</th>
@@ -177,6 +177,48 @@ export default function BrandsPage() {
             )}
           </tbody>
         </table>
+
+        {/* Mobile: brand cards (hidden on desktop). */}
+        <div className="md:hidden">
+          {isLoading ? (
+            <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading brands...</div>
+          ) : isError ? (
+            <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+          ) : displayBrands.length === 0 ? (
+            <div className="py-8 text-center text-text-muted">No brands found.</div>
+          ) : (
+            <ul className="divide-y divide-card-border">
+              {displayBrands.map((brand, i) => (
+                <li key={brand.id} className="flex items-center gap-3 p-4">
+                  {brand.coverImage ? (
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-white/10">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={brand.coverImage} alt={brand.name} loading="lazy" className="h-full w-full object-cover" />
+                    </div>
+                  ) : (
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-white/10 text-[10px] text-text-muted">No Img</div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-text-primary break-words">
+                      <span className="text-accent-blue mr-1.5">{startIndex + i}.</span>{brand.name}
+                    </p>
+                    <p className="text-xs text-text-secondary">Products: {brand.productCount}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      onClick={() => { setEditingBrand(brand); setFormName(brand.name); setFormCoverImage(brand.coverImage ?? null); setFormError(null); setFormDirty(false); setShowEditModal(true); }}
+                      className="flex h-10 w-10 items-center justify-center rounded-lg text-accent-blue hover:bg-accent-blue/10"
+                    ><Pencil size={16} /></button>
+                    <button
+                      onClick={() => { setArchivingBrand(brand); setFormError(null); setShowArchiveModal(true); }}
+                      className="flex h-10 w-10 items-center justify-center rounded-lg text-accent-archive hover:bg-accent-archive/10"
+                    ><Archive size={16} /></button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {/* Pagination footer */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border p-4">

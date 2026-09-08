@@ -267,7 +267,7 @@ function OwnerDashboard() {
 
             {/* Expanded table */}
             {showAllSelling && (
-              <div className="mt-4 max-h-[400px] overflow-y-auto rounded-lg border border-card-border">
+              <div className="mt-4 max-h-[400px] overflow-y-auto overflow-x-auto rounded-lg border border-card-border">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-table-header">
                     <tr className="text-table-header-text">
@@ -326,7 +326,7 @@ function OwnerDashboard() {
 
             {/* Expanded table */}
             {showAllDisposed && (
-              <div className="mt-4 max-h-[400px] overflow-y-auto rounded-lg border border-card-border">
+              <div className="mt-4 max-h-[400px] overflow-y-auto overflow-x-auto rounded-lg border border-card-border">
                 <table className="w-full">
                   <thead className="sticky top-0 bg-table-header">
                     <tr className="text-table-header-text">

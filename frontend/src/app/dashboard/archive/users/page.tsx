@@ -45,7 +45,7 @@ export default function UsersArchivePage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">#</th>
@@ -79,6 +79,35 @@ export default function UsersArchivePage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: archived-user cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {isLoading ? (
+              <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading...</div>
+            ) : isError ? (
+              <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-4"><div className="border-l-4 border-accent-orange pl-4"><p className="text-accent-orange font-medium">No archived users found.</p></div></div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {paged.map((user, idx) => (
+                  <li key={user.id} className="flex items-start justify-between gap-3 p-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-primary break-words"><span className="text-text-muted mr-1.5">{controlProps.startIdx + idx + 1}.</span>{user.firstName} {user.lastName}</p>
+                      <p className="text-xs text-text-secondary break-words">{user.email}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="badge badge-neutral">{user.role.name}</span>
+                        <span className="text-xs text-text-muted">{user.branch?.name ?? 'N/A'}</span>
+                      </div>
+                    </div>
+                    <button onClick={() => handleRestore(user.id)} disabled={restore.isPending} className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-accent-green/10 px-2.5 py-1.5 text-sm font-medium text-accent-green hover:bg-accent-green/20 transition-colors disabled:opacity-50" title="Restore">
+                      <Undo2 size={14} /> Restore
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         {!isLoading && !isError && filtered.length > 0 && (
           <Pagination {...controlProps} noun="users" />

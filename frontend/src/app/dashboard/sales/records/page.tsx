@@ -130,7 +130,7 @@ export default function SalesRecordsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Sale</th>
@@ -201,6 +201,55 @@ export default function SalesRecordsPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: card list (hidden on desktop). Same data as the table,
+              grouped by sale so nothing runs off the screen edge. */}
+          <div className="md:hidden">
+            {isLoading ? (
+              <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading records...</div>
+            ) : isError ? (
+              <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+            ) : sales.length === 0 ? (
+              <div className="py-8 text-center text-text-muted">No sales records found.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {pagedSales.map((sale) => (
+                  <li key={sale.id} className="p-4">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-text-primary">#{sale.number}</p>
+                        {sale.customerName && <p className="text-[11px] text-accent-blue">{sale.customerName}</p>}
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${sale.status === 'APPROVED' ? 'bg-accent-green/15 text-accent-green' : sale.status === 'DECLINED' ? 'bg-accent-red/15 text-accent-red' : 'bg-accent-orange/15 text-accent-orange'}`}>
+                        {sale.status.charAt(0) + sale.status.slice(1).toLowerCase()}
+                      </span>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {sale.items.map((item) => (
+                        <li key={item.id} className="rounded-lg bg-surface-muted p-2.5 text-xs">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="min-w-0 font-medium text-text-primary break-words">{item.name}</span>
+                            <span className="shrink-0 font-medium text-text-primary">{peso(item.subTotal)}</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-text-muted">
+                            <span>{item.brandName}</span>
+                            <span>Qty: <span className="text-text-secondary">{item.quantity}</span></span>
+                            <span>{peso(item.unitPrice)}</span>
+                            <span className="inline-flex items-center gap-1"><span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />{itemPaymentLabel(item)}</span>
+                          </div>
+                          {!!item.discount && <p className="mt-0.5 text-accent-orange">−{peso(item.discount)} discount</p>}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-2 flex items-center justify-between gap-2 text-xs text-text-muted">
+                      <span>{sale.staff?.name ?? '—'} · {formatDate(sale.createdAt)}</span>
+                      <span className="shrink-0 font-semibold text-accent-orange">Total: {peso(sale.total)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {!isLoading && !isError && sales.length > 0 && (
