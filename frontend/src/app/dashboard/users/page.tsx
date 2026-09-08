@@ -97,20 +97,20 @@ function AdminStaffView() {
       </div>
 
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm">
-        <div className="p-4 flex items-center justify-between border-b border-card-border">
+        <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
             <Select value={String(entriesPerPage)} onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); setCurrentPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]} />
             <span className="text-sm text-text-secondary">entries</span>
           </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input type="text" placeholder="Search staff..." value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} className="pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus w-64" />
+            <input type="text" placeholder="Search staff..." value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">#</th>
@@ -169,6 +169,52 @@ function AdminStaffView() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: staff cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {isLoading ? (
+              <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading staff...</div>
+            ) : isError ? (
+              <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+            ) : displayedUsers.length === 0 ? (
+              <div className="py-8 text-center text-text-muted">No staff found.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {displayedUsers.map((user, idx) => (
+                  <li key={user.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      {user.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={user.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-text-muted">
+                          {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-text-primary break-words">
+                          <span className="text-text-muted mr-1.5">{pageStart + idx + 1}.</span>
+                          {user.firstName} {user.middleInitial ? `${user.middleInitial}. ` : ''}{user.lastName}
+                        </p>
+                        <p className="text-xs text-text-secondary break-words">{user.email}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="badge badge-neutral">{user.role.name}</span>
+                          <span className="badge badge-neutral"><span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />{user.isActive ? 'Active' : 'Disabled'}</span>
+                          <span className="text-xs text-text-muted">{user.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}</span>
+                        </div>
+                        <button
+                          onClick={() => handleChangeBranch(user)}
+                          className="group mt-2 inline-flex items-center gap-2 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-3 py-1.5 text-sm font-semibold text-accent-blue transition-all hover:bg-accent-blue hover:text-white active:translate-y-0"
+                        >
+                          <Store size={14} /> Assign Branch
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         <div className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-text-secondary">
@@ -526,7 +572,7 @@ function OwnerUsersView() {
 
   return (
     <div className="p-6 bg-page-bg min-h-screen">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold text-text-primary">Users</h1>
         <button onClick={handleAdd} className="flex items-center gap-2 btn-grad px-4 py-2 rounded-lg font-medium">
           <Plus size={18} /> Add New User
@@ -534,20 +580,20 @@ function OwnerUsersView() {
       </div>
 
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm">
-        <div className="p-4 flex items-center justify-between border-b border-card-border">
+        <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b border-card-border">
           <div className="flex items-center gap-2">
             <label className="text-sm text-text-secondary">Show</label>
             <Select value={String(entriesPerPage)} onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); setCurrentPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]} />
             <span className="text-sm text-text-secondary">entries</span>
           </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-            <input type="text" placeholder="Search users..." value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} className="pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus w-64" />
+            <input type="text" placeholder="Search users..." value={search} onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }} className="w-full pl-9 pr-4 py-2 border border-input-border rounded-lg bg-input-bg text-sm focus:outline-none focus:ring-2 focus:ring-input-focus" />
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">#</th>
@@ -613,6 +659,52 @@ function OwnerUsersView() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: user cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {isLoading ? (
+              <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading users...</div>
+            ) : isError ? (
+              <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+            ) : displayedUsers.length === 0 ? (
+              <div className="py-8 text-center text-text-muted">No users found.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {displayedUsers.map((user, idx) => (
+                  <li key={user.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      {user.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={user.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-text-muted">
+                          {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-text-primary break-words">
+                          <span className="text-text-muted mr-1.5">{pageStart + idx + 1}.</span>
+                          {user.firstName} {user.middleInitial ? `${user.middleInitial}. ` : ''}{user.lastName}
+                        </p>
+                        <p className="text-xs text-text-secondary break-words">{user.email}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="badge badge-neutral">{user.role.name}</span>
+                          <span className="badge badge-neutral"><span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />{user.isActive ? 'Active' : 'Disabled'}</span>
+                          {user.isLocked && <span className="rounded-full bg-accent-red/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-accent-red">Locked</span>}
+                          <span className="text-xs text-text-muted">{user.branch?.name ?? 'N/A'}</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-text-muted">Last login: {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never'}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button onClick={() => handleEdit(user)} className="flex h-10 w-10 items-center justify-center rounded-lg text-accent-blue hover:bg-accent-blue/10 transition" title="Edit"><Pencil size={16} /></button>
+                        <button onClick={() => handleArchive(user)} className="flex h-10 w-10 items-center justify-center rounded-lg text-accent-archive hover:bg-accent-archive/10 transition" title="Archive"><Archive size={16} /></button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         <div className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-text-secondary">

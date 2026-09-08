@@ -63,7 +63,7 @@ export default function DisposalsPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">#</th>
@@ -106,6 +106,38 @@ export default function DisposalsPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: disposal cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {isLoading ? (
+              <div className="py-8 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading...</div>
+            ) : isError ? (
+              <div className="py-8 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+            ) : disposals.length === 0 ? (
+              <div className="py-12 text-center text-text-muted">No approved disposals yet.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {pagedDisposals.map((d, idx) => (
+                  <li key={d.id} className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text-primary break-words">
+                          <span className="text-text-muted mr-1.5">{controlProps.startIdx + idx + 1}.</span>{d.quantity}× {d.name}
+                        </p>
+                        <p className="text-xs text-text-muted">{d.brandName} · {d.branch?.name ?? '—'} · {peso(d.value)}</p>
+                        {d.reason && <p className="text-xs text-text-secondary break-words">{d.reason}</p>}
+                        <p className="text-[11px] text-text-muted">{d.createdBy} · {formatDate(d.createdAt)}</p>
+                      </div>
+                      <span className="shrink-0 badge badge-neutral">
+                        <span className={`badge-dot ${d.status === 'APPROVED' ? 'bg-accent-green' : d.status === 'DECLINED' ? 'bg-accent-red' : 'bg-accent-orange'}`} />
+                        {d.status.charAt(0) + d.status.slice(1).toLowerCase()}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         {!isLoading && !isError && disposals.length > 0 && (
           <div className="border-t border-card-border">

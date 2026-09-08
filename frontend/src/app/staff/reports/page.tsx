@@ -163,7 +163,7 @@ export default function StaffDailyReportPage() {
         </div>
       ) : view === 'sale' ? (
         <div className="overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Sale</th>
@@ -217,10 +217,46 @@ export default function StaffDailyReportPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: sale cards (hidden on desktop). */}
+          <div className="md:hidden">
+            <ul className="divide-y divide-card-border">
+              {sales.map((sale) => (
+                <li key={sale.id} className="p-4">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-text-primary">#{sale.number}</p>
+                      {sale.customerName && <p className="text-[11px] text-accent-blue">{sale.customerName}</p>}
+                    </div>
+                    <span className="shrink-0 text-[11px] text-text-muted">{formatDate(sale.createdAt)}</span>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {sale.items.map((item) => (
+                      <li key={item.id} className="rounded-lg bg-surface-muted p-2.5 text-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="min-w-0 font-medium text-text-primary break-words">{item.name}</span>
+                          <span className="shrink-0 font-medium text-text-primary">{peso(item.subTotal)}</span>
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-text-muted">
+                          <span>{item.brandName}</span>
+                          <span>Qty: <span className="text-text-secondary">{item.quantity}</span></span>
+                          <span>{peso(item.unitPrice)}</span>
+                          <span>{itemPaymentLabel(item)}</span>
+                        </div>
+                        {!!item.discount && <p className="mt-0.5 text-accent-orange">−{peso(item.discount)} discount</p>}
+                        {item.note && <p className="mt-0.5 italic text-text-muted break-words">{item.note}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-right text-xs font-semibold text-text-primary">Total: {peso(sale.total)}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-card-border bg-card-bg shadow-sm">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Product</th>
@@ -244,6 +280,25 @@ export default function StaffDailyReportPage() {
               )}
             </tbody>
           </table>
+
+          {/* Mobile: product cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {productRows.length === 0 ? (
+              <div className="py-8 text-center text-text-muted">No products match your search.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {productRows.map((r) => (
+                  <li key={`${r.name}-${r.brandName}`} className="flex items-center justify-between gap-3 p-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-primary break-words">{r.name}</p>
+                      <p className="text-xs text-text-secondary">{r.brandName} · Qty {r.quantity}</p>
+                    </div>
+                    <span className="shrink-0 text-sm font-medium text-text-primary">{peso(r.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 
@@ -266,7 +321,8 @@ export default function StaffDailyReportPage() {
         {todaysDisposals.length === 0 ? (
           <p className="p-4 text-sm text-text-muted">No disposals today.</p>
         ) : (
-          <table className="w-full">
+          <>
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Product</th>
@@ -292,6 +348,21 @@ export default function StaffDailyReportPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: disposal cards (hidden on desktop). */}
+          <ul className="divide-y divide-card-border md:hidden">
+            {todaysDisposals.map((d) => (
+              <li key={d.id} className="flex items-start justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text-primary break-words">{d.quantity}× {d.name}</p>
+                  <p className="text-xs text-text-secondary">{d.brandName}{d.reason ? ` · ${d.reason}` : ''}</p>
+                  <p className="text-[11px] text-text-muted">{formatDate(d.createdAt)}</p>
+                </div>
+                <span className="shrink-0 text-sm font-medium text-text-primary">{peso(d.value)}</span>
+              </li>
+            ))}
+          </ul>
+          </>
         )}
       </div>
 
@@ -303,7 +374,8 @@ export default function StaffDailyReportPage() {
         {todaysExpenses.length === 0 ? (
           <p className="p-4 text-sm text-text-muted">No expenses today.</p>
         ) : (
-          <table className="w-full">
+          <>
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Amount</th>
@@ -323,6 +395,20 @@ export default function StaffDailyReportPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile: expense cards (hidden on desktop). */}
+          <ul className="divide-y divide-card-border md:hidden">
+            {todaysExpenses.map((e) => (
+              <li key={e.id} className="flex items-start justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm text-text-secondary break-words">{e.note}</p>
+                  <p className="text-[11px] text-text-muted">{formatDate(e.createdAt)}</p>
+                </div>
+                <span className="shrink-0 text-sm font-medium text-text-primary">{peso(e.amount)}</span>
+              </li>
+            ))}
+          </ul>
+          </>
         )}
       </div>
 

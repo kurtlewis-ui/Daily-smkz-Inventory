@@ -66,7 +66,7 @@ export default function StaffProductsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase w-12">#</th>
@@ -111,6 +111,43 @@ export default function StaffProductsPage() {
               )}
             </tbody>
           </table>
+
+          {/* Mobile: product cards (hidden on desktop). */}
+          <div className="md:hidden">
+            {!branchId ? (
+              <div className="py-10 text-center text-accent-orange">Your account is not assigned to a shop. Ask an admin to assign one.</div>
+            ) : isLoading ? (
+              <div className="py-10 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading products...</div>
+            ) : isError ? (
+              <div className="py-10 text-center text-accent-red">{getApiErrorMessage(error)}</div>
+            ) : products.length === 0 ? (
+              <div className="py-10 text-center text-text-muted">No products found.</div>
+            ) : (
+              <ul className="divide-y divide-card-border">
+                {products.map((p, i) => (
+                  <li key={p.id} className="flex items-center gap-3 p-4">
+                    {p.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.image} alt={p.name} loading="lazy" className="h-12 w-12 shrink-0 rounded object-cover bg-white/10" />
+                    ) : (
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-white/10 text-[9px] text-text-muted">No Img</div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-text-primary break-words">
+                        <span className="text-accent-blue mr-1.5">{startIndex + i}.</span>{p.name}
+                      </p>
+                      <p className="text-xs text-text-secondary">{p.brand?.name ?? '—'} · {peso(p.sellingPrice)}</p>
+                    </div>
+                    <span className={`shrink-0 text-sm ${p.totalQuantity <= 0 ? 'text-accent-red font-medium' : p.totalQuantity <= (p.quantityAlert || 5) ? 'text-accent-orange font-medium' : 'text-text-primary'}`}>
+                      {p.totalQuantity}
+                      {p.totalQuantity <= 0 && <span className="ml-1 text-[10px]">(Out)</span>}
+                      {p.totalQuantity > 0 && p.totalQuantity <= (p.quantityAlert || 5) && <span className="ml-1 text-[10px]">(Low)</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card-border p-4">

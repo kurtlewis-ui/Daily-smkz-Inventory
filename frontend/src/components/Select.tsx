@@ -86,7 +86,16 @@ export function Select({
     const listMax = 288; // matches max-h-72
     const openUp = spaceBelow < Math.min(listMax, 240) && spaceAbove > spaceBelow;
     setDrop(openUp ? 'up' : 'down');
-    setPos({ left: r.left, top: openUp ? r.top : r.bottom, width: r.width });
+    // Clamp the menu's left edge so it never runs off the right of the screen
+    // on mobile. The menu is at least as wide as the trigger, capped to
+    // min(20rem, 100vw - 24px) — mirror that here to compute its real width,
+    // then keep left within [8px, viewport - width - 8px].
+    const margin = 8;
+    const cappedMax = Math.min(320, window.innerWidth - 24); // 20rem = 320px
+    const menuWidth = Math.min(Math.max(r.width, cappedMax), cappedMax);
+    const maxLeft = window.innerWidth - menuWidth - margin;
+    const left = Math.max(margin, Math.min(r.left, maxLeft));
+    setPos({ left, top: openUp ? r.top : r.bottom, width: r.width });
   }, []);
 
   useLayoutEffect(() => {
