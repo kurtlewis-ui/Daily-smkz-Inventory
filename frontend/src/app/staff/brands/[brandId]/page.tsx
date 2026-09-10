@@ -9,6 +9,7 @@ import { useDraftStore } from '@/lib/draft';
 import { getApiErrorMessage } from '@/lib/api';
 import { GridSkeleton } from '@/components/Skeleton';
 import { Select } from '@/components/Select';
+import { NumberStepper } from '@/components/NumberStepper';
 import { useToast } from '@/components/Toast';
 import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
 
@@ -347,13 +348,13 @@ function AddPurchaseModal({
           {/* Quantity */}
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Quantity</label>
-            <input
-              type="number"
-              min="1"
-              max={available}
+            <NumberStepper
+              min={1}
+              max={available || undefined}
+              ariaLabel="Quantity"
               value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2.5 text-sm focus:outline-none focus:border-input-focus"
+              onChange={(v) => { setQuantity(v); setDirty(true); }}
+              className="w-full"
             />
           </div>
 

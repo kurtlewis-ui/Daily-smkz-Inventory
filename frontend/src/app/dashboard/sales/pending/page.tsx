@@ -24,6 +24,7 @@ import {
 import { getApiErrorMessage } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { Select } from '@/components/Select';
+import { NumberStepper } from '@/components/NumberStepper';
 import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
 import type { Sale, PaymentMethod, PaymentSplit } from '@/lib/types';
 
@@ -933,7 +934,7 @@ function EditSaleModal({
             {rows.map((row, idx) => (
               <div key={`${row.productId}-${idx}`} className="flex items-center gap-2">
                 <Select value={row.productId} onChange={(v) => setRow(idx, { productId: v })} ariaLabel="Product" className="flex-1" options={products.map((p) => ({ value: p.id, label: `${p.name}${p.brand ? ` (${p.brand.name})` : ''} — ${peso(p.sellingPrice)}` }))} />
-                <input type="number" min="1" value={row.quantity} onChange={(e) => setRow(idx, { quantity: parseInt(e.target.value) || 1 })} className="w-16 border border-input-border rounded px-2 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+                <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-28 shrink-0" />
                 <span className="w-20 text-right text-sm text-text-secondary">{peso(priceOf(row.productId) * row.quantity - (row.discount ?? 0))}</span>
                 <span className="w-24 truncate text-xs text-text-muted" title={row.paymentMethod}>{row.paymentMethod}</span>
                 <button onClick={() => removeRow(idx)} className="p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Remove"><Trash2 size={15} /></button>

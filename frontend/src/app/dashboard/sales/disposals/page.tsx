@@ -6,6 +6,7 @@ import { useDisposals, useCreateDisposal, useBranches, useProducts } from '@/lib
 import { getApiErrorMessage } from '@/lib/api';
 import { usePagination, Pagination } from '@/components/Pagination';
 import { Select } from '@/components/Select';
+import { NumberStepper } from '@/components/NumberStepper';
 import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
 
 function peso(n: number) {
@@ -207,7 +208,7 @@ function RecordDisposalModal({ branches, onClose }: { branches: { id: string; na
           </div>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Quantity to dispose <span className="text-accent-red">*</span></label>
-            <input type="number" min="1" max={available} value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
+            <NumberStepper min={1} max={available || undefined} ariaLabel="Quantity to dispose" value={quantity} onChange={(v) => { setQuantity(v); setDirty(true); }} className="w-full" />
           </div>
           <div>
             <label className="block text-sm font-medium text-text-primary mb-1">Reason (optional)</label>

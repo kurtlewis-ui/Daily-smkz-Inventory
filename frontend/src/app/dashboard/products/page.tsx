@@ -25,6 +25,7 @@ import { ImageCropModal } from '@/components/ImageCropModal';
 import type { Product, ImportResult, RestockResult } from '@/lib/types';
 import { StockHistoryModal } from '@/components/StockHistoryModal';
 import { Select } from '@/components/Select';
+import { NumberStepper } from '@/components/NumberStepper';
 import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
 
 const ENTRIES_OPTIONS = [5, 10, 25, 50, 100, 'All'] as const;
@@ -733,14 +734,14 @@ function ProductFormModal({ title, onClose, onDirty, onSubmit, buttonLabel, disa
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">Quantity</label>
           {branches.length === 1 ? (
-            <input type="number" min="0" placeholder="0" value={formQuantities[branches[0].id] ?? ''} onChange={(e) => setFormQuantities({ ...formQuantities, [branches[0].id]: e.target.value })} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+            <NumberStepper min={0} placeholder="0" ariaLabel="Quantity" value={formQuantities[branches[0].id] ?? ''} onChange={(v) => setFormQuantities({ ...formQuantities, [branches[0].id]: v })} className="w-full" />
           ) : (
           <div className="divide-y divide-card-border border border-card-border rounded-lg overflow-hidden">
             {branches.length === 0 && <p className="text-xs text-text-muted px-3 py-3">No shops yet. Create a shop first.</p>}
             {branches.map((b) => (
               <div key={b.id} className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:gap-3">
                 <span className="w-full text-xs font-semibold text-text-primary bg-white/10 border-l-[3px] border-accent-blue px-2.5 py-1.5 rounded-r uppercase break-words sm:w-auto sm:min-w-[140px] sm:max-w-[200px]">{b.name}</span>
-                <input type="number" min="0" placeholder="0" value={formQuantities[b.id] ?? ''} onChange={(e) => setFormQuantities({ ...formQuantities, [b.id]: e.target.value })} className="w-full border border-input-border rounded px-3 py-1.5 text-sm bg-input-bg focus:outline-none focus:border-input-focus sm:flex-1" />
+                <NumberStepper min={0} placeholder="0" ariaLabel={`${b.name} quantity`} value={formQuantities[b.id] ?? ''} onChange={(v) => setFormQuantities({ ...formQuantities, [b.id]: v })} className="w-full sm:flex-1" />
               </div>
             ))}
           </div>
@@ -761,7 +762,7 @@ function ProductFormModal({ title, onClose, onDirty, onSubmit, buttonLabel, disa
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Quantity Alert</label>
-          <input type="number" min="0" value={formAlert} onChange={(e) => setFormAlert(e.target.value)} placeholder="0" className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+          <NumberStepper min={0} placeholder="0" ariaLabel="Quantity alert" value={formAlert} onChange={setFormAlert} className="w-full" />
         </div>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-2">Product Image</label>

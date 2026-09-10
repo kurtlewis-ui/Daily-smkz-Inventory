@@ -11,8 +11,11 @@ function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-const PAGE_SIZES = [10, 25, 50] as const;
+const PAGE_SIZES = [10, 25, 50, 'All'] as const;
 type PageSize = (typeof PAGE_SIZES)[number];
+// Backend caps a page at 200; "All" requests that max so every product shows
+// on one page.
+const ALL_LIMIT = 200;
 
 export default function StaffProductsPage() {
   const [brandId, setBrandId] = useState('');
@@ -26,20 +29,23 @@ export default function StaffProductsPage() {
   const { data: brandData } = useBrands();
   const brands = brandData?.data ?? [];
 
+  const isAll = pageSize === 'All';
+  const effectiveLimit = isAll ? ALL_LIMIT : pageSize;
+
   const { data, isLoading, isError, error } = useProducts({
     branchId,
     brandId: brandId || undefined,
     search: search || undefined,
-    page,
-    limit: pageSize,
+    page: isAll ? 1 : page,
+    limit: effectiveLimit,
   });
   const products = data?.data ?? [];
   const pagination = data?.pagination;
-  const totalPages = pagination?.totalPages ?? 1;
+  const totalPages = isAll ? 1 : (pagination?.totalPages ?? 1);
   const total = pagination?.total ?? products.length;
 
-  const startIndex = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endIndex = Math.min(page * pageSize, total);
+  const startIndex = total === 0 ? 0 : isAll ? 1 : (page - 1) * effectiveLimit + 1;
+  const endIndex = isAll ? total : Math.min(page * effectiveLimit, total);
 
   return (
     <div>
@@ -53,7 +59,7 @@ export default function StaffProductsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 p-4">
           <label className="flex items-center gap-2 text-sm text-text-secondary">
             Show
-            <Select value={String(pageSize)} onChange={(v) => { setPageSize(Number(v) as PageSize); setPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={PAGE_SIZES.map((s) => ({ value: String(s), label: String(s) }))} />
+            <Select value={String(pageSize)} onChange={(v) => { setPageSize(v === 'All' ? 'All' : (Number(v) as PageSize)); setPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={PAGE_SIZES.map((s) => ({ value: String(s), label: String(s) }))} />
             entries
           </label>
           <input
@@ -154,24 +160,26 @@ export default function StaffProductsPage() {
           <p className="text-sm text-text-muted">
             Showing {startIndex} to {endIndex} of {total} products
           </p>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="rounded-lg px-3 py-1.5 text-sm text-text-secondary hover:opacity-80 disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <span className="rounded-lg bg-btn-primary px-3 py-1.5 text-sm font-medium text-btn-primary-text">{page}</span>
-            <span className="px-1 text-sm text-text-muted">/ {totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="rounded-lg px-3 py-1.5 text-sm text-text-secondary hover:opacity-80 disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
+          {!isAll && totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="rounded-lg px-3 py-1.5 text-sm text-text-secondary hover:opacity-80 disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="rounded-lg bg-btn-primary px-3 py-1.5 text-sm font-medium text-btn-primary-text">{page}</span>
+              <span className="px-1 text-sm text-text-muted">/ {totalPages}</span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="rounded-lg px-3 py-1.5 text-sm text-text-secondary hover:opacity-80 disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

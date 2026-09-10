@@ -8,6 +8,7 @@ import { useDraftStore, type DraftItem } from '@/lib/draft';
 import { useThemeStore } from '@/lib/theme';
 import { useSaveDraft, useClearDraftSync, useSaveMyDraft, useMyDraftExists, useMe } from '@/lib/hooks';
 import { Select } from '@/components/Select';
+import { NumberStepper } from '@/components/NumberStepper';
 import { getApiErrorMessage } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import type { PaymentMethod, PaymentSplit } from '@/lib/types';
@@ -19,7 +20,6 @@ import {
   LogOut,
   X,
   Plus,
-  Minus,
   Trash2,
   Recycle,
   Settings as SettingsIcon,
@@ -651,15 +651,13 @@ function DraftBag() {
                             </button>
                           </div>
                           <div className="flex items-center gap-1">
-                            <button onClick={() => setQuantity(item.id, item.quantity - 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Decrease"><Minus size={14} /></button>
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => setQuantity(item.id, parseInt(e.target.value) || 1)}
-                              className="w-12 rounded border border-input-border bg-input-bg px-1 py-1 text-center text-sm"
+                            <NumberStepper
+                              min={1}
+                              ariaLabel="Quantity"
+                              value={String(item.quantity)}
+                              onChange={(v) => setQuantity(item.id, parseInt(v) || 1)}
+                              className="w-28"
                             />
-                            <button onClick={() => setQuantity(item.id, item.quantity + 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Increase"><Plus size={14} /></button>
                             <button onClick={() => removeItem(item.id)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10 ml-1" title="Remove"><Trash2 size={15} /></button>
                           </div>
                         </div>
@@ -705,15 +703,13 @@ function DraftBag() {
                           <p className="text-xs text-accent-red">{item.reason}</p>
                         )}
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => setDisposalQuantity(item.id, item.quantity - 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Decrease"><Minus size={14} /></button>
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => setDisposalQuantity(item.id, parseInt(e.target.value) || 1)}
-                            className="w-12 rounded border border-input-border bg-input-bg px-1 py-1 text-center text-sm"
+                          <NumberStepper
+                            min={1}
+                            ariaLabel="Disposal quantity"
+                            value={String(item.quantity)}
+                            onChange={(v) => setDisposalQuantity(item.id, parseInt(v) || 1)}
+                            className="w-28"
                           />
-                          <button onClick={() => setDisposalQuantity(item.id, item.quantity + 1)} className="rounded p-1 text-text-secondary hover:bg-white/10" aria-label="Increase"><Plus size={14} /></button>
                           <button onClick={() => removeDisposalItem(item.id)} className="rounded p-1.5 text-accent-red hover:bg-accent-red/10 ml-1" title="Remove"><Trash2 size={15} /></button>
                         </div>
                       </div>
