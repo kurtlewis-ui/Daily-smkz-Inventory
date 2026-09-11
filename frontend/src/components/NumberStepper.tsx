@@ -90,10 +90,10 @@ export function NumberStepper({
         placeholder={placeholder}
         aria-label={ariaLabel}
         onChange={(e) => onChange(e.target.value)}
-        // Symmetric px-7 keeps the number visually centered while permanently
-        // reserving the spinner's width on the right, so text never shifts when
-        // the arrows fade in. Native spinners are removed.
-        className={`min-w-0 flex-1 bg-transparent px-7 py-2 text-center text-sm text-text-primary focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${inputClassName}`}
+        // Left-aligned number. pr-7 permanently reserves the spinner's width on
+        // the right so the value never sits under the arrows and never shifts
+        // when they fade in. Native spinners are removed.
+        className={`min-w-0 flex-1 bg-transparent py-2 pl-3 pr-7 text-left text-sm text-text-primary focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${inputClassName}`}
       />
       {/* Right-edge up/down spinner. Fades in on hover (desktop) / focus (mobile). */}
       <div
