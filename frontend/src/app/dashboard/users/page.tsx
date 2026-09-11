@@ -33,6 +33,25 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+// A role badge with a distinct color per role so Owner / Admin / Staff are
+// instantly distinguishable. Uses a tinted background + colored text + hairline
+// border (works in both light and dark themes). Unknown roles fall back to a
+// neutral badge.
+function RoleBadge({ role }: { role: string }) {
+  const map: Record<string, string> = {
+    Owner: 'bg-accent-purple/15 text-accent-purple border-accent-purple/30',
+    Admin: 'bg-accent-blue/15 text-accent-blue border-accent-blue/30',
+    Staff: 'bg-accent-green/15 text-accent-green border-accent-green/30',
+  };
+  const cls = map[role] ?? 'bg-surface-muted text-text-secondary border-card-border';
+  return (
+    <span className={`badge border ${cls}`}>
+      <span className="badge-dot bg-current opacity-80" />
+      {role}
+    </span>
+  );
+}
+
 // ===========================================================================
 // ADMIN VIEW — Can only assign staff to branches
 // ===========================================================================
@@ -113,14 +132,14 @@ function AdminStaffView() {
           <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">#</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Image</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Branch</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">#</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Image</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Role</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Branch</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase whitespace-nowrap"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -131,9 +150,9 @@ function AdminStaffView() {
               ) : displayedUsers.length === 0 ? (
                 <tr><td colSpan={8} className="text-center py-8 text-text-muted">No staff found.</td></tr>
               ) : displayedUsers.map((user, idx) => (
-                <tr key={user.id} className="border-b border-card-border transition">
-                  <td className="px-4 py-3 text-sm text-text-primary">{pageStart + idx + 1}</td>
-                  <td className="px-4 py-3">
+                <tr key={user.id} className="border-b border-card-border align-middle transition hover:bg-white/[0.02]">
+                  <td className="px-4 py-3 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
+                  <td className="px-4 py-3 align-middle">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
@@ -143,27 +162,29 @@ function AdminStaffView() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-primary font-medium">
+                  <td className="px-4 py-3 text-sm text-text-primary font-medium align-middle whitespace-nowrap">
                     {user.firstName} {user.middleInitial ? `${user.middleInitial}. ` : ''}{user.lastName}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{user.email}</td>
-                  <td className="px-4 py-3"><span className="badge badge-neutral">{user.role.name}</span></td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{user.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-sm text-text-secondary align-middle">{user.email}</td>
+                  <td className="px-4 py-3 align-middle whitespace-nowrap"><RoleBadge role={user.role.name} /></td>
+                  <td className="px-4 py-3 text-sm text-text-secondary align-middle whitespace-nowrap">{user.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}</td>
+                  <td className="px-4 py-3 align-middle whitespace-nowrap">
                     <span className="badge badge-neutral">
                       <span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />
                       {user.isActive ? 'Active' : 'Disabled'}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleChangeBranch(user)}
-                      title="Assign this staff member to a branch"
-                      className="group inline-flex items-center gap-2 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-3 py-1.5 text-sm font-semibold text-accent-blue shadow-sm transition-all hover:bg-accent-blue hover:text-white hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-accent-blue/40"
-                    >
-                      <Store size={14} className="transition-transform group-hover:scale-110" />
-                      Assign Branch
-                    </button>
+                  <td className="px-4 py-3 align-middle">
+                    <div className="flex justify-end whitespace-nowrap">
+                      <button
+                        onClick={() => handleChangeBranch(user)}
+                        title="Assign this staff member to a branch"
+                        className="group inline-flex items-center gap-2 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-3 py-1.5 text-sm font-semibold text-accent-blue shadow-sm transition-all hover:bg-accent-blue hover:text-white hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-accent-blue/40"
+                      >
+                        <Store size={14} className="transition-transform group-hover:scale-110" />
+                        Assign Branch
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -198,7 +219,7 @@ function AdminStaffView() {
                         </p>
                         <p className="text-xs text-text-secondary break-words">{user.email}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <span className="badge badge-neutral">{user.role.name}</span>
+                          <RoleBadge role={user.role.name} />
                           <span className="badge badge-neutral"><span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />{user.isActive ? 'Active' : 'Disabled'}</span>
                           <span className="text-xs text-text-muted">{user.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}</span>
                         </div>
@@ -307,20 +328,27 @@ function OwnerUsersView() {
   const resetPassword = useResetUserPassword();
   const archiveUser = useArchiveUser();
 
-  const users = data?.data ?? [];
+  const allUsers = data?.data ?? [];
 
   const [entriesPerPage, setEntriesPerPage] = useState<number | 'All'>(10);
+  const [roleFilter, setRoleFilter] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showBranchModal, setShowBranchModal] = useState(false);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
   const [selectedUser, setSelectedUser] = useState<FullUser | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [formError, setFormError] = useState<string | null>(null);
   const [formDirty, setFormDirty] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
 
+  // Filter by role (All / Owner / Admin / Staff).
+  const users = roleFilter ? allUsers.filter((u) => u.role.name === roleFilter) : allUsers;
+
   const closeAdd = useUnsavedGuard(formDirty, () => setShowAddModal(false));
   const closeEdit = useUnsavedGuard(formDirty, () => { setShowEditModal(false); setSelectedUser(null); });
+  const closeBranchModal = useUnsavedGuard(formDirty, () => { setShowBranchModal(false); setSelectedUser(null); });
 
   const [formData, setFormData] = useState<FormData>({
     firstName: '', middleInitial: '', lastName: '', email: '',
@@ -369,6 +397,26 @@ function OwnerUsersView() {
   };
 
   const handleArchive = (user: FullUser) => { setSelectedUser(user); setFormError(null); setShowArchiveModal(true); };
+
+  const handleAssignBranch = (user: FullUser) => {
+    setSelectedUser(user);
+    setSelectedBranchId(user.branchId ?? '');
+    setFormError(null);
+    setFormDirty(false);
+    setShowBranchModal(true);
+  };
+
+  const handleSaveBranch = async () => {
+    if (!selectedUser) return;
+    if (!selectedBranchId) { setFormError('Please select a branch.'); return; }
+    setFormError(null);
+    try {
+      await withScrollPreserved(() => updateUser.mutateAsync({ id: selectedUser.id, branchId: selectedBranchId }));
+      setFormDirty(false);
+      setShowBranchModal(false);
+      setSelectedUser(null);
+    } catch (e) { setFormError(getApiErrorMessage(e)); }
+  };
 
   const confirmArchive = async () => {
     if (!selectedUser) return;
@@ -581,10 +629,16 @@ function OwnerUsersView() {
 
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm">
         <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b border-card-border">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-text-secondary">Show</label>
-            <Select value={String(entriesPerPage)} onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); setCurrentPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]} />
-            <span className="text-sm text-text-secondary">entries</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-text-secondary">Show</label>
+              <Select value={String(entriesPerPage)} onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); setCurrentPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]} />
+              <span className="text-sm text-text-secondary">entries</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-text-secondary">Role</label>
+              <Select value={roleFilter} onChange={(v) => { setRoleFilter(v); setCurrentPage(1); }} ariaLabel="Filter by role" className="w-auto min-w-[120px]" options={[{ value: '', label: 'All Roles' }, { value: 'Owner', label: 'Owner' }, { value: 'Admin', label: 'Admin' }, { value: 'Staff', label: 'Staff' }]} />
+            </div>
           </div>
           <div className="relative w-full sm:w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
@@ -596,15 +650,15 @@ function OwnerUsersView() {
           <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">#</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Image</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Shop</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Last Login</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">#</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Image</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Role</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Shop</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Last Login</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase whitespace-nowrap"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -615,9 +669,9 @@ function OwnerUsersView() {
               ) : displayedUsers.length === 0 ? (
                 <tr><td colSpan={9} className="text-center py-8 text-text-muted">No users found.</td></tr>
               ) : displayedUsers.map((user, idx) => (
-                <tr key={user.id} className="border-b border-card-border transition">
-                  <td className="px-4 py-3 text-sm text-text-primary">{pageStart + idx + 1}</td>
-                  <td className="px-4 py-3">
+                <tr key={user.id} className="border-b border-card-border align-middle transition hover:bg-white/[0.02]">
+                  <td className="px-4 py-3 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
+                  <td className="px-4 py-3 align-middle">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
@@ -627,13 +681,13 @@ function OwnerUsersView() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-primary font-medium">
+                  <td className="px-4 py-3 text-sm text-text-primary font-medium align-middle whitespace-nowrap">
                     {user.firstName} {user.middleInitial ? `${user.middleInitial}. ` : ''}{user.lastName}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{user.email}</td>
-                  <td className="px-4 py-3"><span className="badge badge-neutral">{user.role.name}</span></td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{user.branch?.name ?? 'N/A'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-sm text-text-secondary align-middle">{user.email}</td>
+                  <td className="px-4 py-3 align-middle whitespace-nowrap"><RoleBadge role={user.role.name} /></td>
+                  <td className="px-4 py-3 text-sm text-text-secondary align-middle whitespace-nowrap">{user.branch?.name ?? 'N/A'}</td>
+                  <td className="px-4 py-3 align-middle whitespace-nowrap">
                     <span className="badge badge-neutral">
                       <span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />
                       {user.isActive ? 'Active' : 'Disabled'}
@@ -642,11 +696,21 @@ function OwnerUsersView() {
                       <span className="ml-1 rounded-full bg-accent-red/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-accent-red">Locked</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-text-muted">
+                  <td className="px-4 py-3 text-xs text-text-muted align-middle whitespace-nowrap">
                     {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never'}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-3 align-middle">
+                    <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                      {user.role.name === 'Staff' && (
+                        <button
+                          onClick={() => handleAssignBranch(user)}
+                          title="Assign this staff member to a branch"
+                          className="group inline-flex items-center gap-1.5 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-2.5 py-1.5 text-xs font-semibold text-accent-blue transition-all hover:bg-accent-blue hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/40"
+                        >
+                          <Store size={13} className="transition-transform group-hover:scale-110" />
+                          Assign Branch
+                        </button>
+                      )}
                       <button onClick={() => handleEdit(user)} className="p-1.5 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition" title="Edit">
                         <Pencil size={15} />
                       </button>
@@ -688,12 +752,20 @@ function OwnerUsersView() {
                         </p>
                         <p className="text-xs text-text-secondary break-words">{user.email}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <span className="badge badge-neutral">{user.role.name}</span>
+                          <RoleBadge role={user.role.name} />
                           <span className="badge badge-neutral"><span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />{user.isActive ? 'Active' : 'Disabled'}</span>
                           {user.isLocked && <span className="rounded-full bg-accent-red/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-accent-red">Locked</span>}
                           <span className="text-xs text-text-muted">{user.branch?.name ?? 'N/A'}</span>
                         </div>
                         <p className="mt-0.5 text-[11px] text-text-muted">Last login: {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never'}</p>
+                        {user.role.name === 'Staff' && (
+                          <button
+                            onClick={() => handleAssignBranch(user)}
+                            className="group mt-2 inline-flex items-center gap-2 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-3 py-1.5 text-sm font-semibold text-accent-blue transition-all hover:bg-accent-blue hover:text-white active:translate-y-0"
+                          >
+                            <Store size={14} /> Assign Branch
+                          </button>
+                        )}
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
                         <button onClick={() => handleEdit(user)} className="flex h-10 w-10 items-center justify-center rounded-lg text-accent-blue hover:bg-accent-blue/10 transition" title="Edit"><Pencil size={16} /></button>
@@ -738,6 +810,50 @@ function OwnerUsersView() {
             <button onClick={confirmArchive} disabled={archiveUser.isPending} className="px-4 py-2 bg-accent-archive text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60">
               {archiveUser.isPending ? 'Archiving...' : 'Yes, Archive'}
             </button>
+          </div>
+        </Modal>
+      )}
+
+      {showBranchModal && selectedUser && (
+        <Modal title="Assign Branch" onClose={closeBranchModal}>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-card-border">
+              {selectedUser.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={selectedUser.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold text-text-primary">
+                  {selectedUser.firstName?.[0] ?? ''}{selectedUser.lastName?.[0] ?? ''}
+                </div>
+              )}
+              <div>
+                <p className="text-sm font-medium text-text-primary">{selectedUser.firstName} {selectedUser.lastName}</p>
+                <p className="text-xs text-text-muted">{selectedUser.email}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Current Branch</label>
+              <p className="text-sm text-text-secondary px-3 py-2 rounded-lg bg-white/5 border border-card-border">
+                {selectedUser.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">New Branch</label>
+              <Select value={selectedBranchId} onChange={(v) => { setSelectedBranchId(v); setFormDirty(true); }} ariaLabel="New branch" placeholder="Select a branch" className="w-full" options={branches.map((b) => ({ value: b.id, label: b.name }))} />
+            </div>
+
+            {formError && (
+              <div className="rounded-lg bg-accent-red/10 border border-accent-red/30 px-3 py-2 text-sm text-accent-red">{formError}</div>
+            )}
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button onClick={closeBranchModal} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
+              <button onClick={handleSaveBranch} disabled={updateUser.isPending} className="px-4 py-2 btn-grad rounded-lg text-sm font-medium disabled:opacity-60">
+                {updateUser.isPending ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         </Modal>
       )}
