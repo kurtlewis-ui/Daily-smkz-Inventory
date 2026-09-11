@@ -128,18 +128,18 @@ function AdminStaffView() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="hidden w-full md:table">
+        <div>
+          <table className="hidden w-full table-fixed md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap w-10">#</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap w-16">Image</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Name</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Email</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Role</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Branch</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Status</th>
-                <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase whitespace-nowrap"><span className="sr-only">Actions</span></th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[44px]">#</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[64px]">Image</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[18%]">Name</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[22%]">Email</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[12%]">Role</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[16%]">Branch</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[12%]">Status</th>
+                <th className="px-3 py-3.5 text-right text-xs font-semibold uppercase w-[64px]"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -151,8 +151,8 @@ function AdminStaffView() {
                 <tr><td colSpan={8} className="text-center py-8 text-text-muted">No staff found.</td></tr>
               ) : displayedUsers.map((user, idx) => (
                 <tr key={user.id} className="border-b border-card-border align-middle transition hover:bg-white/[0.02]">
-                  <td className="px-4 py-4 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
-                  <td className="px-4 py-4 align-middle">
+                  <td className="px-3 py-4 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
+                  <td className="px-3 py-4 align-middle">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={user.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
@@ -162,27 +162,27 @@ function AdminStaffView() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-primary font-medium align-middle whitespace-nowrap">
+                  <td className="px-3 py-4 text-sm text-text-primary font-medium align-middle truncate" title={`${user.firstName} ${user.lastName}`}>
                     {user.firstName} {user.middleInitial ? `${user.middleInitial}. ` : ''}{user.lastName}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary align-middle max-w-[220px] truncate" title={user.email}>{user.email}</td>
-                  <td className="px-4 py-4 align-middle whitespace-nowrap"><RoleBadge role={user.role.name} /></td>
-                  <td className="px-4 py-4 text-sm text-text-secondary align-middle whitespace-nowrap">{user.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}</td>
-                  <td className="px-4 py-4 align-middle whitespace-nowrap">
+                  <td className="px-3 py-4 text-sm text-text-secondary align-middle truncate" title={user.email}>{user.email}</td>
+                  <td className="px-3 py-4 align-middle"><RoleBadge role={user.role.name} /></td>
+                  <td className="px-3 py-4 text-sm text-text-secondary align-middle truncate" title={user.branch?.name ?? 'Unassigned'}>{user.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}</td>
+                  <td className="px-3 py-4 align-middle">
                     <span className="badge badge-neutral">
                       <span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />
                       {user.isActive ? 'Active' : 'Disabled'}
                     </span>
                   </td>
-                  <td className="px-4 py-4 align-middle">
-                    <div className="flex justify-end whitespace-nowrap">
+                  <td className="px-3 py-4 align-middle">
+                    <div className="flex justify-end">
                       <button
                         onClick={() => handleChangeBranch(user)}
-                        title="Assign this staff member to a branch"
-                        className="group inline-flex items-center gap-2 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-3 py-1.5 text-sm font-semibold text-accent-blue shadow-sm transition-all hover:bg-accent-blue hover:text-white hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-accent-blue/40"
+                        title="Assign Branch"
+                        aria-label="Assign Branch"
+                        className="p-1.5 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition"
                       >
-                        <Store size={14} className="transition-transform group-hover:scale-110" />
-                        Assign Branch
+                        <Store size={15} />
                       </button>
                     </div>
                   </td>
@@ -646,19 +646,19 @@ function OwnerUsersView() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="hidden w-full md:table">
+        <div>
+          <table className="hidden w-full table-fixed md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap w-10">#</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap w-16">Image</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Name</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Email</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Role</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Shop</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Status</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Last Login</th>
-                <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase whitespace-nowrap"><span className="sr-only">Actions</span></th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[44px]">#</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[64px]">Image</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[15%]">Name</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[19%]">Email</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[11%]">Role</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[14%]">Shop</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[10%]">Status</th>
+                <th className="px-3 py-3.5 text-left text-xs font-semibold uppercase w-[13%]">Last Login</th>
+                <th className="px-3 py-3.5 text-right text-xs font-semibold uppercase w-[110px]"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -670,8 +670,8 @@ function OwnerUsersView() {
                 <tr><td colSpan={9} className="text-center py-8 text-text-muted">No users found.</td></tr>
               ) : displayedUsers.map((user, idx) => (
                 <tr key={user.id} className="border-b border-card-border align-middle transition hover:bg-white/[0.02]">
-                  <td className="px-4 py-4 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
-                  <td className="px-4 py-4 align-middle">
+                  <td className="px-3 py-4 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
+                  <td className="px-3 py-4 align-middle">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={user.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
@@ -681,13 +681,13 @@ function OwnerUsersView() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-primary font-medium align-middle whitespace-nowrap">
+                  <td className="px-3 py-4 text-sm text-text-primary font-medium align-middle truncate" title={`${user.firstName} ${user.lastName}`}>
                     {user.firstName} {user.middleInitial ? `${user.middleInitial}. ` : ''}{user.lastName}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary align-middle max-w-[220px] truncate" title={user.email}>{user.email}</td>
-                  <td className="px-4 py-4 align-middle whitespace-nowrap"><RoleBadge role={user.role.name} /></td>
-                  <td className="px-4 py-4 text-sm text-text-secondary align-middle whitespace-nowrap">{user.branch?.name ?? 'N/A'}</td>
-                  <td className="px-4 py-4 align-middle whitespace-nowrap">
+                  <td className="px-3 py-4 text-sm text-text-secondary align-middle truncate" title={user.email}>{user.email}</td>
+                  <td className="px-3 py-4 align-middle"><RoleBadge role={user.role.name} /></td>
+                  <td className="px-3 py-4 text-sm text-text-secondary align-middle truncate" title={user.branch?.name ?? 'N/A'}>{user.branch?.name ?? 'N/A'}</td>
+                  <td className="px-3 py-4 align-middle">
                     <span className="badge badge-neutral">
                       <span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />
                       {user.isActive ? 'Active' : 'Disabled'}
@@ -696,19 +696,19 @@ function OwnerUsersView() {
                       <span className="ml-1 rounded-full bg-accent-red/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-accent-red">Locked</span>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-xs text-text-muted align-middle whitespace-nowrap">
+                  <td className="px-3 py-4 text-xs text-text-muted align-middle truncate" title={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}>
                     {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never'}
                   </td>
-                  <td className="px-4 py-4 align-middle">
-                    <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                  <td className="px-3 py-4 align-middle">
+                    <div className="flex items-center justify-end gap-0.5">
                       {user.role.name === 'Staff' && (
                         <button
                           onClick={() => handleAssignBranch(user)}
-                          title="Assign this staff member to a branch"
-                          className="group inline-flex items-center gap-1.5 rounded-lg border border-accent-blue/30 bg-accent-blue/10 px-2.5 py-1.5 text-xs font-semibold text-accent-blue transition-all hover:bg-accent-blue hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-blue/40"
+                          title="Assign Branch"
+                          aria-label="Assign Branch"
+                          className="p-1.5 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition"
                         >
-                          <Store size={13} className="transition-transform group-hover:scale-110" />
-                          Assign Branch
+                          <Store size={15} />
                         </button>
                       )}
                       <button onClick={() => handleEdit(user)} className="p-1.5 text-accent-blue hover:bg-accent-blue/10 rounded-lg transition" title="Edit">
