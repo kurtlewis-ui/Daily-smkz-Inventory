@@ -24,51 +24,52 @@ body {
    Light: black buttons, dark glows, colorful charts
    ---------------------------------------------------------------------- */
 .content-light {
-  /* ---- Anti-glare COOL canvas -------------------------------------------
-     The base layer is a soft cool gray-blue (not pure white) so the page
-     never glares. Crisp #FFFFFF is reserved for data surfaces (cards, tables,
-     metrics) below, which separate cleanly by being LIGHTER than this cool
-     ground — so panels stay distinct and easy to read while borders can stay
-     soft. Elements are calm and blended, but never so flat they melt together. */
-  --content-page-bg: #eef1f6;          /* soft cool gray-blue — the anti-glare canvas */
+  /* ---- Anti-glare NEUTRAL canvas ----------------------------------------
+     The base layer is a soft neutral gray (not pure white, no cool/blue tint)
+     so the page never glares. Crisp #FFFFFF is reserved for data surfaces
+     (cards, tables, metrics) below, which separate cleanly by being LIGHTER
+     than this neutral ground — so panels stay distinct and easy to read while
+     borders can stay soft. Calm and blended, but never flat enough to melt. */
+  --content-page-bg: #f2f2f1;          /* soft neutral gray — the anti-glare canvas */
   --content-card-bg: #ffffff;          /* crisp white RESERVED for data cards/tables */
-  /* Borders have gentle-but-present slate-blue tint. Cards mainly separate by
-     being lighter (white) than the cool canvas, so the border only needs to
-     define the edge softly — not carry the whole separation. */
-  --content-card-border: rgba(40, 52, 74, 0.12);
-  --content-table-header: #eaeef4;     /* cool, sits a step below the white card */
-  --content-table-header-text: #3f4757;
-  /* Deep cool slate for maximum legibility of key data (SKU, totals). */
-  --content-text-primary: #1a2130;
-  --content-text-secondary: #495264;
-  /* Muted metadata — tuned for ~4.6:1 contrast on the cool canvas. */
-  --content-text-muted: #6b7385;
-  --content-text-link: #3a4658;
-  --content-surface-muted: #e7ebf2;    /* soft cool chip/hover surface */
+  /* Neutral gray borders (no blue tint). Cards mainly separate by being lighter
+     (white) than the neutral canvas, so the border only defines the edge softly
+     — it doesn't carry the whole separation. */
+  --content-card-border: rgba(30, 30, 28, 0.12);
+  --content-table-header: #ececea;     /* neutral, sits a step below the white card */
+  --content-table-header-text: #4a4a46;
+  /* Deep neutral charcoal for maximum legibility of key data (SKU, totals). */
+  --content-text-primary: #1e1e1c;
+  --content-text-secondary: #52514d;
+  /* Muted metadata — tuned for ~4.6:1 contrast on the neutral canvas. */
+  --content-text-muted: #77766f;
+  --content-text-link: #45443f;
+  --content-surface-muted: #ececea;    /* soft neutral chip/hover surface */
   /* Inputs sit a touch below the canvas with a defined hairline border so they
      read clearly as fields both on the canvas AND inside white cards, without
      a harsh outline. The focus ring confirms interactivity. */
-  --content-input-bg: #eef1f6;
-  --content-input-border: rgba(40, 52, 74, 0.16);
+  --content-input-bg: #f2f2f1;
+  --content-input-border: rgba(30, 30, 28, 0.16);
   --content-btn-primary: #000000;      /* brand accent kept as-is (black in light) */
   --content-btn-primary-text: #ffffff;
-  --content-input-focus: #5b6b8c;      /* cool slate-blue focus tone */
-  --content-row-alt: rgba(40, 52, 74, 0.025);   /* barely-there zebra striping */
-  --content-row-hover: rgba(40, 52, 74, 0.05);
-  --content-secondary-btn-bg: rgba(40, 52, 74, 0.05);
+  --content-input-focus: #6f6e68;      /* neutral gray focus tone (no blue) */
+  --content-row-alt: rgba(30, 30, 28, 0.025);   /* barely-there zebra striping */
+  --content-row-hover: rgba(30, 30, 28, 0.05);
+  --content-secondary-btn-bg: rgba(30, 30, 28, 0.05);
   /* ---- Desaturated status accents (LIGHT MODE ONLY) ----------------------
      Soft, elegant versions of the status colors so "In Stock / Low / Out"
      catch the eye without screaming. Dark mode keeps its vivid tokens. These
-     override the global accent-* tokens only within .content-light. */
+     override the global accent-* tokens only within .content-light. Info/edit
+     uses a neutral-leaning blue so it no longer casts a cool tone. */
   --content-accent-green: #3f7a54;     /* In Stock — subtle green */
   --content-accent-orange: #b0790f;    /* Low Stock — soft amber */
   --content-accent-red: #b4544e;       /* Out of Stock / errors — muted red */
-  --content-accent-blue: #3f6bb0;      /* info / edit — calm slate-blue */
+  --content-accent-blue: #4a6591;      /* info / edit — muted, low-chroma blue */
   color-scheme: light;
-  /* A whisper of cool light from the top so the canvas feels gently lit rather
-     than a flat fill. Extremely subtle — purely ambient. */
+  /* A whisper of neutral light from the top so the canvas feels gently lit
+     rather than a flat fill. Extremely subtle — purely ambient, no color cast. */
   background-image:
-    radial-gradient(1100px circle at 50% -12%, rgba(226, 234, 248, 0.7), transparent 42%);
+    radial-gradient(1100px circle at 50% -12%, rgba(255, 255, 255, 0.75), transparent 42%);
   background-attachment: fixed;
 }
 
@@ -83,31 +84,32 @@ body {
 .content-light .bg-accent-orange { background-color: var(--content-accent-orange) !important; }
 .content-light .bg-accent-red { background-color: var(--content-accent-red) !important; }
 
-/* Force all form elements in light mode to use the deep cool text color */
+/* Force all form elements in light mode to use the deep neutral text color */
 .content-light input,
 .content-light select,
 .content-light textarea,
 .content-light option {
-  color: #1a2130 !important;
+  color: #1e1e1c !important;
 }
 
 .content-light input::placeholder,
 .content-light textarea::placeholder {
-  color: #949cac !important;
+  color: #9a9992 !important;
 }
 
 .content-light select option {
   background-color: #ffffff;
-  color: #1a2130;
+  color: #1e1e1c;
 }
 
 /* Light mode cards get a soft, elegant two-layer lift so crisp-white data
-   surfaces float gently above the cool canvas (premium emphasis, not a hard
-   drop shadow). Cool slate-tinted shadow to match the canvas. */
+   surfaces float gently above the neutral canvas (premium emphasis, not a hard
+   drop shadow). Neutral warm-gray shadow to match the canvas — this is the
+   main way cards separate, so borders can stay soft and easy on the eyes. */
 .content-light .bg-card-bg {
   box-shadow:
-    0 1px 2px rgba(30, 41, 59, 0.05),
-    0 6px 16px -6px rgba(30, 41, 59, 0.10);
+    0 1px 2px rgba(30, 30, 28, 0.06),
+    0 6px 16px -6px rgba(30, 30, 28, 0.12);
 }
 
 /* ----------------------------------------------------------------------
