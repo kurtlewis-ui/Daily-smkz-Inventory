@@ -1,16 +1,25 @@
 'use client';
 
-import { Minus, Plus } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 /**
- * A number input with tappable ▼ / ▲ stepper buttons on each side — for
- * QUANTITY / STOCK fields (whole numbers). Typing still works exactly like a
- * normal input; the buttons just step the value by `step` and clamp to
- * [min, max]. Used site-wide (owner + staff) so quantity fields are easy to
- * adjust on touch devices, where the tiny native number spinners are unusable.
+ * A whole-number input (QUANTITY / STOCK fields) with a compact up/down
+ * spinner pinned to the RIGHT edge. The spinner is hidden by default and only
+ * reveals on hover (desktop) or when the field is focused/tapped (mobile),
+ * so the control reads as a clean number field until the user interacts —
+ * then the ▲ / ▼ arrows fade in for easy adjustment (native number spinners
+ * are tiny/unusable, especially on touch).
+ *
+ * Typing still works exactly like a normal input; the arrows step by `step`
+ * and clamp to [min, max]. The spinner's horizontal space is always reserved
+ * (via input padding), so revealing it never shifts the number — no layout
+ * jump.
  *
  * Value is a STRING (matching the existing form-state pattern in this app),
  * so an empty field stays empty until the user types or taps.
+ *
+ * The public props API is unchanged from the previous ▼/▲ side-button version,
+ * so every existing call site keeps working without edits.
  */
 interface NumberStepperProps {
   value: string;
@@ -21,9 +30,9 @@ interface NumberStepperProps {
   disabled?: boolean;
   placeholder?: string;
   ariaLabel?: string;
-  /** Extra classes for the middle <input> (e.g. width/padding overrides). */
+  /** Extra classes for the middle <input> (e.g. text alignment overrides). */
   inputClassName?: string;
-  /** Extra classes for the outer wrapper. */
+  /** Extra classes for the outer wrapper (usually width/flex sizing). */
   className?: string;
 }
 
@@ -47,8 +56,8 @@ export function NumberStepper({
   };
 
   const bump = (dir: 1 | -1) => {
-    // Empty input steps from min (up) or min (down) so the first tap gives a
-    // sensible starting value rather than NaN.
+    // Empty input steps from min so the first tap gives a sensible starting
+    // value rather than NaN.
     const current = value === '' || value === null || value === undefined ? min : Number(value);
     const base = Number.isFinite(current) ? current : min;
     const next = clamp(base + dir * step);
@@ -60,23 +69,16 @@ export function NumberStepper({
   const atMin = numeric !== null && typeof min === 'number' && numeric <= min;
   const atMax = numeric !== null && typeof max === 'number' && numeric >= max;
 
-  const btnBase =
-    'flex h-full w-9 shrink-0 items-center justify-center text-text-secondary transition-colors hover:bg-white/10 hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed';
+  // A single chevron button. Half-height, so up sits above down. Hidden until
+  // the group is hovered or focused; disabled at the respective bound. Kept out
+  // of the tab order (tabIndex -1) so the field itself is the tab stop.
+  const chevronBase =
+    'flex h-1/2 w-full items-center justify-center text-text-secondary transition-colors hover:bg-white/10 hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent';
 
   return (
     <div
-      className={`flex items-stretch overflow-hidden rounded-lg border border-input-border bg-input-bg focus-within:ring-2 focus-within:ring-input-focus ${className}`}
+      className={`group relative flex items-stretch overflow-hidden rounded-lg border border-input-border bg-input-bg transition-colors focus-within:ring-2 focus-within:ring-input-focus ${disabled ? 'opacity-60' : ''} ${className}`}
     >
-      <button
-        type="button"
-        onClick={() => bump(-1)}
-        disabled={disabled || atMin}
-        aria-label="Decrease"
-        tabIndex={-1}
-        className={`${btnBase} border-r border-input-border`}
-      >
-        <Minus size={16} />
-      </button>
       <input
         type="number"
         inputMode="numeric"
@@ -88,18 +90,37 @@ export function NumberStepper({
         placeholder={placeholder}
         aria-label={ariaLabel}
         onChange={(e) => onChange(e.target.value)}
-        className={`min-w-0 flex-1 bg-transparent px-2 py-2 text-center text-sm text-text-primary focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${inputClassName}`}
+        // Symmetric px-7 keeps the number visually centered while permanently
+        // reserving the spinner's width on the right, so text never shifts when
+        // the arrows fade in. Native spinners are removed.
+        className={`min-w-0 flex-1 bg-transparent px-7 py-2 text-center text-sm text-text-primary focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${inputClassName}`}
       />
-      <button
-        type="button"
-        onClick={() => bump(1)}
-        disabled={disabled || atMax}
-        aria-label="Increase"
-        tabIndex={-1}
-        className={`${btnBase} border-l border-input-border`}
+      {/* Right-edge up/down spinner. Fades in on hover (desktop) / focus (mobile). */}
+      <div
+        aria-hidden={false}
+        className="pointer-events-none absolute inset-y-0 right-0 flex w-6 flex-col border-l border-input-border opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
       >
-        <Plus size={16} />
-      </button>
+        <button
+          type="button"
+          onClick={() => bump(1)}
+          disabled={disabled || atMax}
+          aria-label="Increase"
+          tabIndex={-1}
+          className={`${chevronBase} border-b border-input-border`}
+        >
+          <ChevronUp size={13} />
+        </button>
+        <button
+          type="button"
+          onClick={() => bump(-1)}
+          disabled={disabled || atMin}
+          aria-label="Decrease"
+          tabIndex={-1}
+          className={chevronBase}
+        >
+          <ChevronDown size={13} />
+        </button>
+      </div>
     </div>
   );
 }
