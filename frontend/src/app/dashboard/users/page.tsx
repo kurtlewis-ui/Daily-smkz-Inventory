@@ -155,7 +155,7 @@ function AdminStaffView() {
                   <td className="px-3 py-4 align-middle">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={user.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
+                      <img src={user.avatarUrl} alt="" loading="lazy" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
                         {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
@@ -206,7 +206,7 @@ function AdminStaffView() {
                     <div className="flex items-start gap-3">
                       {user.avatarUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={user.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                        <img src={user.avatarUrl} alt="" loading="lazy" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full object-cover" />
                       ) : (
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-text-muted">
                           {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
@@ -674,7 +674,7 @@ function OwnerUsersView() {
                   <td className="px-3 py-4 align-middle">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={user.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
+                      <img src={user.avatarUrl} alt="" loading="lazy" width={36} height={36} className="w-9 h-9 rounded-full object-cover" />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
                         {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
@@ -741,7 +741,7 @@ function OwnerUsersView() {
                     <div className="flex items-start gap-3">
                       {user.avatarUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={user.avatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+                        <img src={user.avatarUrl} alt="" loading="lazy" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full object-cover" />
                       ) : (
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-text-muted">
                           {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}

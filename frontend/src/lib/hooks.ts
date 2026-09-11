@@ -881,10 +881,11 @@ export function useMe() {
     queryKey: ['me'],
     queryFn: () => getData<AuthUser>('/auth/me'),
     // Poll so a server-side profile change (e.g. an owner/admin reassigning
-    // this staff to a different branch) is picked up within seconds instead
-    // of waiting for the next login or token refresh. Also refetch when the
-    // user returns to the tab.
-    refetchInterval: shouldPoll,
+    // this staff to a different branch) is picked up without waiting for the
+    // next login or token refresh. 45s (vs the 10s live-poll used by the admin
+    // pending pages) is plenty for a profile reassignment and cuts a request
+    // that fires on every staff page; a tab refocus still refetches instantly.
+    refetchInterval: () => (shouldPoll() === false ? false : 45_000),
     refetchOnWindowFocus: true,
   });
 }
