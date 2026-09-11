@@ -5,6 +5,11 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    // Tree-shake icon/chart packages used app-wide so each page only bundles
+    // the symbols it actually imports (smaller per-page JS).
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
 };
 
 export default nextConfig;

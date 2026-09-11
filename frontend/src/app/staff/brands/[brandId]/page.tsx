@@ -329,7 +329,7 @@ function AddPurchaseModal({
           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-white/10 flex items-center justify-center">
             {product.image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+              <img src={product.image} alt={product.name} loading="lazy" className="h-full w-full object-cover" />
             ) : (
               <span className="text-[9px] text-text-muted">No Img</span>
             )}

@@ -19,7 +19,10 @@ import { useDragReorder } from '@/lib/useDragReorder';
 import { useToast } from '@/components/Toast';
 import { getApiErrorMessage } from '@/lib/api';
 import { parseCsv, readFileAsText } from '@/lib/csv';
-import { generateRestockXlsx, parseRestockXlsx, matchSlugToShopName, readFileAsArrayBuffer, type ProductRow } from '@/lib/xlsx-utils';
+// xlsx-js-style is heavy and only needed for export/import/template actions, so
+// it's dynamically imported inside those handlers (keeps it out of the Products
+// page's initial bundle). Only the type is imported statically (erased at build).
+import type { ProductRow } from '@/lib/xlsx-utils';
 import { useAuthStore } from '@/lib/store';
 import { ImageCropModal } from '@/components/ImageCropModal';
 import type { Product, ImportResult, RestockResult } from '@/lib/types';
@@ -186,7 +189,7 @@ export default function ProductsPage() {
     catch (e) { setFormError(getApiErrorMessage(e)); }
   }
 
-  function handleExport() {
+  async function handleExport() {
     const targetShops = shopFilter ? branches.filter((b) => b.id === shopFilter) : branches;
     const xlsxProducts: ProductRow[] = products.map((p, idx) => ({
       productId: idx + 1,
@@ -195,11 +198,12 @@ export default function ProductsPage() {
       sellingPrice: p.sellingPrice,
       quantities: Object.fromEntries(targetShops.map((b) => [b.name, qtyForBranch(p, b.id)])),
     }));
+    const { generateRestockXlsx } = await import('@/lib/xlsx-utils');
     generateRestockXlsx(xlsxProducts, targetShops, {
       filename: `products-export-${new Date().toISOString().slice(0, 10)}.xlsx`,
     });
   }
-  function handleTemplate() {
+  async function handleTemplate() {
     const targetShops = shopFilter ? branches.filter((b) => b.id === shopFilter) : branches;
     const xlsxProducts: ProductRow[] = products.map((p, idx) => ({
       productId: idx + 1,
@@ -208,6 +212,7 @@ export default function ProductsPage() {
       sellingPrice: p.sellingPrice,
       quantities: {},
     }));
+    const { generateRestockXlsx } = await import('@/lib/xlsx-utils');
     generateRestockXlsx(xlsxProducts, targetShops, {
       filename: `restock-template-${new Date().toISOString().slice(0, 10)}.xlsx`,
       isTemplate: true,
@@ -612,6 +617,8 @@ function RestockModal({ products, branches, onClose }: { products: Product[]; br
   async function onFile(file: File) {
     setError(null); setResult(null); setCsvItems([]); setFileName('');
     try {
+      // Load the xlsx helpers on demand (only when the user imports a file).
+      const { parseRestockXlsx, matchSlugToShopName, readFileAsArrayBuffer } = await import('@/lib/xlsx-utils');
       let headers: string[];
       let csvRows: Record<string, string>[];
 

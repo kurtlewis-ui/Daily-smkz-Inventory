@@ -14,7 +14,10 @@ export function Providers({ children }: { children: ReactNode }) {
           queries: {
             refetchOnWindowFocus: false,
             retry: 1,
-            staleTime: 5000,
+            // 45s: cached data stays fresh across page navigations instead of
+            // refetching every 5s. Live pages set their own refetchInterval, and
+            // all mutations invalidate explicitly, so reads stay correct.
+            staleTime: 45_000,
             gcTime: 300_000,
           },
         },
