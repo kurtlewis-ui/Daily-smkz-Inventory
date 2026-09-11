@@ -216,7 +216,7 @@ export default function SalesPendingPage() {
     <div className="p-6 bg-page-bg min-h-screen">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
         <h1 className="text-2xl font-bold text-text-primary">Pending Sales</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button onClick={handleApproveAll} disabled={busy || sales.length === 0} className="flex items-center gap-1.5 px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-70">
             <CheckCircle size={16} /> {confirmAction === 'approve-all-sales' ? 'Confirm Approve All?' : 'Approve All'}
           </button>
@@ -614,7 +614,7 @@ export default function SalesPendingPage() {
             <Recycle size={18} /> Pending Disposals
             {disposals.length > 0 && <span className="badge badge-neutral">{disposals.length}</span>}
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => { const n = disposals.length; if (!n) return; if (confirmAction !== 'approve-all-disposals') { setConfirmAction('approve-all-disposals'); return; } setConfirmAction(null); runSafe(async () => { await Promise.all(disposals.map((d) => approveDisposal.mutateAsync(d.id))); setActionStatus(`✓ All ${n} disposal${n === 1 ? '' : 's'} approved (stock deducted).`); }); }}
               disabled={disposals.length === 0}
@@ -713,7 +713,7 @@ export default function SalesPendingPage() {
             <PhilippinePeso size={18} /> Pending Expenses
             {expenses.length > 0 && <span className="badge badge-neutral">{expenses.length}</span>}
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => { const n = expenses.length; if (!n) return; if (confirmAction !== 'approve-all-expenses') { setConfirmAction('approve-all-expenses'); return; } setConfirmAction(null); runSafe(async () => { await Promise.all(expenses.map((e) => approveExpense.mutateAsync(e.id))); setActionStatus(`✓ All ${n} expense${n === 1 ? '' : 's'} approved.`); }); }}
               disabled={expenses.length === 0}
@@ -932,12 +932,14 @@ function EditSaleModal({
           <div className="space-y-2">
             {rows.length === 0 && <p className="text-xs text-text-muted">No items. Add at least one.</p>}
             {rows.map((row, idx) => (
-              <div key={`${row.productId}-${idx}`} className="flex items-center gap-2">
-                <Select value={row.productId} onChange={(v) => setRow(idx, { productId: v })} ariaLabel="Product" className="flex-1" options={products.map((p) => ({ value: p.id, label: `${p.name}${p.brand ? ` (${p.brand.name})` : ''} — ${peso(p.sellingPrice)}` }))} />
-                <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-28 shrink-0" />
-                <span className="w-20 text-right text-sm text-text-secondary">{peso(priceOf(row.productId) * row.quantity - (row.discount ?? 0))}</span>
-                <span className="w-24 truncate text-xs text-text-muted" title={row.paymentMethod}>{row.paymentMethod}</span>
-                <button onClick={() => removeRow(idx)} className="p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Remove"><Trash2 size={15} /></button>
+              <div key={`${row.productId}-${idx}`} className="flex flex-col gap-2 rounded-lg border border-card-border p-2 sm:flex-row sm:items-center sm:border-0 sm:p-0">
+                <Select value={row.productId} onChange={(v) => setRow(idx, { productId: v })} ariaLabel="Product" className="w-full sm:flex-1 sm:min-w-0" options={products.map((p) => ({ value: p.id, label: `${p.name}${p.brand ? ` (${p.brand.name})` : ''} — ${peso(p.sellingPrice)}` }))} />
+                <div className="flex items-center gap-2">
+                  <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-24 shrink-0 sm:w-28" />
+                  <span className="flex-1 text-right text-sm text-text-secondary sm:w-20 sm:flex-none">{peso(priceOf(row.productId) * row.quantity - (row.discount ?? 0))}</span>
+                  <span className="w-20 shrink-0 truncate text-xs text-text-muted sm:w-24" title={row.paymentMethod}>{row.paymentMethod}</span>
+                  <button onClick={() => removeRow(idx)} className="shrink-0 p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Remove"><Trash2 size={15} /></button>
+                </div>
               </div>
             ))}
           </div>

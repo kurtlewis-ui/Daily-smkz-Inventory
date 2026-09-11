@@ -239,12 +239,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         {/* User section at bottom */}
         <div className="border-t border-nav-border px-4 py-4">
-          <div className="flex items-center gap-3 relative">
+          <div className="flex items-center gap-3">
             {user?.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover ring-1 ring-white/20" />
+              <img src={user.avatarUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-white/20" />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white ring-1 ring-white/20">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white ring-1 ring-white/20">
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
               </div>
             )}
@@ -254,10 +254,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </p>
               <p className="text-[11px] text-[#666666] truncate">{user?.role?.name}</p>
             </div>
-            {/* Theme toggle — top right of user section */}
+            {/* Theme toggle — in-flow so it never overlaps the name/role */}
             <button
               onClick={handleThemeToggle}
-              className="absolute top-0 right-0 p-1.5 rounded-lg text-[#999999] hover:text-white hover:bg-white/5 transition-colors"
+              className="shrink-0 p-1.5 rounded-lg text-[#999999] hover:text-white hover:bg-white/5 transition-colors"
               title={contentTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               aria-label="Toggle theme"
             >

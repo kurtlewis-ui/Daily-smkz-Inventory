@@ -43,12 +43,12 @@ export function StockHistoryModal({ productId, productName, branchId, branchName
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="glass relative rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-card-border shrink-0">
-          <div>
-            <h3 className="text-lg font-bold text-text-primary">Product Activity Logs — {productName}</h3>
-            <p className="text-xs text-text-muted mt-0.5">{branchName}</p>
+        <div className="flex items-center justify-between gap-3 p-4 border-b border-card-border shrink-0">
+          <div className="min-w-0">
+            <h3 className="truncate text-lg font-bold text-text-primary" title={`Product Activity Logs — ${productName}`}>Product Activity Logs — {productName}</h3>
+            <p className="text-xs text-text-muted mt-0.5 truncate">{branchName}</p>
           </div>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
+          <button onClick={onClose} className="shrink-0 text-text-muted hover:text-text-primary transition"><X size={20} /></button>
         </div>
 
         {/* Content */}

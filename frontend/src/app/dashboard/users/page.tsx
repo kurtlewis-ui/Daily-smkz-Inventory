@@ -688,13 +688,15 @@ function OwnerUsersView() {
                   <td className="px-3 py-4 align-middle"><RoleBadge role={user.role.name} /></td>
                   <td className="px-3 py-4 text-sm text-text-secondary align-middle truncate" title={user.branch?.name ?? 'N/A'}>{user.branch?.name ?? 'N/A'}</td>
                   <td className="px-3 py-4 align-middle">
-                    <span className="badge badge-neutral">
-                      <span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />
-                      {user.isActive ? 'Active' : 'Disabled'}
-                    </span>
-                    {user.isLocked && (
-                      <span className="ml-1 rounded-full bg-accent-red/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-accent-red">Locked</span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="badge badge-neutral">
+                        <span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />
+                        {user.isActive ? 'Active' : 'Disabled'}
+                      </span>
+                      {user.isLocked && (
+                        <span className="rounded-full bg-accent-red/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-accent-red">Locked</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-4 text-xs text-text-muted align-middle truncate" title={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}>
                     {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never'}
