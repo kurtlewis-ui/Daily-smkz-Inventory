@@ -132,14 +132,14 @@ function AdminStaffView() {
           <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">#</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Image</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Branch</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase whitespace-nowrap"><span className="sr-only">Actions</span></th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap w-10">#</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap w-16">Image</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Name</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Email</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Role</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Branch</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Status</th>
+                <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase whitespace-nowrap"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -151,30 +151,30 @@ function AdminStaffView() {
                 <tr><td colSpan={8} className="text-center py-8 text-text-muted">No staff found.</td></tr>
               ) : displayedUsers.map((user, idx) => (
                 <tr key={user.id} className="border-b border-card-border align-middle transition hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
-                  <td className="px-4 py-3 align-middle">
+                  <td className="px-4 py-4 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
+                  <td className="px-4 py-4 align-middle">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      <img src={user.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
+                      <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
                         {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-primary font-medium align-middle whitespace-nowrap">
+                  <td className="px-4 py-4 text-sm text-text-primary font-medium align-middle whitespace-nowrap">
                     {user.firstName} {user.middleInitial ? `${user.middleInitial}. ` : ''}{user.lastName}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary align-middle">{user.email}</td>
-                  <td className="px-4 py-3 align-middle whitespace-nowrap"><RoleBadge role={user.role.name} /></td>
-                  <td className="px-4 py-3 text-sm text-text-secondary align-middle whitespace-nowrap">{user.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}</td>
-                  <td className="px-4 py-3 align-middle whitespace-nowrap">
+                  <td className="px-4 py-4 text-sm text-text-secondary align-middle max-w-[220px] truncate" title={user.email}>{user.email}</td>
+                  <td className="px-4 py-4 align-middle whitespace-nowrap"><RoleBadge role={user.role.name} /></td>
+                  <td className="px-4 py-4 text-sm text-text-secondary align-middle whitespace-nowrap">{user.branch?.name ?? <span className="text-accent-orange">Unassigned</span>}</td>
+                  <td className="px-4 py-4 align-middle whitespace-nowrap">
                     <span className="badge badge-neutral">
                       <span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />
                       {user.isActive ? 'Active' : 'Disabled'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 align-middle">
+                  <td className="px-4 py-4 align-middle">
                     <div className="flex justify-end whitespace-nowrap">
                       <button
                         onClick={() => handleChangeBranch(user)}
@@ -629,15 +629,15 @@ function OwnerUsersView() {
 
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm">
         <div className="p-4 flex flex-wrap items-center justify-between gap-3 border-b border-card-border">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div className="flex items-center gap-2.5">
               <label className="text-sm text-text-secondary">Show</label>
               <Select value={String(entriesPerPage)} onChange={(v) => { setEntriesPerPage(v === 'All' ? 'All' : Number(v)); setCurrentPage(1); }} ariaLabel="Entries per page" className="w-auto min-w-[80px]" options={[...[5, 10, 25, 50, 100].map((n) => ({ value: String(n), label: String(n) })), { value: 'All', label: 'All' }]} />
               <span className="text-sm text-text-secondary">entries</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <label className="text-sm text-text-secondary">Role</label>
-              <Select value={roleFilter} onChange={(v) => { setRoleFilter(v); setCurrentPage(1); }} ariaLabel="Filter by role" className="w-auto min-w-[120px]" options={[{ value: '', label: 'All Roles' }, { value: 'Owner', label: 'Owner' }, { value: 'Admin', label: 'Admin' }, { value: 'Staff', label: 'Staff' }]} />
+              <Select value={roleFilter} onChange={(v) => { setRoleFilter(v); setCurrentPage(1); }} ariaLabel="Filter by role" className="w-auto min-w-[130px]" options={[{ value: '', label: 'All Roles' }, { value: 'Owner', label: 'Owner' }, { value: 'Admin', label: 'Admin' }, { value: 'Staff', label: 'Staff' }]} />
             </div>
           </div>
           <div className="relative w-full sm:w-64">
@@ -650,15 +650,15 @@ function OwnerUsersView() {
           <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">#</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Image</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Shop</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase whitespace-nowrap">Last Login</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase whitespace-nowrap"><span className="sr-only">Actions</span></th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap w-10">#</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap w-16">Image</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Name</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Email</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Role</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Shop</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Status</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Last Login</th>
+                <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase whitespace-nowrap"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -670,24 +670,24 @@ function OwnerUsersView() {
                 <tr><td colSpan={9} className="text-center py-8 text-text-muted">No users found.</td></tr>
               ) : displayedUsers.map((user, idx) => (
                 <tr key={user.id} className="border-b border-card-border align-middle transition hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
-                  <td className="px-4 py-3 align-middle">
+                  <td className="px-4 py-4 text-sm text-text-primary align-middle">{pageStart + idx + 1}</td>
+                  <td className="px-4 py-4 align-middle">
                     {user.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      <img src={user.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
+                      <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-xs text-text-muted">
                         {user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-primary font-medium align-middle whitespace-nowrap">
+                  <td className="px-4 py-4 text-sm text-text-primary font-medium align-middle whitespace-nowrap">
                     {user.firstName} {user.middleInitial ? `${user.middleInitial}. ` : ''}{user.lastName}
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-secondary align-middle">{user.email}</td>
-                  <td className="px-4 py-3 align-middle whitespace-nowrap"><RoleBadge role={user.role.name} /></td>
-                  <td className="px-4 py-3 text-sm text-text-secondary align-middle whitespace-nowrap">{user.branch?.name ?? 'N/A'}</td>
-                  <td className="px-4 py-3 align-middle whitespace-nowrap">
+                  <td className="px-4 py-4 text-sm text-text-secondary align-middle max-w-[220px] truncate" title={user.email}>{user.email}</td>
+                  <td className="px-4 py-4 align-middle whitespace-nowrap"><RoleBadge role={user.role.name} /></td>
+                  <td className="px-4 py-4 text-sm text-text-secondary align-middle whitespace-nowrap">{user.branch?.name ?? 'N/A'}</td>
+                  <td className="px-4 py-4 align-middle whitespace-nowrap">
                     <span className="badge badge-neutral">
                       <span className={`badge-dot ${user.isActive ? 'bg-accent-green' : 'bg-accent-red'}`} />
                       {user.isActive ? 'Active' : 'Disabled'}
@@ -696,10 +696,10 @@ function OwnerUsersView() {
                       <span className="ml-1 rounded-full bg-accent-red/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-accent-red">Locked</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-text-muted align-middle whitespace-nowrap">
+                  <td className="px-4 py-4 text-xs text-text-muted align-middle whitespace-nowrap">
                     {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never'}
                   </td>
-                  <td className="px-4 py-3 align-middle">
+                  <td className="px-4 py-4 align-middle">
                     <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                       {user.role.name === 'Staff' && (
                         <button
