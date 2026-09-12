@@ -11,6 +11,7 @@ import {
   useArchiveProduct,
   useImportProducts,
   useRestock,
+  useUndoStock,
   useReorderProducts,
   type ImportProductRow,
   type RestockItem,
@@ -58,10 +59,36 @@ export default function ProductsPage() {
   const products = data?.data ?? [];
 
   const createProduct = useCreateProduct();
-  const updateProduct = useUpdateProduct();
+  // silent: the page shows its own success toast (with an Undo action for owners).
+  const updateProduct = useUpdateProduct({ silent: true });
   const archiveProduct = useArchiveProduct();
   const reorderProducts = useReorderProducts();
+  const undoStock = useUndoStock();
   const toast = useToast();
+
+  // Show a success toast for an owner that can undo the stock movements just
+  // created. Falls back to a plain success toast for non-owners or when there
+  // was nothing quantity-related to undo.
+  function toastWithUndo(message: string, movementIds: string[]) {
+    if (isOwner && movementIds.length > 0) {
+      toast.show('success', message, {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              const res = await undoStock.mutateAsync(movementIds);
+              if (res.undone > 0) toast.success('Reverted.', 'Undone');
+              else toast.error(res.skipped[0]?.reason ?? 'Nothing to undo.');
+            } catch (e) {
+              toast.error(getApiErrorMessage(e));
+            }
+          },
+        },
+      });
+    } else {
+      toast.success(message);
+    }
+  }
 
   // Manual reorder mode. Dragging only makes sense when the visible list is the
   // full, true order — i.e. no search, no brand filter, and "All" entries shown
@@ -179,8 +206,10 @@ export default function ProductsPage() {
         // All Shops → update the global/default selling price
         updateData.sellingPrice = parseFloat(formPrice) || 0;
       }
-      await withScrollPreserved(() => updateProduct.mutateAsync(updateData));
+      const res = await withScrollPreserved(() => updateProduct.mutateAsync(updateData));
       setFormDirty(false); setEditingProduct(null); setShowEditModal(false);
+      const ids = Array.isArray((res as any)?.undoMovementIds) ? (res as any).undoMovementIds as string[] : [];
+      toastWithUndo('Product updated', ids);
     } catch (e) { setFormError(getApiErrorMessage(e)); }
   }
   async function handleArchive() {
@@ -526,8 +555,8 @@ export default function ProductsPage() {
         </Modal>
       )}
       {showImportModal && <ImportModal branches={branches} onClose={() => setShowImportModal(false)} />}
-      {showRestockModal && <RestockModal products={products} branches={branches} onClose={() => setShowRestockModal(false)} />}
-      {historyProduct && shopFilter && <StockHistoryModal productId={historyProduct.id} productName={historyProduct.name} branchId={shopFilter} branchName={branches.find((b) => b.id === shopFilter)?.name ?? ''} onClose={() => setHistoryProduct(null)} />}
+      {showRestockModal && <RestockModal products={products} branches={branches} isOwner={isOwner} onClose={() => setShowRestockModal(false)} />}
+      {historyProduct && shopFilter && <StockHistoryModal productId={historyProduct.id} productName={historyProduct.name} branchId={shopFilter} branchName={branches.find((b) => b.id === shopFilter)?.name ?? ''} isOwner={isOwner} onClose={() => setHistoryProduct(null)} />}
     </div>
   );
 }
@@ -603,8 +632,10 @@ function ImportModal({ branches, onClose }: { branches: { id: string; name: stri
 
 interface RestockRow { productId: string; branchId: string; quantity: string; }
 
-function RestockModal({ products, branches, onClose }: { products: Product[]; branches: { id: string; name: string }[]; onClose: () => void }) {
-  const restock = useRestock();
+function RestockModal({ products, branches, isOwner, onClose }: { products: Product[]; branches: { id: string; name: string }[]; isOwner: boolean; onClose: () => void }) {
+  const restock = useRestock({ silent: true });
+  const undoStock = useUndoStock();
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RestockResult | null>(null);
 
@@ -679,7 +710,30 @@ function RestockModal({ products, branches, onClose }: { products: Product[]; br
     const items = csvItems;
     if (items.length === 0) { setError('No stock to add. Edit the shop columns in the exported file (numbers greater than 0) and re-upload.'); return; }
     setError(null);
-    try { setResult(await restock.mutateAsync(items)); }
+    try {
+      const res = await restock.mutateAsync(items);
+      setResult(res);
+      const ids = Array.isArray((res as any)?.movementIds) ? (res as any).movementIds as string[] : [];
+      const msg = `Restocked ${res.updated} of ${res.total} ${res.total === 1 ? 'entry' : 'entries'}`;
+      if (isOwner && ids.length > 0) {
+        toast.show('success', msg, {
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              try {
+                const u = await undoStock.mutateAsync(ids);
+                if (u.undone > 0) toast.success(`Reverted ${u.undone} ${u.undone === 1 ? 'entry' : 'entries'}.`, 'Undone');
+                else toast.error(u.skipped[0]?.reason ?? 'Nothing to undo.');
+              } catch (e) {
+                toast.error(getApiErrorMessage(e));
+              }
+            },
+          },
+        });
+      } else {
+        toast.success(msg);
+      }
+    }
     catch (e) { setError(getApiErrorMessage(e)); }
   }
 

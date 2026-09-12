@@ -273,14 +273,40 @@ export interface RestockItem {
   quantity: number;
 }
 
-export function useRestock() {
+export interface RestockResultData {
+  updated: number;
+  total: number;
+  warnings: string[];
+  // IDs of the stock movements this restock created — used to offer a one-tap
+  // undo of exactly this batch.
+  movementIds: string[];
+}
+
+// `silent` skips the built-in success toast so the caller can show its own
+// (e.g. a success toast with an "Undo" action). Errors still toast.
+export function useRestock(opts?: { silent?: boolean }) {
   const invalidate = useInvalidate();
   const t = useMutationToasts('Stock updated');
   return useMutation({
     mutationFn: (items: RestockItem[]) =>
-      api.post('/products/restock', { items }).then((r) => r.data.data),
-    onSuccess: () => { invalidate(['products'], ['stats']); t.onSuccess(); },
+      api.post('/products/restock', { items }).then((r) => r.data.data as RestockResultData),
+    onSuccess: () => { invalidate(['products'], ['stats']); if (!opts?.silent) t.onSuccess(); },
     onError: t.onError,
+  });
+}
+
+// Undo one or more stock movements (owner-only on the backend). Appends
+// compensating movements — nothing is deleted. Returns { undone, skipped }.
+export interface UndoStockResult {
+  undone: number;
+  skipped: { id: string; reason: string }[];
+}
+export function useUndoStock() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (movementIds: string[]) =>
+      api.post('/products/stock-movements/undo', { movementIds }).then((r) => r.data.data as UndoStockResult),
+    onSuccess: () => invalidate(['products'], ['stats'], ['stock-movements']),
   });
 }
 
@@ -295,13 +321,15 @@ export function useCreateProduct() {
   });
 }
 
-export function useUpdateProduct() {
+// `silent` skips the built-in success toast so the caller can show its own
+// (e.g. with an "Undo" action for the quantity changes just made).
+export function useUpdateProduct(opts?: { silent?: boolean }) {
   const invalidate = useInvalidate();
   const t = useMutationToasts('Product updated');
   return useMutation({
     mutationFn: ({ id, ...body }: ProductMutationInput & { id: string }) =>
-      api.patch(`/products/${id}`, body).then((r) => r.data.data),
-    onSuccess: () => { invalidate(['products']); t.onSuccess(); },
+      api.patch(`/products/${id}`, body).then((r) => r.data.data as { undoMovementIds?: string[] } & Record<string, unknown>),
+    onSuccess: () => { invalidate(['products']); if (!opts?.silent) t.onSuccess(); },
     onError: t.onError,
   });
 }

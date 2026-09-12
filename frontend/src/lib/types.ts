@@ -326,6 +326,9 @@ export interface RestockResult {
   updated: number;
   total: number;
   warnings: string[];
+  // IDs of the stock movements this restock created (used to offer a one-tap
+  // undo of exactly this batch). Present on the /products/restock response.
+  movementIds?: string[];
 }
 
 
