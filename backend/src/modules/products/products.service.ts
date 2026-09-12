@@ -10,6 +10,7 @@ import { QueryProductDto } from './dto/query-product.dto';
 import { ImportProductRowDto } from './dto/import-products.dto';
 import { RestockItemDto } from './dto/restock.dto';
 import { slugify } from '../../common/utils/string.util';
+// (UndoStockDto is validated at the controller; the service takes the id list.)
 import { UploadService } from '../../common/upload/upload.service';
 
 @Injectable()
@@ -237,6 +238,9 @@ export class ProductsService {
     // "All Shops" edit flattened every branch back to the default price.
 
     // Upsert per-branch quantities when provided, and log stock movements.
+    // Collect the ids of ADJUSTMENT movements this edit creates so the client
+    // can offer a one-tap "Undo" of exactly this edit's quantity changes.
+    const undoMovementIds: string[] = [];
     if (dto.quantities?.length) {
       for (const q of dto.quantities) {
         // Get current quantity before update
@@ -255,7 +259,7 @@ export class ProductsService {
 
         // Log ADJUSTMENT if quantity actually changed
         if (diff !== 0) {
-          await this.prisma.stockMovement.create({
+          const movement = await this.prisma.stockMovement.create({
             data: {
               productId: id,
               branchId: q.branchId,
@@ -266,6 +270,7 @@ export class ProductsService {
               description: 'Updated quantity.',
             },
           });
+          undoMovementIds.push(movement.id);
         }
       }
     }
@@ -283,7 +288,9 @@ export class ProductsService {
       data,
     );
 
-    return this.serialize(updated!);
+    const serialized = this.serialize(updated!);
+    // Attach the undoable movement ids (empty when no quantity actually changed).
+    return { ...serialized, undoMovementIds };
   }
 
   async remove(id: string, deletedBy: string) {
@@ -469,6 +476,7 @@ export class ProductsService {
   async restock(items: RestockItemDto[], userId: string) {
     let updated = 0;
     const warnings: string[] = [];
+    const movements: { id: string }[] = [];
 
     for (const [index, item] of items.entries()) {
       // Resolve product. Archived products, and products whose brand is
@@ -509,7 +517,7 @@ export class ProductsService {
       const inv = await this.prisma.inventory.findUnique({
         where: { productId_branchId: { productId: product.id, branchId: branch.id } },
       });
-      await this.prisma.stockMovement.create({
+      const movement = await this.prisma.stockMovement.create({
         data: {
           productId: product.id,
           branchId: branch.id,
@@ -520,13 +528,123 @@ export class ProductsService {
           description: 'Restocked product.',
         },
       });
+      movements.push({ id: movement.id });
 
       updated++;
     }
 
     await this.audit(userId, 'PRODUCTS_RESTOCKED', userId, null, { updated });
 
-    return { updated, total: items.length, warnings };
+    // Return the ids of the movements we just created so the client can offer a
+    // precise, one-tap "Undo" of exactly this batch.
+    const movementIds = movements.map((m) => m.id);
+    return { updated, total: items.length, warnings, movementIds };
+  }
+
+  /**
+   * Owner-only UNDO of stock movements (a restock batch or a manual quantity
+   * edit). Each movement is reversed by appending a COMPENSATING ADJUSTMENT
+   * movement — the original row is never modified or deleted, so the ledger
+   * stays a complete, auditable history (the undo itself shows up too).
+   *
+   * Safety rules (a movement is SKIPPED, with a reason, if any fail):
+   *  - Only RESTOCK and ADJUSTMENT movements can be undone.
+   *  - The movement must be the MOST RECENT one for its product+branch. This
+   *    prevents out-of-order corrections (e.g. undoing an old restock after a
+   *    sale happened) from producing a wrong count.
+   *  - Undoing must not drive stock negative.
+   *  - A movement that is itself an undo, or that has already been undone,
+   *    can't be undone again (idempotent).
+   *
+   * Everything runs in a single transaction so stock and the ledger never end
+   * up half-applied.
+   */
+  async undoStockMovements(movementIds: string[], userId: string) {
+    const undone: string[] = [];
+    const skipped: { id: string; reason: string }[] = [];
+
+    // De-duplicate while preserving order.
+    const ids = [...new Set(movementIds)];
+
+    for (const id of ids) {
+      const movement = await this.prisma.stockMovement.findUnique({ where: { id } });
+      if (!movement) {
+        skipped.push({ id, reason: 'Movement not found.' });
+        continue;
+      }
+      if (movement.type !== 'RESTOCK' && movement.type !== 'ADJUSTMENT') {
+        skipped.push({ id, reason: 'Only restock or quantity-edit movements can be undone.' });
+        continue;
+      }
+      // An undo we previously wrote is tagged in its description; never undo an undo.
+      if (movement.description && movement.description.startsWith('Undo:')) {
+        skipped.push({ id, reason: 'This entry is itself an undo.' });
+        continue;
+      }
+
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          // Re-read INSIDE the transaction and confirm this is still the most
+          // recent movement for the product+branch. If anything newer exists
+          // (a sale, another restock, or an undo we already applied), refuse.
+          const latest = await tx.stockMovement.findFirst({
+            where: { productId: movement.productId, branchId: movement.branchId },
+            orderBy: { createdAt: 'desc' },
+          });
+          if (!latest || latest.id !== movement.id) {
+            throw new BadRequestException(
+              'There is newer stock activity for this product/shop — undo the most recent action first.',
+            );
+          }
+
+          const inv = await tx.inventory.findUnique({
+            where: { productId_branchId: { productId: movement.productId, branchId: movement.branchId } },
+          });
+          const currentQty = inv?.quantity ?? 0;
+          const reverseDelta = -movement.quantityChange; // inverse of the original
+          const newQty = currentQty + reverseDelta;
+          if (newQty < 0) {
+            throw new BadRequestException(
+              'Undo would make stock negative (items were sold or used since).',
+            );
+          }
+
+          await tx.inventory.upsert({
+            where: { productId_branchId: { productId: movement.productId, branchId: movement.branchId } },
+            create: { productId: movement.productId, branchId: movement.branchId, quantity: newQty },
+            update: { quantity: newQty },
+          });
+
+          const label = movement.type === 'RESTOCK' ? 'restock' : 'quantity edit';
+          await tx.stockMovement.create({
+            data: {
+              productId: movement.productId,
+              branchId: movement.branchId,
+              userId,
+              type: 'ADJUSTMENT',
+              quantityChange: reverseDelta,
+              quantityAfter: newQty,
+              description: `Undo: reverted a ${label}.`,
+            },
+          });
+        });
+        undone.push(id);
+      } catch (e: any) {
+        skipped.push({ id, reason: e?.message ?? 'Could not undo this movement.' });
+      }
+    }
+
+    if (undone.length === 0 && skipped.length > 0) {
+      // Nothing could be undone — surface the first reason so the UI can show it.
+      throw new BadRequestException(skipped[0].reason);
+    }
+
+    await this.audit(userId, 'STOCK_MOVEMENTS_UNDONE', userId, null, {
+      undone: undone.length,
+      skipped: skipped.length,
+    });
+
+    return { undone: undone.length, skipped };
   }
 
   private async assertBranchesExist(quantities?: BranchQuantityDto[]) {

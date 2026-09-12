@@ -32,17 +32,39 @@ const DEFAULT_TITLES: Record<ToastKind, string> = {
 
 const DURATION_MS = 2800;
 
+// Optional inline action button (e.g. "Undo"). When present the toast lingers
+// longer so the user has time to act, and clicking it runs `onClick` then
+// dismisses the toast.
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
+// Extra options for a toast: an optional action button and a custom duration.
+interface ToastOptions {
+  title?: string;
+  action?: ToastAction;
+  durationMs?: number;
+}
+
+const ACTION_DURATION_MS = 8000;
+
 interface ToastItem {
   id: number;
   kind: ToastKind;
   message: string;
   title: string;
+  action?: ToastAction;
+  durationMs: number;
 }
 
 interface ToastApi {
   success: (message: string, title?: string) => void;
   error: (message: string, title?: string) => void;
   info: (message: string, title?: string) => void;
+  // Full-control variant used for action toasts (e.g. Undo). Existing
+  // success/error/info calls are unchanged.
+  show: (kind: ToastKind, message: string, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastApi | null>(null);
@@ -56,15 +78,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const push = useCallback((kind: ToastKind, message: string, title?: string) => {
+  const push = useCallback((kind: ToastKind, message: string, options?: ToastOptions) => {
     const id = nextId++;
-    setToasts((prev) => [...prev, { id, kind, message, title: title ?? DEFAULT_TITLES[kind] }]);
+    const durationMs = options?.durationMs ?? (options?.action ? ACTION_DURATION_MS : DURATION_MS);
+    setToasts((prev) => [
+      ...prev,
+      { id, kind, message, title: options?.title ?? DEFAULT_TITLES[kind], action: options?.action, durationMs },
+    ]);
   }, []);
 
   const api: ToastApi = {
-    success: (m, t) => push('success', m, t),
-    error: (m, t) => push('error', m, t),
-    info: (m, t) => push('info', m, t),
+    success: (m, t) => push('success', m, { title: t }),
+    error: (m, t) => push('error', m, { title: t }),
+    info: (m, t) => push('info', m, { title: t }),
+    show: (kind, m, options) => push(kind, m, options),
   };
 
   return (
@@ -144,9 +171,9 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
   }, [onDismiss]);
 
   useEffect(() => {
-    const timer = setTimeout(close, DURATION_MS);
+    const timer = setTimeout(close, toast.durationMs);
     return () => clearTimeout(timer);
-  }, [close]);
+  }, [close, toast.durationMs]);
 
   const ring =
     toast.kind === 'success'
@@ -172,6 +199,14 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold leading-tight text-text-primary">{toast.title}</p>
         <p className="mt-0.5 text-sm leading-snug text-text-secondary break-words">{toast.message}</p>
+        {toast.action && (
+          <button
+            onClick={() => { toast.action!.onClick(); close(); }}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-accent-blue/40 bg-accent-blue/10 px-3 py-1.5 text-xs font-semibold text-accent-blue transition hover:bg-accent-blue hover:text-white"
+          >
+            {toast.action.label}
+          </button>
+        )}
       </div>
       <button
         onClick={close}
@@ -184,7 +219,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
       <span className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-full opacity-60">
         <span
           className={`toast-progress block h-full w-full ${bar}`}
-          style={{ animationDuration: `${DURATION_MS}ms` }}
+          style={{ animationDuration: `${toast.durationMs}ms` }}
         />
       </span>
     </div>
@@ -195,7 +230,7 @@ export function useToast(): ToastApi {
   const ctx = useContext(ToastContext);
   if (!ctx) {
     // Safe no-op fallback if used outside the provider (shouldn't happen).
-    return { success: () => {}, error: () => {}, info: () => {} };
+    return { success: () => {}, error: () => {}, info: () => {}, show: () => {} };
   }
   return ctx;
 }
