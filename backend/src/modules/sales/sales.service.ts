@@ -10,7 +10,7 @@ import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { QuerySaleDto } from './dto/query-sale.dto';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
-import { businessDateOnly } from '../../common/utils/business-day.util';
+import { businessDateOnly, businessDayRange } from '../../common/utils/business-day.util';
 
 @Injectable()
 export class SalesService {
@@ -117,13 +117,10 @@ export class SalesService {
     }
 
     if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        where.createdAt.lte = end;
-      }
+      // Filter by PH BUSINESS day (2 AM–2 AM), matching how sales are numbered,
+      // so a sale made after midnight still counts under the same business day
+      // and shows on the day's report. Window is [start 2AM PH, next-day 2AM PH).
+      where.createdAt = businessDayRange(startDate, endDate);
     }
 
     if (search) {

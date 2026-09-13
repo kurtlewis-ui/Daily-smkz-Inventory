@@ -100,3 +100,52 @@ export function startOfBusinessMonth(at: Date = new Date()): Date {
 export function phBusinessClockSql(col: string): string {
   return `(${col} + interval '${PH_OFFSET_MS / 3600000} hours' - interval '${BUSINESS_DAY_START_HOUR} hours')`;
 }
+
+/**
+ * The real UTC instant at which the business day for a given PH calendar date
+ * STARTS — i.e. 2:00 AM PH on that date. `dateStr` is a plain "YYYY-MM-DD"
+ * (as sent by the client from its local PH calendar). Parsed numerically so
+ * the result is identical no matter what timezone the server runs in.
+ *
+ * Example: "2026-09-14" -> 2026-09-13T18:00:00.000Z (= 2 AM PH on Sep 14).
+ * Returns null if the string isn't a valid YYYY-MM-DD.
+ */
+export function businessDayStartFromDateStr(dateStr: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]); // 1-12
+  const day = Number(m[3]); // 1-31
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  // 2:00 AM PH on (year, month, day) as a real UTC instant:
+  // Date.UTC(...,2,...) is 2 AM UTC; shift back 8h to make it 2 AM PH.
+  return new Date(Date.UTC(year, month - 1, day, BUSINESS_DAY_START_HOUR, 0, 0) - PH_OFFSET_MS);
+}
+
+/**
+ * Build a Prisma `createdAt` filter for an inclusive range of PH BUSINESS days
+ * given plain "YYYY-MM-DD" start/end strings (either may be omitted). The
+ * window runs from 2 AM PH of `startStr` up to (but NOT including) 2 AM PH of
+ * the day AFTER `endStr`, so a record made at, e.g., 1:30 AM PH still falls in
+ * the previous business day — matching the sale-number counter.
+ *
+ * Returns `{}` when neither bound is usable, so callers can spread it safely.
+ */
+export function businessDayRange(
+  startStr?: string,
+  endStr?: string,
+): { gte?: Date; lt?: Date } {
+  const range: { gte?: Date; lt?: Date } = {};
+  if (startStr) {
+    const start = businessDayStartFromDateStr(startStr);
+    if (start) range.gte = start;
+  }
+  if (endStr) {
+    const endStart = businessDayStartFromDateStr(endStr);
+    if (endStart) {
+      // Exclusive upper bound = start of the NEXT business day (+24h).
+      range.lt = new Date(endStart.getTime() + 24 * 60 * 60 * 1000);
+    }
+  }
+  return range;
+}
