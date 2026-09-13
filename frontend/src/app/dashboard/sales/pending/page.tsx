@@ -15,6 +15,8 @@ import {
   useDeclineDisposal,
   useStaffDrafts,
   useSaveDraftForStaff,
+  useClearStaffDraft,
+  useClearAllDrafts,
   useExpensesPending,
   useApproveExpense,
   useDeclineExpense,
@@ -129,6 +131,8 @@ export default function SalesPendingPage() {
   const { data: draftsData, isLoading: draftsLoading } = useStaffDrafts(selectedShop || undefined);
   const drafts = draftsData ?? [];
   const saveDraftForStaff = useSaveDraftForStaff();
+  const clearStaffDraft = useClearStaffDraft();
+  const clearAllDrafts = useClearAllDrafts();
 
   // Today's approved Total Sales / Total Expenses / Net for the selected branch.
   const { data: branchSummary } = useBranchSummary(selectedShop || undefined);
@@ -211,6 +215,32 @@ export default function SalesPendingPage() {
       );
     });
   };
+
+  // Discard a single staff member's draft WITHOUT submitting it (two-click
+  // confirm). Nothing is sold/disposed/expensed — the cart is thrown away.
+  const handleClearDraft = (staffId: string, staffName: string) => {
+    if (confirmAction !== `clear-draft-${staffId}`) { setConfirmAction(`clear-draft-${staffId}`); return; }
+    setConfirmAction(null);
+    runSafe(async () => {
+      await clearStaffDraft.mutateAsync(staffId);
+      setActionStatus(`Cleared ${staffName}'s draft (nothing was submitted).`);
+    });
+  };
+
+  // Discard EVERY staff draft for the current branch without submitting any
+  // of them (two-click confirm — destructive, so styled red).
+  const handleClearAllDrafts = () => {
+    const n = drafts.length;
+    if (n === 0) return;
+    if (confirmAction !== 'clear-all-drafts') { setConfirmAction('clear-all-drafts'); return; }
+    setConfirmAction(null);
+    runSafe(async () => {
+      const res = await clearAllDrafts.mutateAsync(selectedShop || undefined);
+      setActionStatus(`Cleared ${res.cleared} draft${res.cleared === 1 ? '' : 's'} (nothing was submitted).`);
+    });
+  };
+
+  const draftBusy = saveDraftForStaff.isPending || clearStaffDraft.isPending || clearAllDrafts.isPending;
 
   return (
     <div className="p-6 bg-page-bg min-h-screen">
@@ -427,30 +457,43 @@ export default function SalesPendingPage() {
           </h2>
           <div className="flex items-center gap-3 flex-wrap">
             <p className="text-xs text-text-muted">In-progress staff carts — not yet submitted for approval.</p>
-            <button
-              onClick={handleAcceptAllDrafts}
-              disabled={saveDraftForStaff.isPending || drafts.length === 0}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60 ${confirmAction === 'accept-all-drafts' ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
-              title="Submit every staff member's draft on their behalf"
-            >
-              <Send size={14} /> {confirmAction === 'accept-all-drafts' ? 'Confirm Accept All?' : 'Accept All Drafts'}
-            </button>
-            {confirmAction === 'accept-all-drafts' && (
-              <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium hover:bg-white/15 transition">Cancel</button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleAcceptAllDrafts}
+                disabled={draftBusy || drafts.length === 0}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60 ${confirmAction === 'accept-all-drafts' ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
+                title="Submit every staff member's draft on their behalf"
+              >
+                <Send size={14} /> {confirmAction === 'accept-all-drafts' ? 'Confirm Accept All?' : 'Accept All'}
+              </button>
+              {confirmAction === 'accept-all-drafts' && (
+                <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium hover:bg-white/15 transition">Cancel</button>
+              )}
+              <button
+                onClick={handleClearAllDrafts}
+                disabled={draftBusy || drafts.length === 0}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60 ${confirmAction === 'clear-all-drafts' ? 'bg-accent-red text-white' : 'bg-white/10 text-text-primary hover:bg-white/15'}`}
+                title="Discard every staff draft without submitting (nothing is sold)"
+              >
+                <Trash2 size={14} /> {confirmAction === 'clear-all-drafts' ? 'Confirm Clear All?' : 'Clear All'}
+              </button>
+              {confirmAction === 'clear-all-drafts' && (
+                <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium hover:bg-white/15 transition">Cancel</button>
+              )}
+            </div>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="hidden w-full md:table">
             <thead>
               <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Staff</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">To Sell</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">To Dispose</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Expenses</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Total</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Last Updated</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase">Actions</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Staff</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">To Sell</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">To Dispose</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Expenses</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Total</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Last Updated</th>
+                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -459,72 +502,97 @@ export default function SalesPendingPage() {
               ) : drafts.length === 0 ? (
                 <tr><td colSpan={7} className="text-center py-6 text-text-muted">No staff currently building an order.</td></tr>
               ) : drafts.map((d) => (
-                <tr key={d.id} className="border-b border-card-border/60 transition align-top">
-                  <td className="px-4 py-4">
-                    <p className="text-sm font-medium text-text-primary">{d.staff.name}</p>
-                    <p className="text-xs text-text-muted">{d.staff.email}</p>
+                <tr key={d.id} className="border-b border-card-border/60 transition align-top hover:bg-white/[0.02]">
+                  <td className="px-4 py-4 align-top">
+                    <p className="text-sm font-semibold text-text-primary break-words">{d.staff.name}</p>
+                    <p className="text-xs text-text-muted break-all">{d.staff.email}</p>
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary">
+                  <td className="px-4 py-4 text-sm text-text-secondary align-top">
                     {d.items.length === 0 ? '—' : (
-                      <ul className="space-y-1">
+                      <ul className="divide-y divide-card-border/40">
                         {d.items.map((item: any) => (
-                          <li key={item.productId}>
-                            {item.quantity}× {item.name}{' '}
-                            <span className="badge badge-neutral">
-                              <span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />
-                              {itemPaymentLabel(item)}
+                          <li key={item.productId} className="flex items-start justify-between gap-3 py-1.5 first:pt-0 last:pb-0">
+                            <span className="flex min-w-0 items-baseline gap-1.5">
+                              <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
+                              <span className="min-w-0 break-words font-medium text-text-primary">{item.name}</span>
                             </span>
-                            {item.addedAt && <span className="ml-1 text-[10px] text-text-muted">{new Date(item.addedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}</span>}
+                            <span className="flex shrink-0 flex-col items-end gap-0.5">
+                              <span className="badge badge-neutral whitespace-nowrap">
+                                <span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />
+                                {itemPaymentLabel(item)}
+                              </span>
+                              {item.addedAt && <span className="text-[10px] tabular-nums text-text-muted">{new Date(item.addedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}</span>}
+                            </span>
                           </li>
                         ))}
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary">
-                    {d.disposalItems.length === 0 ? '—' : (
-                      <ul className="space-y-1">
-                        {d.disposalItems.map((item) => <li key={item.productId}>{item.quantity}× {item.name}</li>)}
+                  <td className="px-4 py-4 text-sm text-text-secondary align-top">
+                    {d.disposalItems.length === 0 ? <span className="text-text-muted">—</span> : (
+                      <ul className="space-y-1.5">
+                        {d.disposalItems.map((item) => (
+                          <li key={item.productId} className="flex items-baseline gap-1.5">
+                            <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
+                            <span className="break-words">{item.name}</span>
+                          </li>
+                        ))}
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary">
-                    {d.expenses.length === 0 ? '—' : (
-                      <ul className="space-y-1">
-                        {d.expenses.map((exp, idx) => <li key={idx}>{peso(exp.amount)} — {exp.note}</li>)}
+                  <td className="px-4 py-4 text-sm text-text-secondary align-top">
+                    {d.expenses.length === 0 ? <span className="text-text-muted">—</span> : (
+                      <ul className="space-y-1.5">
+                        {d.expenses.map((exp, idx) => (
+                          <li key={idx} className="break-words">
+                            <span className="font-medium text-accent-red">−{peso(exp.amount)}</span>
+                            {exp.note && <span className="text-text-muted"> · {exp.note}</span>}
+                          </li>
+                        ))}
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-primary font-medium">
-                    {d.items.length > 0 && <p>{peso(d.total)}</p>}
-                    {d.expenses.length > 0 && <p className="text-xs text-accent-red">-{peso(d.expensesTotal)}</p>}
+                  <td className="px-4 py-4 text-sm text-text-primary font-medium align-top whitespace-nowrap">
+                    {d.items.length > 0 && <p className="tabular-nums">{peso(d.total)}</p>}
+                    {d.expenses.length > 0 && <p className="text-xs text-accent-red tabular-nums">−{peso(d.expensesTotal)}</p>}
                     {d.items.length > 0 && d.expenses.length > 0 && (
-                      <p className="text-xs font-semibold text-accent-purple-light">Net: {peso(d.total - d.expensesTotal)}</p>
+                      <p className="mt-0.5 text-xs font-semibold text-accent-purple-light tabular-nums">Net: {peso(d.total - d.expensesTotal)}</p>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary">{formatDate(d.updatedAt)}</td>
-                  <td className="px-4 py-4">
-                    <button
-                      onClick={() => {
-                        if (confirmAction !== `save-draft-${d.staff.id}`) { setConfirmAction(`save-draft-${d.staff.id}`); return; }
-                        setConfirmAction(null);
-                        runSafe(async () => {
-                          const result = await saveDraftForStaff.mutateAsync(d.staff.id);
-                          setActionStatus(
-                            result.errors.length > 0
-                              ? `Saved ${d.staff.name}'s draft with issues: ${result.errors.join('; ')}`
-                              : `✓ Saved ${d.staff.name}'s draft — now pending approval.`,
-                          );
-                        });
-                      }}
-                      disabled={saveDraftForStaff.isPending}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition disabled:opacity-70 ${confirmAction === `save-draft-${d.staff.id}` ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
-                      title="Submit this staff member's draft on their behalf"
-                    >
-                      <Send size={13} /> {confirmAction === `save-draft-${d.staff.id}` ? 'Confirm Submit?' : 'Save Draft'}
-                    </button>
-                    {confirmAction === `save-draft-${d.staff.id}` && (
-                      <button onClick={() => setConfirmAction(null)} className="mt-1 text-[10px] text-text-muted hover:text-text-primary">Cancel</button>
-                    )}
+                  <td className="px-4 py-4 text-sm text-text-secondary align-top whitespace-nowrap">{formatDate(d.updatedAt)}</td>
+                  <td className="px-4 py-4 align-top">
+                    <div className="flex flex-col items-stretch gap-1.5">
+                      <button
+                        onClick={() => {
+                          if (confirmAction !== `save-draft-${d.staff.id}`) { setConfirmAction(`save-draft-${d.staff.id}`); return; }
+                          setConfirmAction(null);
+                          runSafe(async () => {
+                            const result = await saveDraftForStaff.mutateAsync(d.staff.id);
+                            setActionStatus(
+                              result.errors.length > 0
+                                ? `Saved ${d.staff.name}'s draft with issues: ${result.errors.join('; ')}`
+                                : `✓ Saved ${d.staff.name}'s draft — now pending approval.`,
+                            );
+                          });
+                        }}
+                        disabled={draftBusy}
+                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition disabled:opacity-70 whitespace-nowrap ${confirmAction === `save-draft-${d.staff.id}` ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
+                        title="Submit this staff member's draft on their behalf"
+                      >
+                        <Send size={13} /> {confirmAction === `save-draft-${d.staff.id}` ? 'Confirm?' : 'Save Draft'}
+                      </button>
+                      <button
+                        onClick={() => handleClearDraft(d.staff.id, d.staff.name)}
+                        disabled={draftBusy}
+                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-70 whitespace-nowrap ${confirmAction === `clear-draft-${d.staff.id}` ? 'bg-accent-red text-white' : 'bg-white/10 text-text-secondary hover:bg-white/15 hover:text-accent-red'}`}
+                        title="Discard this draft without submitting (nothing is sold)"
+                      >
+                        <Trash2 size={13} /> {confirmAction === `clear-draft-${d.staff.id}` ? 'Confirm?' : 'Clear'}
+                      </button>
+                      {(confirmAction === `save-draft-${d.staff.id}` || confirmAction === `clear-draft-${d.staff.id}`) && (
+                        <button onClick={() => setConfirmAction(null)} className="text-[10px] text-text-muted hover:text-text-primary">Cancel</button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -547,49 +615,72 @@ export default function SalesPendingPage() {
                         <p className="text-xs text-text-muted break-words">{d.staff.email}</p>
                         <p className="text-[11px] text-text-muted">Updated {formatDate(d.updatedAt)}</p>
                       </div>
-                      <button
-                        onClick={() => {
-                          if (confirmAction !== `save-draft-${d.staff.id}`) { setConfirmAction(`save-draft-${d.staff.id}`); return; }
-                          setConfirmAction(null);
-                          runSafe(async () => {
-                            const result = await saveDraftForStaff.mutateAsync(d.staff.id);
-                            setActionStatus(
-                              result.errors.length > 0
-                                ? `Saved ${d.staff.name}'s draft with issues: ${result.errors.join('; ')}`
-                                : `✓ Saved ${d.staff.name}'s draft — now pending approval.`,
-                            );
-                          });
-                        }}
-                        disabled={saveDraftForStaff.isPending}
-                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition disabled:opacity-70 ${confirmAction === `save-draft-${d.staff.id}` ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
-                      >
-                        <Send size={13} /> {confirmAction === `save-draft-${d.staff.id}` ? 'Confirm?' : 'Save'}
-                      </button>
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            if (confirmAction !== `save-draft-${d.staff.id}`) { setConfirmAction(`save-draft-${d.staff.id}`); return; }
+                            setConfirmAction(null);
+                            runSafe(async () => {
+                              const result = await saveDraftForStaff.mutateAsync(d.staff.id);
+                              setActionStatus(
+                                result.errors.length > 0
+                                  ? `Saved ${d.staff.name}'s draft with issues: ${result.errors.join('; ')}`
+                                  : `✓ Saved ${d.staff.name}'s draft — now pending approval.`,
+                              );
+                            });
+                          }}
+                          disabled={draftBusy}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition disabled:opacity-70 ${confirmAction === `save-draft-${d.staff.id}` ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
+                        >
+                          <Send size={13} /> {confirmAction === `save-draft-${d.staff.id}` ? 'Confirm?' : 'Save'}
+                        </button>
+                        <button
+                          onClick={() => handleClearDraft(d.staff.id, d.staff.name)}
+                          disabled={draftBusy}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-70 ${confirmAction === `clear-draft-${d.staff.id}` ? 'bg-accent-red text-white' : 'bg-white/10 text-text-secondary hover:bg-white/15 hover:text-accent-red'}`}
+                        >
+                          <Trash2 size={13} /> {confirmAction === `clear-draft-${d.staff.id}` ? 'Confirm?' : 'Clear'}
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-1 text-xs">
                       {d.items.length > 0 && (
                         <div>
-                          <p className="font-semibold text-text-secondary">To Sell</p>
-                          <ul className="text-text-muted">
+                          <p className="mb-1 font-semibold uppercase tracking-wide text-[10px] text-text-muted">To Sell</p>
+                          <ul className="divide-y divide-card-border/40">
                             {d.items.map((item: any) => (
-                              <li key={item.productId} className="break-words">{item.quantity}× {item.name} <span className="inline-flex items-center gap-1"><span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />{itemPaymentLabel(item)}</span></li>
+                              <li key={item.productId} className="flex items-start justify-between gap-2 py-1.5 first:pt-0 last:pb-0">
+                                <span className="flex min-w-0 items-baseline gap-1.5">
+                                  <span className="shrink-0 rounded bg-white/10 px-1 py-0.5 text-[10px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
+                                  <span className="min-w-0 break-words font-medium text-text-primary">{item.name}</span>
+                                </span>
+                                <span className="flex shrink-0 flex-col items-end gap-0.5">
+                                  <span className="badge badge-neutral whitespace-nowrap"><span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />{itemPaymentLabel(item)}</span>
+                                  {item.addedAt && <span className="text-[10px] tabular-nums text-text-muted">{new Date(item.addedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}</span>}
+                                </span>
+                              </li>
                             ))}
                           </ul>
                         </div>
                       )}
                       {d.disposalItems.length > 0 && (
                         <div>
-                          <p className="font-semibold text-text-secondary">To Dispose</p>
-                          <ul className="text-text-muted">
-                            {d.disposalItems.map((item) => <li key={item.productId} className="break-words">{item.quantity}× {item.name}</li>)}
+                          <p className="mb-1 font-semibold uppercase tracking-wide text-[10px] text-text-muted">To Dispose</p>
+                          <ul className="space-y-1 text-text-muted">
+                            {d.disposalItems.map((item) => (
+                              <li key={item.productId} className="flex items-baseline gap-1.5 break-words">
+                                <span className="shrink-0 rounded bg-white/10 px-1 py-0.5 text-[10px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
+                                <span className="break-words">{item.name}</span>
+                              </li>
+                            ))}
                           </ul>
                         </div>
                       )}
                       {d.expenses.length > 0 && (
                         <div>
-                          <p className="font-semibold text-text-secondary">Expenses</p>
-                          <ul className="text-text-muted">
-                            {d.expenses.map((exp, idx) => <li key={idx} className="break-words">{peso(exp.amount)} — {exp.note}</li>)}
+                          <p className="mb-1 font-semibold uppercase tracking-wide text-[10px] text-text-muted">Expenses</p>
+                          <ul className="space-y-1 text-text-muted">
+                            {d.expenses.map((exp, idx) => <li key={idx} className="break-words"><span className="font-medium text-accent-red">−{peso(exp.amount)}</span>{exp.note && <span> · {exp.note}</span>}</li>)}
                           </ul>
                         </div>
                       )}
