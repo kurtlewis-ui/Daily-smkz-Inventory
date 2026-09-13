@@ -24,7 +24,13 @@ services:
     # Apply pending migrations (and ensure the Owner account exists) on every
     # deploy/boot before the API starts. Both steps are idempotent; if seeding
     # ever fails it won't block the service from starting.
-    startCommand: npx prisma migrate deploy && (npm run prisma:seed || echo "seed skipped") && npm run start:prod
+    #
+    # Migrations run through a retry wrapper: on the free tier the Neon database
+    # auto-suspends when idle, so a fresh deploy can hit "P1002 ... timed out
+    # trying to acquire a postgres advisory lock" while the DB is still waking.
+    # The wrapper retries with backoff (and a longer lock timeout) so a cold
+    # database no longer fails the whole deploy.
+    startCommand: npm run prisma:migrate:deploy:retry && (npm run prisma:seed || echo "seed skipped") && npm run start:prod
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
