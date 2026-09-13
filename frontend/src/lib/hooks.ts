@@ -717,6 +717,39 @@ export function useSaveDraftForStaff() {
   });
 }
 
+// Admin: DISCARD a single staff member's draft without submitting it. Nothing
+// is sold/disposed/expensed — the staged cart is simply thrown away. Only the
+// draft list needs refreshing (no stock or records change).
+export function useClearStaffDraft() {
+  const invalidate = useInvalidate();
+  const t = useMutationToasts('Draft cleared');
+  return useMutation({
+    mutationFn: (staffId: string) =>
+      api.delete(`/sales/drafts/${staffId}`).then((r) => r.data.data),
+    onSuccess: () => {
+      invalidate(['staff-drafts']);
+      t.onSuccess();
+    },
+    onError: t.onError,
+  });
+}
+
+// Admin: DISCARD every staff draft (optionally scoped to a branch) without
+// submitting any of them.
+export function useClearAllDrafts() {
+  const invalidate = useInvalidate();
+  const t = useMutationToasts('All drafts cleared');
+  return useMutation({
+    mutationFn: (branchId?: string) =>
+      api.delete('/sales/drafts', { params: { branchId: branchId || undefined } }).then((r) => r.data.data),
+    onSuccess: () => {
+      invalidate(['staff-drafts']);
+      t.onSuccess();
+    },
+    onError: t.onError,
+  });
+}
+
 // ===========================================================================
 // STATS + ACTIVITY LOGS
 // ===========================================================================

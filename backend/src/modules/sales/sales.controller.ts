@@ -82,6 +82,30 @@ export class SalesController {
     return { success: true, data };
   }
 
+  // Bulk clear must be declared before ':staffId' so 'drafts' (no param) isn't
+  // captured by the param route.
+  @Delete('drafts')
+  @Roles('Owner', 'Admin')
+  @ApiOperation({ summary: 'Discard EVERY staff draft without submitting (Admin)' })
+  async clearAllDrafts(
+    @CurrentUser() user: RequestUser,
+    @Query('branchId') branchId?: string,
+  ) {
+    const data = await this.draftsService.clearAll(user, branchId || undefined);
+    return { success: true, data };
+  }
+
+  @Delete('drafts/:staffId')
+  @Roles('Owner', 'Admin')
+  @ApiOperation({ summary: "Discard a single staff member's draft without submitting (Admin)" })
+  async clearStaffDraft(
+    @Param('staffId', ParseUUIDPipe) staffId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    const data = await this.draftsService.clearForStaff(staffId, user);
+    return { success: true, data };
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a sale (starts as PENDING approval)' })
   async create(@Body() dto: CreateSaleDto, @CurrentUser() user: RequestUser) {

@@ -77,6 +77,57 @@ export class DraftsService {
     return { message: 'Draft cleared' };
   }
 
+  /**
+   * Admin/Owner action: discard a single staff member's in-progress draft
+   * WITHOUT submitting it. Nothing is sold/disposed/expensed — the staged cart
+   * is simply thrown away. Idempotent (deleteMany won't error if it's already
+   * gone), and audited so there's a record of who cleared whose cart.
+   */
+  async clearForStaff(staffId: string, actor: RequestUser) {
+    const staffUser = await this.prisma.user.findUnique({
+      where: { id: staffId },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    if (!staffUser) {
+      throw new NotFoundException('Staff member not found');
+    }
+    const res = await this.prisma.draftOrder.deleteMany({ where: { staffId } });
+    if (res.count > 0) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: actor.userId,
+          action: 'DRAFT_CLEARED_BY_ADMIN',
+          entityType: 'DraftOrder',
+          entityId: staffId,
+          newValues: { staffId },
+        },
+      });
+    }
+    return { cleared: res.count, message: res.count > 0 ? 'Draft cleared' : 'No draft to clear' };
+  }
+
+  /**
+   * Admin/Owner action: discard EVERY staff draft (optionally scoped to a
+   * branch) without submitting any of them. Used by "Clear All Drafts".
+   */
+  async clearAll(actor: RequestUser, branchId?: string) {
+    const res = await this.prisma.draftOrder.deleteMany({
+      where: branchId ? { branchId } : undefined,
+    });
+    if (res.count > 0) {
+      await this.prisma.auditLog.create({
+        data: {
+          userId: actor.userId,
+          action: 'DRAFTS_CLEARED_ALL_BY_ADMIN',
+          entityType: 'DraftOrder',
+          entityId: branchId ?? 'ALL',
+          newValues: { branchId: branchId ?? null, cleared: res.count },
+        },
+      });
+    }
+    return { cleared: res.count, message: `Cleared ${res.count} draft${res.count === 1 ? '' : 's'}` };
+  }
+
   /** Admin/Owner view: every staff member's current draft cart. */
   async findAll(branchId?: string) {
     const drafts = await this.prisma.draftOrder.findMany({
