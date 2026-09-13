@@ -21,16 +21,14 @@ services:
     plan: free
     rootDir: backend
     buildCommand: npm install --include=dev && npx prisma generate && npm run build
-    # Apply pending migrations (and ensure the Owner account exists) on every
-    # deploy/boot before the API starts. Both steps are idempotent; if seeding
-    # ever fails it won't block the service from starting.
-    #
-    # Migrations run through a retry wrapper: on the free tier the Neon database
-    # auto-suspends when idle, so a fresh deploy can hit "P1002 ... timed out
-    # trying to acquire a postgres advisory lock" while the DB is still waking.
-    # The wrapper retries with backoff (and a longer lock timeout) so a cold
-    # database no longer fails the whole deploy.
-    startCommand: npm run start:migrate
+    # Just boot the app. Migrations AND seeding now run INSIDE the app on
+    # startup (see backend/src/run-migrations.ts), resiliently: the migration
+    # advisory lock is disabled and a cold/suspended Neon DB is retried with
+    # backoff, so the "P1002 ... timed out acquiring a postgres advisory lock"
+    # cold-start failure can't abort the deploy anymore. Because there's no
+    # "&& migrate && seed" chain here, a transient DB hiccup can't half-fail
+    # the start command.
+    startCommand: node dist/main.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

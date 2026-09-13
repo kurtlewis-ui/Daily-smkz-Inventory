@@ -10,8 +10,15 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 import { PrismaInitExceptionFilter } from './common/filters/prisma-init-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { runMigrationsOnBoot } from './run-migrations';
 
 async function bootstrap() {
+  // Apply pending DB migrations FIRST, resiliently (retries a cold/suspended
+  // Neon database, advisory lock disabled). Doing this in-app means it works
+  // regardless of the host's start command. Throws (aborts boot) only if
+  // migrations genuinely can't apply, so we never serve with a stale schema.
+  await runMigrationsOnBoot();
+
   // Disable Nest's built-in body parser so we can register our own with a
   // larger limit (uploaded images are stored inline as base64 data URLs).
   const app = await NestFactory.create(AppModule, { bodyParser: false });
