@@ -240,37 +240,60 @@ export class ProductsService {
     // Upsert per-branch quantities when provided, and log stock movements.
     // Collect the ids of ADJUSTMENT movements this edit creates so the client
     // can offer a one-tap "Undo" of exactly this edit's quantity changes.
+    //
+    // Batched: read all current quantities for this product in ONE query, then
+    // commit every upsert + movement in a SINGLE transaction (previously this
+    // did ~2 sequential round-trips per branch, which made "edit all shops"
+    // slow). Movement ordering is preserved so undoMovementIds stays correct.
     const undoMovementIds: string[] = [];
     if (dto.quantities?.length) {
+      const currentRows = await this.prisma.inventory.findMany({
+        where: { productId: id, branchId: { in: dto.quantities.map((q) => q.branchId) } },
+        select: { branchId: true, quantity: true },
+      });
+      const oldQtyByBranch = new Map(currentRows.map((r) => [r.branchId, r.quantity]));
+
+      const ops: any[] = [];
+      // Track which ops are the movement.create calls (and for which branch) so
+      // we can map their returned ids back after the transaction.
+      const movementOpIndexes: number[] = [];
       for (const q of dto.quantities) {
-        // Get current quantity before update
-        const currentInv = await this.prisma.inventory.findUnique({
-          where: { productId_branchId: { productId: id, branchId: q.branchId } },
-        });
-        const oldQty = currentInv?.quantity ?? 0;
+        const oldQty = oldQtyByBranch.get(q.branchId) ?? 0;
         const newQty = q.quantity;
         const diff = newQty - oldQty;
 
-        await this.prisma.inventory.upsert({
-          where: { productId_branchId: { productId: id, branchId: q.branchId } },
-          create: { productId: id, branchId: q.branchId, quantity: q.quantity, sellingPrice: q.sellingPrice ?? null },
-          update: { quantity: q.quantity, ...(q.sellingPrice !== undefined ? { sellingPrice: q.sellingPrice ?? null } : {}) },
-        });
+        ops.push(
+          this.prisma.inventory.upsert({
+            where: { productId_branchId: { productId: id, branchId: q.branchId } },
+            create: { productId: id, branchId: q.branchId, quantity: q.quantity, sellingPrice: q.sellingPrice ?? null },
+            update: { quantity: q.quantity, ...(q.sellingPrice !== undefined ? { sellingPrice: q.sellingPrice ?? null } : {}) },
+          }),
+        );
 
-        // Log ADJUSTMENT if quantity actually changed
         if (diff !== 0) {
-          const movement = await this.prisma.stockMovement.create({
-            data: {
-              productId: id,
-              branchId: q.branchId,
-              userId: updatedBy,
-              type: 'ADJUSTMENT',
-              quantityChange: diff,
-              quantityAfter: newQty,
-              description: 'Updated quantity.',
-            },
-          });
-          undoMovementIds.push(movement.id);
+          movementOpIndexes.push(ops.length);
+          ops.push(
+            this.prisma.stockMovement.create({
+              data: {
+                productId: id,
+                branchId: q.branchId,
+                userId: updatedBy,
+                type: 'ADJUSTMENT',
+                quantityChange: diff,
+                quantityAfter: newQty,
+                description: 'Updated quantity.',
+              },
+              select: { id: true },
+            }),
+          );
+        }
+      }
+
+      if (ops.length) {
+        const results = await this.prisma.$transaction(ops);
+        for (const idx of movementOpIndexes) {
+          const r = results[idx] as { id?: string };
+          if (r?.id) undoMovementIds.push(r.id);
         }
       }
     }
@@ -474,71 +497,168 @@ export class ProductsService {
    * referenced by id or by name (name is used for CSV-style restocks).
    */
   async restock(items: RestockItemDto[], userId: string) {
-    let updated = 0;
     const warnings: string[] = [];
-    const movements: { id: string }[] = [];
 
+    // --- Resolve products + branches + existing inventory in BULK up front ---
+    // (Previously this did ~5 sequential DB round-trips PER item, which made a
+    // "restock all branches" upload very slow. Now we do a handful of bulk
+    // queries, then commit all writes in a single transaction.)
+    const wantedProductIds = new Set<string>();
+    const wantedProductNames = new Set<string>();
+    const wantedBranchIds = new Set<string>();
+    const wantedBranchNames = new Set<string>();
+    for (const item of items) {
+      if (item.productId) wantedProductIds.add(item.productId);
+      else if (item.productName) wantedProductNames.add(item.productName.trim().toLowerCase());
+      if (item.branchId) wantedBranchIds.add(item.branchId);
+      else if (item.branchName) wantedBranchNames.add(item.branchName.trim().toLowerCase());
+    }
+
+    // Products: only active products whose brand isn't archived can be restocked.
+    const products = await this.prisma.product.findMany({
+      where: { deletedAt: null, brand: { deletedAt: null } },
+      select: { id: true, name: true },
+    });
+    const productById = new Map(products.map((p) => [p.id, p]));
+    const productByName = new Map(products.map((p) => [p.name.trim().toLowerCase(), p]));
+
+    const branches = await this.prisma.branch.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true },
+    });
+    const branchById = new Map(branches.map((b) => [b.id, b]));
+    const branchByName = new Map(branches.map((b) => [b.name.trim().toLowerCase(), b]));
+
+    // First pass: resolve each row to a (productId, branchId, quantity) target,
+    // collecting warnings for anything that can't be matched.
+    const targets: { productId: string; branchId: string; quantity: number }[] = [];
     for (const [index, item] of items.entries()) {
-      // Resolve product. Archived products, and products whose brand is
-      // archived, are treated as not found (skipped with a warning) — you
-      // can't restock something that's been archived.
-      let product = item.productId
-        ? await this.prisma.product.findFirst({ where: { id: item.productId, deletedAt: null, brand: { deletedAt: null } } })
+      const product = item.productId
+        ? productById.get(item.productId)
         : item.productName
-          ? await this.prisma.product.findFirst({
-              where: { name: { equals: item.productName.trim(), mode: 'insensitive' }, deletedAt: null, brand: { deletedAt: null } },
-            })
-          : null;
+          ? productByName.get(item.productName.trim().toLowerCase())
+          : undefined;
       if (!product) {
         warnings.push(`Row ${index + 1}: product not found (${item.productName ?? item.productId}) — skipped`);
         continue;
       }
-
-      // Resolve branch.
-      let branch = item.branchId
-        ? await this.prisma.branch.findFirst({ where: { id: item.branchId, deletedAt: null } })
+      const branch = item.branchId
+        ? branchById.get(item.branchId)
         : item.branchName
-          ? await this.prisma.branch.findFirst({
-              where: { name: { equals: item.branchName.trim(), mode: 'insensitive' }, deletedAt: null },
-            })
-          : null;
+          ? branchByName.get(item.branchName.trim().toLowerCase())
+          : undefined;
       if (!branch) {
         warnings.push(`Row ${index + 1}: shop not found (${item.branchName ?? item.branchId}) — skipped`);
         continue;
       }
-
-      await this.prisma.inventory.upsert({
-        where: { productId_branchId: { productId: product.id, branchId: branch.id } },
-        create: { productId: product.id, branchId: branch.id, quantity: Math.max(0, item.quantity) },
-        update: { quantity: { increment: item.quantity } },
-      });
-
-      // Log the stock movement
-      const inv = await this.prisma.inventory.findUnique({
-        where: { productId_branchId: { productId: product.id, branchId: branch.id } },
-      });
-      const movement = await this.prisma.stockMovement.create({
-        data: {
-          productId: product.id,
-          branchId: branch.id,
-          userId: userId,
-          type: 'RESTOCK',
-          quantityChange: item.quantity,
-          quantityAfter: inv?.quantity ?? item.quantity,
-          description: 'Restocked product.',
-        },
-      });
-      movements.push({ id: movement.id });
-
-      updated++;
+      targets.push({ productId: product.id, branchId: branch.id, quantity: item.quantity });
     }
 
-    await this.audit(userId, 'PRODUCTS_RESTOCKED', userId, null, { updated });
+    if (targets.length === 0) {
+      await this.audit(userId, 'PRODUCTS_RESTOCKED', userId, null, { updated: 0 });
+      return { updated: 0, total: items.length, warnings, movementIds: [] as string[] };
+    }
+
+    // Existing inventory for the affected product/branch pairs, so we can
+    // compute quantityAfter without re-reading each row after the write.
+    const existing = await this.prisma.inventory.findMany({
+      where: {
+        productId: { in: [...new Set(targets.map((t) => t.productId))] },
+        branchId: { in: [...new Set(targets.map((t) => t.branchId))] },
+      },
+      select: { productId: true, branchId: true, quantity: true },
+    });
+    const qtyKey = (p: string, b: string) => `${p}__${b}`;
+    const currentQty = new Map(existing.map((e) => [qtyKey(e.productId, e.branchId), e.quantity]));
+
+    // Pre-generate ids for the movements so we can return them without re-query.
+    const movementIds: string[] = [];
+    const ops: any[] = [];
+    for (const t of targets) {
+      const before = currentQty.get(qtyKey(t.productId, t.branchId)) ?? 0;
+      const after = before + t.quantity;
+      ops.push(
+        this.prisma.inventory.upsert({
+          where: { productId_branchId: { productId: t.productId, branchId: t.branchId } },
+          create: { productId: t.productId, branchId: t.branchId, quantity: Math.max(0, t.quantity) },
+          update: { quantity: { increment: t.quantity } },
+        }),
+      );
+      ops.push(
+        this.prisma.stockMovement.create({
+          data: {
+            productId: t.productId,
+            branchId: t.branchId,
+            userId,
+            type: 'RESTOCK',
+            quantityChange: t.quantity,
+            quantityAfter: after,
+            description: 'Restocked product.',
+          },
+          select: { id: true },
+        }),
+      );
+    }
+
+    const results = await this.prisma.$transaction(ops);
+    // stockMovement.create ops are the odd-indexed entries; collect their ids.
+    for (let i = 1; i < results.length; i += 2) {
+      const r = results[i] as { id?: string };
+      if (r?.id) movementIds.push(r.id);
+    }
+
+    await this.audit(userId, 'PRODUCTS_RESTOCKED', userId, null, { updated: targets.length });
 
     // Return the ids of the movements we just created so the client can offer a
     // precise, one-tap "Undo" of exactly this batch.
-    const movementIds = movements.map((m) => m.id);
-    return { updated, total: items.length, warnings, movementIds };
+    return { updated: targets.length, total: items.length, warnings, movementIds };
+  }
+
+  /**
+   * Owner-only: set EVERY product's stock to 0 at EVERY branch. Destructive —
+   * guarded by a type-to-confirm at the controller. Only rows that currently
+   * have stock (> 0) are touched, and each change is logged as an ADJUSTMENT
+   * stock movement (quantityChange = -oldQty, quantityAfter = 0) so there's a
+   * full audit trail of what was cleared. Runs in a single transaction so it's
+   * fast and all-or-nothing.
+   */
+  async resetAllStock(userId: string) {
+    // Only rows with stock need zeroing + a movement.
+    const rows = await this.prisma.inventory.findMany({
+      where: { quantity: { gt: 0 } },
+      select: { id: true, productId: true, branchId: true, quantity: true },
+    });
+
+    if (rows.length === 0) {
+      await this.audit(userId, 'STOCK_RESET_ALL', userId, null, { cleared: 0 });
+      return { cleared: 0 };
+    }
+
+    // Batch every write into one transaction: zero the row + log the movement.
+    const ops: any[] = [];
+    for (const r of rows) {
+      ops.push(
+        this.prisma.inventory.update({ where: { id: r.id }, data: { quantity: 0 } }),
+      );
+      ops.push(
+        this.prisma.stockMovement.create({
+          data: {
+            productId: r.productId,
+            branchId: r.branchId,
+            userId,
+            type: 'ADJUSTMENT',
+            quantityChange: -r.quantity,
+            quantityAfter: 0,
+            description: 'Reset all stock to 0.',
+          },
+        }),
+      );
+    }
+    await this.prisma.$transaction(ops);
+
+    await this.audit(userId, 'STOCK_RESET_ALL', userId, null, { cleared: rows.length });
+
+    return { cleared: rows.length };
   }
 
   /**

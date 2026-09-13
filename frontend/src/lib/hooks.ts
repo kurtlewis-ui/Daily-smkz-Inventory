@@ -310,6 +310,19 @@ export function useUndoStock() {
   });
 }
 
+// Owner-only: reset ALL product stock to 0 at every branch. Requires the
+// literal confirm string "RESET" (guards against accidental calls). Returns
+// { cleared } — how many branch rows were zeroed. Logs an ADJUSTMENT movement
+// per cleared row on the backend, so it stays in stock history.
+export function useResetAllStock() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: () =>
+      api.post('/products/stock/reset', { confirm: 'RESET' }).then((r) => r.data.data as { cleared: number }),
+    onSuccess: () => invalidate(['products'], ['stats'], ['stock-movements']),
+  });
+}
+
 export function useCreateProduct() {
   const invalidate = useInvalidate();
   const t = useMutationToasts('Product added');

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Pencil, Archive, X, Loader2, Upload, Download, RefreshCw, FileDown, ClipboardList, Trash2, GripVertical, ArrowUpDown, Check } from 'lucide-react';
+import { Plus, Pencil, Archive, X, Loader2, Upload, Download, RefreshCw, FileDown, ClipboardList, Trash2, GripVertical, ArrowUpDown, Check, AlertTriangle } from 'lucide-react';
 import {
   useProducts,
   useBrands,
@@ -12,6 +12,7 @@ import {
   useImportProducts,
   useRestock,
   useUndoStock,
+  useResetAllStock,
   useReorderProducts,
   type ImportProductRow,
   type RestockItem,
@@ -64,7 +65,25 @@ export default function ProductsPage() {
   const archiveProduct = useArchiveProduct();
   const reorderProducts = useReorderProducts();
   const undoStock = useUndoStock();
+  const resetAllStock = useResetAllStock();
   const toast = useToast();
+
+  // Owner-only "reset all stock to 0" — guarded by a type-to-confirm modal.
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+
+  async function handleResetAllStock() {
+    // Extra safety: only proceed when the owner has typed the exact word.
+    if (resetConfirmText.trim().toUpperCase() !== 'RESET') return;
+    try {
+      const res = await resetAllStock.mutateAsync();
+      setShowResetModal(false);
+      setResetConfirmText('');
+      toast.success(`Cleared stock on ${res.cleared} shop ${res.cleared === 1 ? 'entry' : 'entries'}.`, 'All stock reset to 0');
+    } catch (e) {
+      toast.error(getApiErrorMessage(e));
+    }
+  }
 
   // Show a success toast for an owner that can undo the stock movements just
   // created. Falls back to a plain success toast for non-owners or when there
@@ -271,6 +290,15 @@ export default function ProductsPage() {
             className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed ${reorderMode ? 'bg-accent-green text-white hover:opacity-90' : 'btn-secondary text-text-primary'}`}
           >
             {reorderMode ? <><Check size={14} /> Done Reordering</> : <><ArrowUpDown size={14} /> Reorder</>}
+          </button>
+        )}
+        {isOwner && (
+          <button
+            onClick={() => { setResetConfirmText(''); setShowResetModal(true); }}
+            title="Reset all product stock to 0 at every shop"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium border border-accent-red/40 text-accent-red hover:bg-accent-red/10 transition"
+          >
+            <AlertTriangle size={14} /> Reset Stock
           </button>
         )}
       </div>
@@ -557,6 +585,40 @@ export default function ProductsPage() {
       {showImportModal && <ImportModal branches={branches} onClose={() => setShowImportModal(false)} />}
       {showRestockModal && <RestockModal products={products} branches={branches} isOwner={isOwner} onClose={() => setShowRestockModal(false)} />}
       {historyProduct && shopFilter && <StockHistoryModal productId={historyProduct.id} productName={historyProduct.name} branchId={shopFilter} branchName={branches.find((b) => b.id === shopFilter)?.name ?? ''} isOwner={isOwner} onClose={() => setHistoryProduct(null)} />}
+      {showResetModal && isOwner && (
+        <Modal title="Reset all stock to 0?" onClose={() => { if (!resetAllStock.isPending) { setShowResetModal(false); setResetConfirmText(''); } }}>
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-lg border border-accent-red/30 bg-accent-red/10 p-3">
+              <AlertTriangle size={18} className="mt-0.5 shrink-0 text-accent-red" />
+              <div className="text-sm text-text-primary">
+                <p className="font-semibold text-accent-red">This wipes ALL stock at EVERY shop.</p>
+                <p className="mt-1 text-text-secondary">Every product&apos;s quantity will be set to <strong>0</strong> across all branches. This is logged in each product&apos;s Stock History, but it affects your whole inventory. Consider clicking <strong>Export</strong> first to keep a backup.</p>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1">Type <span className="font-mono font-bold">RESET</span> to confirm</label>
+              <input
+                type="text"
+                value={resetConfirmText}
+                onChange={(e) => setResetConfirmText(e.target.value)}
+                placeholder="RESET"
+                autoFocus
+                className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => { setShowResetModal(false); setResetConfirmText(''); }} disabled={resetAllStock.isPending} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium disabled:opacity-60">Cancel</button>
+              <button
+                onClick={handleResetAllStock}
+                disabled={resetAllStock.isPending || resetConfirmText.trim().toUpperCase() !== 'RESET'}
+                className="bg-accent-red text-white px-4 py-2 rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {resetAllStock.isPending ? 'Resetting...' : 'Reset all to 0'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
