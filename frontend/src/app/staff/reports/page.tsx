@@ -1,12 +1,11 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { Search, Loader2, X, Recycle, ShoppingCart } from 'lucide-react';
+import { Search, ShoppingCart } from 'lucide-react';
 import {
   useSalesRecords,
   useSalesPending,
   useDisposals,
-  useDisposalsPending,
   useExpenses,
 } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
@@ -46,7 +45,6 @@ type ViewMode = 'sale' | 'product';
 export default function StaffDailyReportPage() {
   const [view, setView] = useState<ViewMode>('sale');
   const [search, setSearch] = useState('');
-  const [showDisposals, setShowDisposals] = useState(false);
 
   const branchName = useAuthStore((s) => s.user?.branch?.name);
   const today = useMemo(() => todayLocalDate(), []);
@@ -108,22 +106,14 @@ export default function StaffDailyReportPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          {branchName && (
-            <p className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-1">{branchName}</p>
-          )}
-          <h1 className="text-2xl font-bold text-text-primary">Daily Report</h1>
-          <p className="mt-0.5 text-xs text-text-muted">
-            {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowDisposals(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-accent-red px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
-        >
-          <Recycle size={16} /> Disposals
-        </button>
+      <div className="mb-4">
+        {branchName && (
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-muted mb-1">{branchName}</p>
+        )}
+        <h1 className="text-2xl font-bold text-text-primary">Daily Report</h1>
+        <p className="mt-0.5 text-xs text-text-muted">
+          {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
       </div>
 
       <div className="mb-3 max-w-xs">
@@ -430,45 +420,6 @@ export default function StaffDailyReportPage() {
         </div>
       </div>
 
-      {showDisposals && <PendingDisposalsModal onClose={() => setShowDisposals(false)} />}
-    </div>
-  );
-}
-
-function PendingDisposalsModal({ onClose }: { onClose: () => void }) {
-  const { data, isLoading, isError, error } = useDisposalsPending();
-  const disposals = data?.data ?? [];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg mx-4 rounded-lg border border-card-border bg-card-bg p-5 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-text-primary">Pending Disposals</h3>
-          <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
-        </div>
-        {isLoading ? (
-          <div className="py-6 text-center text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading...</div>
-        ) : isError ? (
-          <div className="py-6 text-center text-accent-red">{getApiErrorMessage(error)}</div>
-        ) : disposals.length === 0 ? (
-          <div className="rounded-lg border-l-4 border-accent-blue bg-white/5 px-4 py-3 text-sm text-text-secondary">
-            No pending disposals for your shop.
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-80 overflow-y-auto">
-            {disposals.map((d) => (
-              <div key={d.id} className="rounded-lg border border-card-border p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-text-primary">{d.name}</p>
-                  <span className="text-sm text-text-secondary">Qty: {d.quantity}</span>
-                </div>
-                <p className="text-xs text-text-muted">{d.brandName} · {peso(d.value)}{d.reason ? ` · ${d.reason}` : ''}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

@@ -426,7 +426,7 @@ export default function SalesPendingPage() {
             {drafts.length > 0 && <span className="badge badge-neutral">{drafts.length}</span>}
           </h2>
           <div className="flex items-center gap-3 flex-wrap">
-            <p className="text-xs text-text-muted">Carts staff are currently building — not yet submitted for approval.</p>
+            <p className="text-xs text-text-muted">In-progress staff carts — not yet submitted for approval.</p>
             <button
               onClick={handleAcceptAllDrafts}
               disabled={saveDraftForStaff.isPending || drafts.length === 0}
