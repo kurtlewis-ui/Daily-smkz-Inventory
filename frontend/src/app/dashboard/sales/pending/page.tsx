@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
-import { Search, Pencil, Trash2, X, CheckCircle, XCircle, Plus, Loader2, Recycle, ShoppingBag, PhilippinePeso, Send } from 'lucide-react';
+import { Search, Pencil, Trash2, X, CheckCircle, XCircle, Plus, Loader2, Recycle, ShoppingBag, PhilippinePeso, Send, Check } from 'lucide-react';
 import {
   useSalesPending,
   useBranches,
@@ -67,6 +67,46 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
         {children}
       </div>
     </div>
+  );
+}
+
+/**
+ * Compact icon-only action button used in the Staff Drafts rows/cards. It
+ * carries its own two-click confirm: first click "arms" it (the icon swaps to
+ * a check and the tint turns solid), second click runs the action. Keeps the
+ * actions column tight and professional instead of wide text buttons.
+ */
+function DraftIconButton({
+  icon,
+  armed,
+  onClick,
+  disabled,
+  tone,
+  title,
+}: {
+  icon: React.ReactNode;
+  armed: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  tone: 'teal' | 'red';
+  title: string;
+}) {
+  const armedCls = tone === 'teal' ? 'bg-accent-teal text-white' : 'bg-accent-red text-white';
+  const idleCls =
+    tone === 'teal'
+      ? 'text-text-secondary hover:text-accent-teal hover:bg-accent-teal/10'
+      : 'text-text-secondary hover:text-accent-red hover:bg-accent-red/10';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={armed ? `Confirm: ${title}` : title}
+      aria-label={title}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed ${armed ? armedCls : idleCls}`}
+    >
+      {armed ? <Check size={16} /> : icon}
+    </button>
   );
 }
 
@@ -450,119 +490,130 @@ export default function SalesPendingPage() {
 
       {/* Staff Drafts (in-progress carts, not yet submitted) */}
       <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mt-8">
-        <div className="p-4 border-b border-card-border flex items-center justify-between flex-wrap gap-2">
-          <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-            <ShoppingBag size={18} /> Staff Drafts
-            {drafts.length > 0 && <span className="badge badge-neutral">{drafts.length}</span>}
-          </h2>
-          <div className="flex items-center gap-3 flex-wrap">
-            <p className="text-xs text-text-muted">In-progress staff carts — not yet submitted for approval.</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={handleAcceptAllDrafts}
-                disabled={draftBusy || drafts.length === 0}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60 ${confirmAction === 'accept-all-drafts' ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
-                title="Submit every staff member's draft on their behalf"
-              >
-                <Send size={14} /> {confirmAction === 'accept-all-drafts' ? 'Confirm Accept All?' : 'Accept All'}
-              </button>
-              {confirmAction === 'accept-all-drafts' && (
-                <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium hover:bg-white/15 transition">Cancel</button>
-              )}
-              <button
-                onClick={handleClearAllDrafts}
-                disabled={draftBusy || drafts.length === 0}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60 ${confirmAction === 'clear-all-drafts' ? 'bg-accent-red text-white' : 'bg-white/10 text-text-primary hover:bg-white/15'}`}
-                title="Discard every staff draft without submitting (nothing is sold)"
-              >
-                <Trash2 size={14} /> {confirmAction === 'clear-all-drafts' ? 'Confirm Clear All?' : 'Clear All'}
-              </button>
-              {confirmAction === 'clear-all-drafts' && (
-                <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium hover:bg-white/15 transition">Cancel</button>
-              )}
-            </div>
+        <div className="flex flex-col gap-3 p-5 border-b border-card-border sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-text-primary">
+              <ShoppingBag size={18} /> Staff Drafts
+              {drafts.length > 0 && <span className="badge badge-neutral">{drafts.length}</span>}
+            </h2>
+            <p className="mt-1 text-xs text-text-muted">In-progress staff carts — not yet submitted for approval.</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button
+              onClick={handleAcceptAllDrafts}
+              disabled={draftBusy || drafts.length === 0}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${confirmAction === 'accept-all-drafts' ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
+              title="Submit every staff member's draft on their behalf"
+            >
+              <Send size={15} /> {confirmAction === 'accept-all-drafts' ? 'Confirm?' : 'Accept All'}
+            </button>
+            <button
+              onClick={handleClearAllDrafts}
+              disabled={draftBusy || drafts.length === 0}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${confirmAction === 'clear-all-drafts' ? 'bg-accent-red text-white' : 'border border-accent-red/40 text-accent-red hover:bg-accent-red/10'}`}
+              title="Discard every staff draft without submitting (nothing is sold)"
+            >
+              <Trash2 size={15} /> {confirmAction === 'clear-all-drafts' ? 'Confirm?' : 'Clear All'}
+            </button>
+            {(confirmAction === 'accept-all-drafts' || confirmAction === 'clear-all-drafts') && (
+              <button onClick={() => setConfirmAction(null)} className="rounded-lg px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-white/10 hover:text-text-primary">Cancel</button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="hidden w-full md:table">
+          <table className="hidden w-full table-fixed md:table">
+            <colgroup>
+              <col className="w-[15%]" />
+              <col className="w-[34%]" />
+              <col className="w-[12%]" />
+              <col className="w-[13%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
+              <col className="w-[6%]" />
+            </colgroup>
             <thead>
-              <tr className="bg-table-header text-table-header-text">
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Staff</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">To Sell</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">To Dispose</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Expenses</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Total</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Last Updated</th>
-                <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase whitespace-nowrap">Actions</th>
+              <tr className="border-b border-card-border bg-table-header text-table-header-text">
+                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide">Staff</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide">To Sell</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide">To Dispose</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide">Expenses</th>
+                <th className="px-5 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wide">Total</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-semibold uppercase tracking-wide">Updated</th>
+                <th className="px-5 py-3.5 text-center text-[11px] font-semibold uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody>
               {draftsLoading ? (
-                <tr><td colSpan={7} className="text-center py-6 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</td></tr>
+                <tr><td colSpan={7} className="text-center py-10 text-text-muted"><Loader2 className="inline animate-spin mr-2" size={16} />Loading…</td></tr>
               ) : drafts.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-6 text-text-muted">No staff currently building an order.</td></tr>
+                <tr><td colSpan={7} className="text-center py-10 text-text-muted">No staff currently building an order.</td></tr>
               ) : drafts.map((d) => (
-                <tr key={d.id} className="border-b border-card-border/60 transition align-top hover:bg-white/[0.02]">
-                  <td className="px-4 py-4 align-top">
-                    <p className="text-sm font-semibold text-text-primary break-words">{d.staff.name}</p>
-                    <p className="text-xs text-text-muted break-all">{d.staff.email}</p>
+                <tr key={d.id} className="border-b border-card-border/60 align-top transition hover:bg-white/[0.02]">
+                  <td className="px-5 py-5 align-top">
+                    <p className="text-sm font-semibold leading-snug text-text-primary">{d.staff.name}</p>
+                    <p className="mt-0.5 truncate text-xs text-text-muted" title={d.staff.email}>{d.staff.email}</p>
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary align-top">
-                    {d.items.length === 0 ? '—' : (
+                  <td className="px-5 py-5 align-top">
+                    {d.items.length === 0 ? <span className="text-text-muted">—</span> : (
                       <ul className="divide-y divide-card-border/40">
                         {d.items.map((item: any) => (
-                          <li key={item.productId} className="flex items-start justify-between gap-3 py-1.5 first:pt-0 last:pb-0">
-                            <span className="flex min-w-0 items-baseline gap-1.5">
-                              <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
-                              <span className="min-w-0 break-words font-medium text-text-primary">{item.name}</span>
+                          <li key={item.productId} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span className="inline-flex h-5 shrink-0 items-center rounded-md bg-white/10 px-1.5 text-[11px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
+                              <span className="min-w-0 truncate text-sm font-medium text-text-primary" title={item.name}>{item.name}</span>
                             </span>
-                            <span className="flex shrink-0 flex-col items-end gap-0.5">
+                            <span className="flex shrink-0 items-center gap-2">
                               <span className="badge badge-neutral whitespace-nowrap">
                                 <span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />
                                 {itemPaymentLabel(item)}
                               </span>
-                              {item.addedAt && <span className="text-[10px] tabular-nums text-text-muted">{new Date(item.addedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}</span>}
+                              {item.addedAt && <span className="w-14 text-right text-[10px] tabular-nums text-text-muted">{new Date(item.addedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}</span>}
                             </span>
                           </li>
                         ))}
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary align-top">
+                  <td className="px-5 py-5 align-top">
                     {d.disposalItems.length === 0 ? <span className="text-text-muted">—</span> : (
-                      <ul className="space-y-1.5">
+                      <ul className="space-y-2">
                         {d.disposalItems.map((item) => (
-                          <li key={item.productId} className="flex items-baseline gap-1.5">
-                            <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
-                            <span className="break-words">{item.name}</span>
+                          <li key={item.productId} className="flex items-center gap-2">
+                            <span className="inline-flex h-5 shrink-0 items-center rounded-md bg-white/10 px-1.5 text-[11px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
+                            <span className="min-w-0 truncate text-sm text-text-secondary" title={item.name}>{item.name}</span>
                           </li>
                         ))}
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary align-top">
+                  <td className="px-5 py-5 align-top">
                     {d.expenses.length === 0 ? <span className="text-text-muted">—</span> : (
-                      <ul className="space-y-1.5">
+                      <ul className="space-y-2 text-sm">
                         {d.expenses.map((exp, idx) => (
-                          <li key={idx} className="break-words">
-                            <span className="font-medium text-accent-red">−{peso(exp.amount)}</span>
-                            {exp.note && <span className="text-text-muted"> · {exp.note}</span>}
+                          <li key={idx} className="min-w-0">
+                            <span className="font-medium tabular-nums text-accent-red">−{peso(exp.amount)}</span>
+                            {exp.note && <span className="block truncate text-xs text-text-muted" title={exp.note}>{exp.note}</span>}
                           </li>
                         ))}
                       </ul>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-primary font-medium align-top whitespace-nowrap">
-                    {d.items.length > 0 && <p className="tabular-nums">{peso(d.total)}</p>}
-                    {d.expenses.length > 0 && <p className="text-xs text-accent-red tabular-nums">−{peso(d.expensesTotal)}</p>}
+                  <td className="px-5 py-5 text-right align-top">
+                    {d.items.length > 0 && <p className="text-sm font-semibold tabular-nums text-text-primary">{peso(d.total)}</p>}
+                    {d.expenses.length > 0 && <p className="text-xs tabular-nums text-accent-red">−{peso(d.expensesTotal)}</p>}
                     {d.items.length > 0 && d.expenses.length > 0 && (
-                      <p className="mt-0.5 text-xs font-semibold text-accent-purple-light tabular-nums">Net: {peso(d.total - d.expensesTotal)}</p>
+                      <p className="mt-0.5 text-xs font-semibold tabular-nums text-accent-purple-light">Net {peso(d.total - d.expensesTotal)}</p>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-sm text-text-secondary align-top whitespace-nowrap">{formatDate(d.updatedAt)}</td>
-                  <td className="px-4 py-4 align-top">
-                    <div className="flex flex-col items-stretch gap-1.5">
-                      <button
+                  <td className="px-5 py-5 align-top text-xs text-text-secondary">{formatDate(d.updatedAt)}</td>
+                  <td className="px-5 py-5 align-top">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <DraftIconButton
+                        tone="teal"
+                        icon={<Send size={16} />}
+                        armed={confirmAction === `save-draft-${d.staff.id}`}
+                        disabled={draftBusy}
+                        title="Submit this draft"
                         onClick={() => {
                           if (confirmAction !== `save-draft-${d.staff.id}`) { setConfirmAction(`save-draft-${d.staff.id}`); return; }
                           setConfirmAction(null);
@@ -575,23 +626,15 @@ export default function SalesPendingPage() {
                             );
                           });
                         }}
+                      />
+                      <DraftIconButton
+                        tone="red"
+                        icon={<Trash2 size={16} />}
+                        armed={confirmAction === `clear-draft-${d.staff.id}`}
                         disabled={draftBusy}
-                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition disabled:opacity-70 whitespace-nowrap ${confirmAction === `save-draft-${d.staff.id}` ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
-                        title="Submit this staff member's draft on their behalf"
-                      >
-                        <Send size={13} /> {confirmAction === `save-draft-${d.staff.id}` ? 'Confirm?' : 'Save Draft'}
-                      </button>
-                      <button
+                        title="Discard this draft (nothing is sold)"
                         onClick={() => handleClearDraft(d.staff.id, d.staff.name)}
-                        disabled={draftBusy}
-                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-70 whitespace-nowrap ${confirmAction === `clear-draft-${d.staff.id}` ? 'bg-accent-red text-white' : 'bg-white/10 text-text-secondary hover:bg-white/15 hover:text-accent-red'}`}
-                        title="Discard this draft without submitting (nothing is sold)"
-                      >
-                        <Trash2 size={13} /> {confirmAction === `clear-draft-${d.staff.id}` ? 'Confirm?' : 'Clear'}
-                      </button>
-                      {(confirmAction === `save-draft-${d.staff.id}` || confirmAction === `clear-draft-${d.staff.id}`) && (
-                        <button onClick={() => setConfirmAction(null)} className="text-[10px] text-text-muted hover:text-text-primary">Cancel</button>
-                      )}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -608,15 +651,20 @@ export default function SalesPendingPage() {
             ) : (
               <ul className="divide-y divide-card-border">
                 {drafts.map((d) => (
-                  <li key={d.id} className="p-4">
-                    <div className="mb-2 flex items-start justify-between gap-2">
+                  <li key={d.id} className="p-5">
+                    <div className="mb-4 flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-text-primary break-words">{d.staff.name}</p>
-                        <p className="text-xs text-text-muted break-words">{d.staff.email}</p>
-                        <p className="text-[11px] text-text-muted">Updated {formatDate(d.updatedAt)}</p>
+                        <p className="truncate text-base font-semibold text-text-primary" title={d.staff.name}>{d.staff.name}</p>
+                        <p className="mt-0.5 truncate text-xs text-text-muted" title={d.staff.email}>{d.staff.email}</p>
+                        <p className="mt-0.5 text-[11px] text-text-muted">Updated {formatDate(d.updatedAt)}</p>
                       </div>
-                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                        <button
+                      <div className="flex shrink-0 items-center gap-2">
+                        <DraftIconButton
+                          tone="teal"
+                          icon={<Send size={18} />}
+                          armed={confirmAction === `save-draft-${d.staff.id}`}
+                          disabled={draftBusy}
+                          title="Submit this draft"
                           onClick={() => {
                             if (confirmAction !== `save-draft-${d.staff.id}`) { setConfirmAction(`save-draft-${d.staff.id}`); return; }
                             setConfirmAction(null);
@@ -629,32 +677,29 @@ export default function SalesPendingPage() {
                               );
                             });
                           }}
+                        />
+                        <DraftIconButton
+                          tone="red"
+                          icon={<Trash2 size={18} />}
+                          armed={confirmAction === `clear-draft-${d.staff.id}`}
                           disabled={draftBusy}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-90 transition disabled:opacity-70 ${confirmAction === `save-draft-${d.staff.id}` ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
-                        >
-                          <Send size={13} /> {confirmAction === `save-draft-${d.staff.id}` ? 'Confirm?' : 'Save'}
-                        </button>
-                        <button
+                          title="Discard this draft (nothing is sold)"
                           onClick={() => handleClearDraft(d.staff.id, d.staff.name)}
-                          disabled={draftBusy}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition disabled:opacity-70 ${confirmAction === `clear-draft-${d.staff.id}` ? 'bg-accent-red text-white' : 'bg-white/10 text-text-secondary hover:bg-white/15 hover:text-accent-red'}`}
-                        >
-                          <Trash2 size={13} /> {confirmAction === `clear-draft-${d.staff.id}` ? 'Confirm?' : 'Clear'}
-                        </button>
+                        />
                       </div>
                     </div>
-                    <div className="space-y-1 text-xs">
+                    <div className="space-y-4">
                       {d.items.length > 0 && (
                         <div>
-                          <p className="mb-1 font-semibold uppercase tracking-wide text-[10px] text-text-muted">To Sell</p>
+                          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">To Sell</p>
                           <ul className="divide-y divide-card-border/40">
                             {d.items.map((item: any) => (
-                              <li key={item.productId} className="flex items-start justify-between gap-2 py-1.5 first:pt-0 last:pb-0">
-                                <span className="flex min-w-0 items-baseline gap-1.5">
-                                  <span className="shrink-0 rounded bg-white/10 px-1 py-0.5 text-[10px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
-                                  <span className="min-w-0 break-words font-medium text-text-primary">{item.name}</span>
+                              <li key={item.productId} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                                <span className="flex min-w-0 items-center gap-2">
+                                  <span className="inline-flex h-5 shrink-0 items-center rounded-md bg-white/10 px-1.5 text-[11px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
+                                  <span className="min-w-0 truncate text-sm font-medium text-text-primary" title={item.name}>{item.name}</span>
                                 </span>
-                                <span className="flex shrink-0 flex-col items-end gap-0.5">
+                                <span className="flex shrink-0 items-center gap-2">
                                   <span className="badge badge-neutral whitespace-nowrap"><span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />{itemPaymentLabel(item)}</span>
                                   {item.addedAt && <span className="text-[10px] tabular-nums text-text-muted">{new Date(item.addedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}</span>}
                                 </span>
@@ -665,12 +710,12 @@ export default function SalesPendingPage() {
                       )}
                       {d.disposalItems.length > 0 && (
                         <div>
-                          <p className="mb-1 font-semibold uppercase tracking-wide text-[10px] text-text-muted">To Dispose</p>
-                          <ul className="space-y-1 text-text-muted">
+                          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">To Dispose</p>
+                          <ul className="space-y-1.5">
                             {d.disposalItems.map((item) => (
-                              <li key={item.productId} className="flex items-baseline gap-1.5 break-words">
-                                <span className="shrink-0 rounded bg-white/10 px-1 py-0.5 text-[10px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
-                                <span className="break-words">{item.name}</span>
+                              <li key={item.productId} className="flex items-center gap-2">
+                                <span className="inline-flex h-5 shrink-0 items-center rounded-md bg-white/10 px-1.5 text-[11px] font-semibold tabular-nums text-text-secondary">{item.quantity}×</span>
+                                <span className="min-w-0 truncate text-sm text-text-secondary" title={item.name}>{item.name}</span>
                               </li>
                             ))}
                           </ul>
@@ -678,16 +723,16 @@ export default function SalesPendingPage() {
                       )}
                       {d.expenses.length > 0 && (
                         <div>
-                          <p className="mb-1 font-semibold uppercase tracking-wide text-[10px] text-text-muted">Expenses</p>
-                          <ul className="space-y-1 text-text-muted">
-                            {d.expenses.map((exp, idx) => <li key={idx} className="break-words"><span className="font-medium text-accent-red">−{peso(exp.amount)}</span>{exp.note && <span> · {exp.note}</span>}</li>)}
+                          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">Expenses</p>
+                          <ul className="space-y-1.5">
+                            {d.expenses.map((exp, idx) => <li key={idx} className="text-sm"><span className="font-medium tabular-nums text-accent-red">−{peso(exp.amount)}</span>{exp.note && <span className="text-text-muted"> · {exp.note}</span>}</li>)}
                           </ul>
                         </div>
                       )}
-                      <div className="pt-1 font-medium text-text-primary">
-                        {d.items.length > 0 && <span>{peso(d.total)}</span>}
-                        {d.expenses.length > 0 && <span className="ml-2 text-accent-red">-{peso(d.expensesTotal)}</span>}
-                        {d.items.length > 0 && d.expenses.length > 0 && <span className="ml-2 font-semibold text-accent-purple-light">Net: {peso(d.total - d.expensesTotal)}</span>}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-card-border/60 pt-3 text-sm">
+                        {d.items.length > 0 && <span className="font-semibold tabular-nums text-text-primary">{peso(d.total)}</span>}
+                        {d.expenses.length > 0 && <span className="tabular-nums text-accent-red">−{peso(d.expensesTotal)}</span>}
+                        {d.items.length > 0 && d.expenses.length > 0 && <span className="font-semibold tabular-nums text-accent-purple-light">Net {peso(d.total - d.expensesTotal)}</span>}
                       </div>
                     </div>
                   </li>
