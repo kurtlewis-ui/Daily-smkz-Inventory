@@ -241,6 +241,20 @@ export function useArchivedProducts() {
   });
 }
 
+/**
+ * Fetch a SINGLE product fresh from the server. Used to prefill the edit form —
+ * especially the owner-only costPrice — so the modal always reflects the true
+ * saved value instead of relying on possibly-stale/omitted list-cache data.
+ * `enabled` lets the caller fetch only when a product is actually being edited.
+ */
+export function useProductDetail(id: string | null | undefined) {
+  return useQuery({
+    queryKey: ['product', id],
+    enabled: !!id,
+    queryFn: () => api.get(`/products/${id}`).then((r) => r.data.data as Product),
+  });
+}
+
 export interface ImportProductRow {
   name: string;
   brand: string;
@@ -342,7 +356,7 @@ export function useUpdateProduct(opts?: { silent?: boolean }) {
   return useMutation({
     mutationFn: ({ id, ...body }: ProductMutationInput & { id: string }) =>
       api.patch(`/products/${id}`, body).then((r) => r.data.data as { undoMovementIds?: string[] } & Record<string, unknown>),
-    onSuccess: () => { invalidate(['products']); if (!opts?.silent) t.onSuccess(); },
+    onSuccess: () => { invalidate(['products'], ['product']); if (!opts?.silent) t.onSuccess(); },
     onError: t.onError,
   });
 }

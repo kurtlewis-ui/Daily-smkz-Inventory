@@ -14,6 +14,7 @@ import {
   useUndoStock,
   useResetAllStock,
   useReorderProducts,
+  useProductDetail,
   type ImportProductRow,
   type RestockItem,
 } from '@/lib/hooks';
@@ -135,6 +136,18 @@ export default function ProductsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   // Tracks whether the open Add/Edit form has unsaved edits, to guard close.
   const [formDirty, setFormDirty] = useState(false);
+
+  // When editing, fetch the product FRESH so the owner-only Cost Price is always
+  // accurate (the list cache may be stale or omit cost). When it arrives, fill
+  // the cost box only if the owner hasn't already typed something in this open.
+  const { data: freshEditProduct } = useProductDetail(showEditModal ? editingProduct?.id : null);
+  useEffect(() => {
+    if (!showEditModal || !freshEditProduct) return;
+    if (!formDirty && freshEditProduct.costPrice != null) {
+      setFormCostPrice(freshEditProduct.costPrice.toString());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [freshEditProduct, showEditModal]);
 
   const closeAdd = useUnsavedGuard(formDirty, () => { setShowAddModal(false); setFormDirty(false); });
   const closeEdit = useUnsavedGuard(formDirty, () => { setShowEditModal(false); setEditingProduct(null); setFormDirty(false); });
