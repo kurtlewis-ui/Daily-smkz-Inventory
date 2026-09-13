@@ -333,7 +333,6 @@ function DraftBag() {
     removeExpense,
     customerName,
     clear,
-    replaceAll,
     removedProductIds,
     clearTombstones,
   } = useDraftStore();
@@ -352,13 +351,6 @@ function DraftBag() {
 
   const isEmpty = items.length === 0 && disposalItems.length === 0 && expenses.length === 0;
 
-  // Mirrors the latest poll result into a ref so the debounced timer below
-  // can check it at *fire* time rather than the stale value captured when
-  // the timer was scheduled.
-  const myDraftExistsRef = useRef(myDraftExists);
-  useEffect(() => {
-    myDraftExistsRef.current = myDraftExists;
-  }, [myDraftExists]);
 
   // Push the cart to the server (debounced) so Admins can see it live on
   // Pending Sales before it's ever submitted. Skips the initial mount so an
@@ -382,92 +374,32 @@ function DraftBag() {
     }
     const timer = setTimeout(() => {
       if (isEmpty) {
-        // Check the *freshest* known server state, not what it was when
-        // this timer was scheduled. If the server currently holds content
-        // we haven't reconciled down yet (e.g. a decline landed on a fresh
-        // mount/rehydration before the reconcile effect got its first
-        // look), don't blindly delete it out from under the staff member —
-        // let the reconcile effect adopt it instead.
-        const server = myDraftExistsRef.current;
-        const tombstoned = new Set(removedProductIds);
-        // Server content the user has NOT intentionally removed. Items the
-        // user just deleted (tombstoned) don't count as "content worth
-        // keeping" — otherwise a stale poll would block us from clearing a
-        // cart the user just emptied.
-        const serverHasContent =
-          !!server?.exists &&
-          ((server.items ?? []).some((i: { productId: string }) => !tombstoned.has(i.productId)) ||
-            (server.disposalItems ?? []).some((i: { productId: string }) => !tombstoned.has(i.productId)) ||
-            (server.expenses ?? []).length > 0);
-        if (!serverHasContent) {
-          clearDraftSync.mutate();
-          // The delete removes everything server-side; drop the tombstones
-          // for whatever it held so they don't linger forever.
-          if (removedProductIds.length > 0) clearTombstones();
-        }
+        // Cart is empty locally → remove the server-side mirror. The staff's
+        // local cart is the single source of truth; the server draft only
+        // exists so an admin can see the in-progress cart on Pending Sales.
+        clearDraftSync.mutate();
+        if (removedProductIds.length > 0) clearTombstones();
       } else {
-        // Before pushing, merge any server-side items that don't exist
-        // locally. This prevents a decline-restored item (added server-side
-        // by restoreToDraft) from being overwritten by our full-replace push.
-        // If we find missing items, adopt them locally too so the next cycle
-        // doesn't push without them again.
-        const server = myDraftExistsRef.current;
-        const tombstoned = new Set(removedProductIds);
-        let mergedItems = items;
-        let mergedDisposalItems = disposalItems;
-        let mergedExpenses = expenses;
-        let hasNewServerContent = false;
-        if (server?.exists) {
-          // Append server items whose productId isn't in our local list AND
-          // hasn't been intentionally removed by the user. The tombstone
-          // check is what stops a just-deleted item from being resurrected
-          // by a stale poll snapshot, while still adopting genuine
-          // admin-declined items the user never removed.
-          const localProductIds = new Set(items.map((i) => i.productId));
-          const missingItems = (server.items ?? []).filter(
-            (si: { productId: string }) => !localProductIds.has(si.productId) && !tombstoned.has(si.productId),
-          );
-          if (missingItems.length > 0) {
-            mergedItems = [...items, ...missingItems];
-            hasNewServerContent = true;
-          }
-          const localDisposalIds = new Set(disposalItems.map((i) => i.productId));
-          const missingDisposals = (server.disposalItems ?? []).filter(
-            (si: { productId: string }) => !localDisposalIds.has(si.productId) && !tombstoned.has(si.productId),
-          );
-          if (missingDisposals.length > 0) {
-            mergedDisposalItems = [...disposalItems, ...missingDisposals];
-            hasNewServerContent = true;
-          }
-          // For expenses, check by amount+note signature to avoid duplicates.
-          const localExpSigs = new Set(expenses.map((e) => `${e.amount}|${e.note}`));
-          const missingExpenses = (server.expenses ?? []).filter(
-            (se: { amount: number; note: string }) => !localExpSigs.has(`${se.amount}|${se.note}`),
-          );
-          if (missingExpenses.length > 0) {
-            mergedExpenses = [...expenses, ...missingExpenses];
-            hasNewServerContent = true;
-          }
-        }
-        // If decline-restored items were found, adopt them locally so the
-        // store reflects the full merged state going forward.
-        if (hasNewServerContent) {
-          suppressNextSync.current = true;
-          replaceAll(mergedItems, mergedDisposalItems, mergedExpenses);
-        }
-        // This push replaces the server-side draft with our tombstone-
-        // respecting state, so once it lands the server no longer holds the
-        // removed items — drop their tombstones so they don't linger.
+        // One-directional push: the local cart REPLACES the server draft.
+        // We deliberately do NOT merge server items back into the local cart.
+        //
+        // Why: when an admin submits/declines, the server draft is deleted
+        // (submit) and never re-created (decline) — a declined sale leaves NO
+        // draft behind, on purpose, so the staff re-inputs it. Merging server
+        // state back in used to try to "adopt" items from a non-existent
+        // decline-restore feature, which could resurrect items the staff
+        // didn't intend. Keeping the push strictly local → server makes the
+        // behavior deterministic and matches the rule: declined = gone.
         const pushedProductIds = new Set([
-          ...mergedItems.map((i) => i.productId),
-          ...mergedDisposalItems.map((i) => i.productId),
+          ...items.map((i) => i.productId),
+          ...disposalItems.map((i) => i.productId),
         ]);
         const staleTombstones = removedProductIds.filter((pid) => !pushedProductIds.has(pid));
         saveDraft.mutate(
           {
-            items: mergedItems.map(toDraftSaleItemPayload),
-            disposalItems: mergedDisposalItems.map(toDraftDisposalItemPayload),
-            expenses: mergedExpenses.map(toDraftExpensePayload),
+            items: items.map(toDraftSaleItemPayload),
+            disposalItems: disposalItems.map(toDraftDisposalItemPayload),
+            expenses: expenses.map(toDraftExpensePayload),
             customerName: customerName.trim() || undefined,
           },
           {
