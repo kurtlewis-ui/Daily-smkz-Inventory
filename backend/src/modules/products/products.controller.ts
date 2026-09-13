@@ -36,14 +36,14 @@ export class ProductsController {
   @Roles('Owner', 'Admin')
   @ApiOperation({ summary: 'Create a new product' })
   async create(@Body() dto: CreateProductDto, @CurrentUser() user: RequestUser) {
-    const data = await this.productsService.create(dto, user.userId);
+    const data = await this.productsService.create(dto, user.userId, user.role);
     return { success: true, data };
   }
 
   @Get()
   @ApiOperation({ summary: 'List active products (with per-branch stock)' })
-  async findAll(@Query() query: QueryProductDto) {
-    const result = await this.productsService.findAll(query);
+  async findAll(@Query() query: QueryProductDto, @CurrentUser() user: RequestUser) {
+    const result = await this.productsService.findAll(query, user.role);
     return { success: true, data: result.data, pagination: result.pagination };
   }
 
@@ -90,15 +90,15 @@ export class ProductsController {
   @Get('archived')
   @Roles('Owner', 'Admin')
   @ApiOperation({ summary: 'List archived (soft-deleted) products' })
-  async findArchived(@Query() query: QueryProductDto) {
-    const result = await this.productsService.findArchived(query);
+  async findArchived(@Query() query: QueryProductDto, @CurrentUser() user: RequestUser) {
+    const result = await this.productsService.findArchived(query, user.role);
     return { success: true, data: result.data, pagination: result.pagination };
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a product by ID' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const data = await this.productsService.findOne(id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+    const data = await this.productsService.findOne(id, user.role);
     return { success: true, data };
   }
 
@@ -110,7 +110,7 @@ export class ProductsController {
     @Body() dto: UpdateProductDto,
     @CurrentUser() user: RequestUser,
   ) {
-    const data = await this.productsService.update(id, dto, user.userId);
+    const data = await this.productsService.update(id, dto, user.userId, user.role);
     return { success: true, data };
   }
 
@@ -121,7 +121,7 @@ export class ProductsController {
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: RequestUser,
   ) {
-    const data = await this.productsService.restore(id, user.userId);
+    const data = await this.productsService.restore(id, user.userId, user.role);
     return { success: true, data };
   }
 
