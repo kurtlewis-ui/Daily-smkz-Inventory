@@ -19,6 +19,7 @@ import { ImportProductsDto } from './dto/import-products.dto';
 import { RestockDto } from './dto/restock.dto';
 import { ReorderProductsDto } from './dto/reorder-products.dto';
 import { UndoStockDto } from './dto/undo-stock.dto';
+import { ResetStockDto } from './dto/reset-stock.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -67,6 +68,14 @@ export class ProductsController {
   @ApiOperation({ summary: 'Owner-only: undo restock/adjustment stock movements (appends compensating movements)' })
   async undoStock(@Body() dto: UndoStockDto, @CurrentUser() user: RequestUser) {
     const data = await this.productsService.undoStockMovements(dto.movementIds, user.userId);
+    return { success: true, data };
+  }
+
+  @Post('stock/reset')
+  @Roles('Owner')
+  @ApiOperation({ summary: 'Owner-only: reset ALL product stock to 0 at every branch (type-to-confirm)' })
+  async resetStock(@Body() _dto: ResetStockDto, @CurrentUser() user: RequestUser) {
+    const data = await this.productsService.resetAllStock(user.userId);
     return { success: true, data };
   }
 
