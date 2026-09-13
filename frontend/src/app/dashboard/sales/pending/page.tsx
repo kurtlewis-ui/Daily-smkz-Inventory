@@ -78,6 +78,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
  */
 function DraftIconButton({
   icon,
+  label,
   armed,
   onClick,
   disabled,
@@ -85,17 +86,24 @@ function DraftIconButton({
   title,
 }: {
   icon: React.ReactNode;
+  label: string;
   armed: boolean;
   onClick: () => void;
   disabled?: boolean;
   tone: 'teal' | 'red';
   title: string;
 }) {
-  const armedCls = tone === 'teal' ? 'bg-accent-teal text-white' : 'bg-accent-red text-white';
-  const idleCls =
+  // Match the header "Accept All" / "Clear All" button language:
+  //  - teal  → solid teal fill (like Accept All); armed → solid orange
+  //  - red   → red outline (like Clear All);      armed → solid red
+  const cls =
     tone === 'teal'
-      ? 'text-text-secondary hover:text-accent-teal hover:bg-accent-teal/10'
-      : 'text-text-secondary hover:text-accent-red hover:bg-accent-red/10';
+      ? armed
+        ? 'bg-accent-orange text-black'
+        : 'bg-accent-teal text-white hover:opacity-90'
+      : armed
+        ? 'bg-accent-red text-white'
+        : 'border border-accent-red/40 text-accent-red hover:bg-accent-red/10';
   return (
     <button
       type="button"
@@ -103,9 +111,10 @@ function DraftIconButton({
       disabled={disabled}
       title={armed ? `Confirm: ${title}` : title}
       aria-label={title}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed ${armed ? armedCls : idleCls}`}
+      className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${cls}`}
     >
       {armed ? <Check size={16} /> : icon}
+      <span>{armed ? 'Confirm?' : label}</span>
     </button>
   );
 }
@@ -523,13 +532,13 @@ export default function SalesPendingPage() {
         <div className="overflow-x-auto">
           <table className="hidden w-full table-fixed md:table">
             <colgroup>
-              <col className="w-[15%]" />
-              <col className="w-[34%]" />
+              <col className="w-[14%]" />
+              <col className="w-[31%]" />
+              <col className="w-[11%]" />
               <col className="w-[12%]" />
+              <col className="w-[10%]" />
+              <col className="w-[9%]" />
               <col className="w-[13%]" />
-              <col className="w-[10%]" />
-              <col className="w-[10%]" />
-              <col className="w-[6%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-card-border bg-table-header text-table-header-text">
@@ -551,7 +560,6 @@ export default function SalesPendingPage() {
                 <tr key={d.id} className="border-b border-card-border/60 align-top transition hover:bg-white/[0.02]">
                   <td className="px-5 py-5 align-top">
                     <p className="text-sm font-semibold leading-snug text-text-primary">{d.staff.name}</p>
-                    <p className="mt-0.5 truncate text-xs text-text-muted" title={d.staff.email}>{d.staff.email}</p>
                   </td>
                   <td className="px-5 py-5 align-top">
                     {d.items.length === 0 ? <span className="text-text-muted">—</span> : (
@@ -607,10 +615,11 @@ export default function SalesPendingPage() {
                   </td>
                   <td className="px-5 py-5 align-top text-xs text-text-secondary">{formatDate(d.updatedAt)}</td>
                   <td className="px-5 py-5 align-top">
-                    <div className="flex items-center justify-center gap-1.5">
+                    <div className="flex flex-col items-stretch gap-2">
                       <DraftIconButton
                         tone="teal"
-                        icon={<Send size={16} />}
+                        icon={<Send size={15} />}
+                        label="Save Draft"
                         armed={confirmAction === `save-draft-${d.staff.id}`}
                         disabled={draftBusy}
                         title="Submit this draft"
@@ -629,7 +638,8 @@ export default function SalesPendingPage() {
                       />
                       <DraftIconButton
                         tone="red"
-                        icon={<Trash2 size={16} />}
+                        icon={<Trash2 size={15} />}
+                        label="Clear"
                         armed={confirmAction === `clear-draft-${d.staff.id}`}
                         disabled={draftBusy}
                         title="Discard this draft (nothing is sold)"
@@ -652,16 +662,16 @@ export default function SalesPendingPage() {
               <ul className="divide-y divide-card-border">
                 {drafts.map((d) => (
                   <li key={d.id} className="p-5">
-                    <div className="mb-4 flex items-start justify-between gap-3">
+                    <div className="mb-4">
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold text-text-primary" title={d.staff.name}>{d.staff.name}</p>
-                        <p className="mt-0.5 truncate text-xs text-text-muted" title={d.staff.email}>{d.staff.email}</p>
                         <p className="mt-0.5 text-[11px] text-text-muted">Updated {formatDate(d.updatedAt)}</p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="mt-3 grid grid-cols-2 gap-2">
                         <DraftIconButton
                           tone="teal"
-                          icon={<Send size={18} />}
+                          icon={<Send size={15} />}
+                          label="Save Draft"
                           armed={confirmAction === `save-draft-${d.staff.id}`}
                           disabled={draftBusy}
                           title="Submit this draft"
@@ -680,7 +690,8 @@ export default function SalesPendingPage() {
                         />
                         <DraftIconButton
                           tone="red"
-                          icon={<Trash2 size={18} />}
+                          icon={<Trash2 size={15} />}
+                          label="Clear"
                           armed={confirmAction === `clear-draft-${d.staff.id}`}
                           disabled={draftBusy}
                           title="Discard this draft (nothing is sold)"
