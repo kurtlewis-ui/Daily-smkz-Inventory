@@ -694,6 +694,12 @@ function ImportModal({ branches, onClose }: { branches: { id: string; name: stri
 
 interface RestockRow { productId: string; branchId: string; quantity: string; }
 
+// Remembers the last restock the owner actually SUBMITTED this session, so we
+// can warn if they upload what looks like the exact same file again (a restock
+// ADDS to stock, so re-submitting the same file would double the numbers).
+// Module-level so it survives closing/reopening the Restock modal.
+let lastSubmittedRestockSignature: string | null = null;
+
 function RestockModal({ products, branches, isOwner, onClose }: { products: Product[]; branches: { id: string; name: string }[]; isOwner: boolean; onClose: () => void }) {
   const restock = useRestock({ silent: true });
   const undoStock = useUndoStock();
@@ -703,12 +709,29 @@ function RestockModal({ products, branches, isOwner, onClose }: { products: Prod
 
   const [csvItems, setCsvItems] = useState<RestockItem[]>([]);
   const [fileName, setFileName] = useState('');
+  // Product names in the file that don't match any product in the system.
+  // Restock refuses the WHOLE upload if any exist — so we surface them here
+  // BEFORE the user submits, and block the button.
+  const [unmatchedProducts, setUnmatchedProducts] = useState<string[]>([]);
+  // True when this exact file (same items + totals) was just submitted — a
+  // guard against accidentally adding the same delivery twice.
+  const [duplicateWarned, setDuplicateWarned] = useState(false);
 
   const branchNameSet = new Set(branches.map((b) => b.name.toLowerCase()));
   const branchNames = branches.map((b) => b.name);
+  const productNameSet = new Set(products.map((p) => p.name.trim().toLowerCase()));
+
+  // A stable fingerprint of the parsed additions (order-independent) so we can
+  // detect a re-upload of the same file/numbers.
+  function signatureOf(items: RestockItem[]): string {
+    return items
+      .map((i) => `${(i.productName ?? '').trim().toLowerCase()}|${(i.branchName ?? '').trim().toLowerCase()}|${i.quantity}`)
+      .sort()
+      .join(';');
+  }
 
   async function onFile(file: File) {
-    setError(null); setResult(null); setCsvItems([]); setFileName('');
+    setError(null); setResult(null); setCsvItems([]); setFileName(''); setUnmatchedProducts([]); setDuplicateWarned(false);
     try {
       // Load the xlsx helpers on demand (only when the user imports a file).
       const { parseRestockXlsx, matchSlugToShopName, readFileAsArrayBuffer } = await import('@/lib/xlsx-utils');
@@ -753,16 +776,23 @@ function RestockModal({ products, branches, isOwner, onClose }: { products: Prod
         return;
       }
       const items: RestockItem[] = [];
+      const unmatched = new Set<string>();
       for (const r of csvRows) {
         const productName = (r[nameCol] ?? '').trim();
         if (!productName) continue;
+        // Flag product names that won't match anything in the system — the
+        // backend refuses the whole upload if any are present, so we warn now.
+        if (!productNameSet.has(productName.toLowerCase())) unmatched.add(productName);
         for (const { header, shopName } of branchColMap) {
           const qty = Number(r[header]) || 0;
           if (qty > 0) items.push({ productName, branchName: shopName, quantity: qty });
         }
       }
       setCsvItems(items);
+      setUnmatchedProducts([...unmatched]);
       setFileName(file.name);
+      // Warn if this exact set of additions was already submitted this session.
+      setDuplicateWarned(items.length > 0 && signatureOf(items) === lastSubmittedRestockSignature);
     } catch {
       setError('Could not read the file.');
     }
@@ -771,9 +801,15 @@ function RestockModal({ products, branches, isOwner, onClose }: { products: Prod
   async function submit() {
     const items = csvItems;
     if (items.length === 0) { setError('No stock to add. Edit the shop columns in the exported file (numbers greater than 0) and re-upload.'); return; }
+    if (unmatchedProducts.length > 0) {
+      setError(`Can't restock: ${unmatchedProducts.length} product name(s) in the file don't exist in the system. Fix the file and re-upload — nothing has been changed.`);
+      return;
+    }
     setError(null);
     try {
       const res = await restock.mutateAsync(items);
+      // Remember this exact submission so an accidental re-upload is caught.
+      lastSubmittedRestockSignature = signatureOf(items);
       setResult(res);
       const ids = Array.isArray((res as any)?.movementIds) ? (res as any).movementIds as string[] : [];
       const msg = `Restocked ${res.updated} of ${res.total} ${res.total === 1 ? 'entry' : 'entries'}`;
@@ -806,10 +842,35 @@ function RestockModal({ products, branches, isOwner, onClose }: { products: Prod
           <label className="block text-sm font-medium text-text-primary mb-1">Upload Excel File</label>
           <input type="file" accept=".xlsx,.xls" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
         </div>
-        {fileName && (
-          <p className="text-sm text-text-secondary">
-            Found <strong>{csvItems.length}</strong> stock addition(s) across {new Set(csvItems.map((c) => c.productName)).size} product(s) from {fileName}.
-          </p>
+        {fileName && !result && (
+          <div className="rounded-lg border border-card-border bg-white/5 px-3 py-2 text-sm text-text-secondary space-y-1">
+            <p>
+              Ready to <strong>add</strong> stock: <strong>{csvItems.reduce((s, c) => s + c.quantity, 0)}</strong> unit(s) across{' '}
+              <strong>{new Set(csvItems.map((c) => (c.productName ?? '').trim().toLowerCase())).size}</strong> product(s) and{' '}
+              <strong>{new Set(csvItems.map((c) => (c.branchName ?? '').trim().toLowerCase())).size}</strong> shop(s), from {fileName}.
+            </p>
+            <p className="text-xs text-text-muted">These quantities are <strong>added</strong> to current stock (a delivery), not set as the new totals.</p>
+          </div>
+        )}
+
+        {/* Unmatched products block the whole upload (server refuses partials). */}
+        {unmatchedProducts.length > 0 && !result && (
+          <div className="rounded-lg border border-accent-red/40 bg-accent-red/10 px-3 py-2 text-sm text-accent-red">
+            <p className="font-semibold">{unmatchedProducts.length} product name(s) don&apos;t match the system — the whole upload is blocked.</p>
+            <p className="mt-1 text-xs">Fix these names in the file (they must match exactly), then re-upload. Nothing will be changed until every row matches.</p>
+            <ul className="mt-1 list-disc list-inside text-xs max-h-24 overflow-y-auto">
+              {unmatchedProducts.slice(0, 15).map((n) => <li key={n}>{n}</li>)}
+              {unmatchedProducts.length > 15 && <li>…and {unmatchedProducts.length - 15} more</li>}
+            </ul>
+          </div>
+        )}
+
+        {/* Double-upload guard: same file/numbers already submitted this session. */}
+        {duplicateWarned && unmatchedProducts.length === 0 && !result && (
+          <div className="rounded-lg border border-accent-orange/40 bg-accent-orange/10 px-3 py-2 text-sm text-accent-orange">
+            <p className="font-semibold">This looks like the same file you just restocked.</p>
+            <p className="mt-1 text-xs">Restock <strong>adds</strong> to stock, so submitting again will double these quantities. Only continue if this is a new delivery.</p>
+          </div>
         )}
 
         {error && <p className="text-sm text-accent-red">{error}</p>}
@@ -821,7 +882,15 @@ function RestockModal({ products, branches, isOwner, onClose }: { products: Prod
         )}
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="btn-secondary text-text-primary px-4 py-2 rounded text-sm font-medium">{result ? 'Done' : 'Close'}</button>
-          {!result && <button onClick={submit} disabled={restock.isPending || csvItems.length === 0} className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60">{restock.isPending ? 'Restocking...' : 'Restock Products'}</button>}
+          {!result && (
+            <button
+              onClick={submit}
+              disabled={restock.isPending || csvItems.length === 0 || unmatchedProducts.length > 0}
+              className="btn-grad px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {restock.isPending ? 'Restocking...' : duplicateWarned ? 'Add anyway' : 'Restock Products'}
+            </button>
+          )}
         </div>
       </div>
     </Modal>
