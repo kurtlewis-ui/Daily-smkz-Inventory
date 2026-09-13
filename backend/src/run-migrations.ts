@@ -26,6 +26,9 @@ import { spawnSync } from 'child_process';
  * Controlled by env:
  *   RUN_MIGRATIONS_ON_BOOT = "false" to skip entirely (default: run).
  *   MIGRATE_MAX_ATTEMPTS   = number of tries (default 5).
+ *
+ * Migrations and the idempotent seed run before the HTTP server accepts
+ * traffic, so the API never serves against an out-of-date schema.
  */
 const BACKOFF_MS = [0, 8000, 15000, 25000, 40000];
 
