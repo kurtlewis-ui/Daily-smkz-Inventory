@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { QueryExpenseDto } from './dto/query-expense.dto';
 import { RequestUser } from '../../common/interfaces/request-user.interface';
+import { businessDayRange } from '../../common/utils/business-day.util';
 
 @Injectable()
 export class ExpensesService {
@@ -131,13 +132,9 @@ export class ExpensesService {
     }
 
     if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        where.createdAt.lte = end;
-      }
+      // PH business-day window (2 AM–2 AM) so expenses show on the correct
+      // day's report regardless of server timezone. See business-day.util.
+      where.createdAt = businessDayRange(startDate, endDate);
     }
 
     if (search) {
