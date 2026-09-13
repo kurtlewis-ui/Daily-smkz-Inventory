@@ -30,7 +30,7 @@ services:
     # trying to acquire a postgres advisory lock" while the DB is still waking.
     # The wrapper retries with backoff (and a longer lock timeout) so a cold
     # database no longer fails the whole deploy.
-    startCommand: npm run prisma:migrate:deploy:retry && (npm run prisma:seed || echo "seed skipped") && npm run start:prod
+    startCommand: npm run start:migrate
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
