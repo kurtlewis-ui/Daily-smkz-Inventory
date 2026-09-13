@@ -189,7 +189,9 @@ export default function ProductsPage() {
     const priceToShow = shopFilter
       ? (product.quantities.find((q) => q.branchId === shopFilter)?.sellingPrice ?? product.sellingPrice)
       : product.sellingPrice;
-    setFormPrice(priceToShow.toString()); setFormCostPrice(''); setFormAlert(product.quantityAlert.toString());
+    // Prefill the owner-only cost from the product so it shows back after saving
+    // and edits don't wipe it. (Non-owners never receive costPrice, so this is empty for them.)
+    setFormPrice(priceToShow.toString()); setFormCostPrice(product.costPrice != null ? product.costPrice.toString() : ''); setFormAlert(product.quantityAlert.toString());
     setFormImage(product.image ?? null);
     const q: Record<string, string> = {};
     branchesForEdit.forEach((b) => { q[b.id] = (product.quantities.find((x) => x.branchId === b.id)?.quantity ?? 0).toString(); });
@@ -220,7 +222,13 @@ export default function ProductsPage() {
     setFormError(null);
     try {
       // When a specific branch is selected, price goes to the branch (not global)
-      const updateData: any = { id: editingProduct.id, name: formName.trim(), brandId: formBrand, costPrice: parseFloat(formCostPrice) || 0, quantityAlert: parseInt(formAlert) || 0, image: formImage ?? '', quantities: buildQuantitiesPayload() };
+      const updateData: any = { id: editingProduct.id, name: formName.trim(), brandId: formBrand, quantityAlert: parseInt(formAlert) || 0, image: formImage ?? '', quantities: buildQuantitiesPayload() };
+      // Only send costPrice when the owner actually entered a value. Sending it
+      // unconditionally would zero the stored cost on every non-owner edit (they
+      // never see the field) and on owner edits that leave it blank.
+      if (formCostPrice.trim() !== '') {
+        updateData.costPrice = parseFloat(formCostPrice) || 0;
+      }
       if (!shopFilter) {
         // All Shops → update the global/default selling price
         updateData.sellingPrice = parseFloat(formPrice) || 0;
@@ -944,10 +952,13 @@ function ProductFormModal({ title, onClose, onDirty, onSubmit, buttonLabel, disa
           <Select value={formBrand} onChange={setFormBrand} ariaLabel="Brand" placeholder="Select a brand" className="w-full" options={brands.map((b) => ({ value: b.id, label: b.name }))} />
           {brands.length === 0 && <p className="text-xs text-text-muted mt-1">No brands yet. Create a brand first.</p>}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-1">Cost Price (₱)</label>
-          <input type="number" step="0.01" min="0" value={formCostPrice} onChange={(e) => setFormCostPrice(e.target.value)} placeholder="0" className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
-        </div>
+        {isOwner && (
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">Cost Price (₱)</label>
+            <input type="number" step="0.01" min="0" value={formCostPrice} onChange={(e) => setFormCostPrice(e.target.value)} placeholder="0" className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />
+            <p className="text-xs text-text-muted mt-1">Owner-only &amp; private. Never shown to staff or included in Excel export.</p>
+          </div>
+        )}
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Selling Price (₱)</label>
           <input type="number" step="0.01" min="0" value={formPrice} onChange={(e) => setFormPrice(e.target.value)} placeholder="0" className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg focus:outline-none focus:border-input-focus" />

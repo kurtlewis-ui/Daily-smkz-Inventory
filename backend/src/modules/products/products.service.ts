@@ -21,7 +21,7 @@ export class ProductsService {
     private upload: UploadService,
   ) {}
 
-  async create(dto: CreateProductDto, createdBy: string) {
+  async create(dto: CreateProductDto, createdBy: string, role?: string) {
     const brand = await this.prisma.brand.findFirst({
       where: { id: dto.brandId, deletedAt: null },
     });
@@ -90,7 +90,7 @@ export class ProductsService {
       brand: brand.name,
     });
 
-    return this.serialize(product);
+    return this.serialize(product, role === 'Owner');
   }
 
   /**
@@ -129,7 +129,7 @@ export class ProductsService {
     return { success: true, count: ids.length };
   }
 
-  async findAll(query: QueryProductDto) {
+  async findAll(query: QueryProductDto, role?: string) {
     const { page = 1, limit = 20, search, brandId, branchId } = query;
     const skip = (page - 1) * limit;
 
@@ -156,13 +156,14 @@ export class ProductsService {
       }),
     ]);
 
+    const includeOwnerFields = role === 'Owner';
     return {
-      data: products.map((p) => this.serialize(p)),
+      data: products.map((p) => this.serialize(p, includeOwnerFields)),
       pagination: this.paginate(page, limit, total),
     };
   }
 
-  async findArchived(query: QueryProductDto) {
+  async findArchived(query: QueryProductDto, role?: string) {
     const { page = 1, limit = 20, search } = query;
     const skip = (page - 1) * limit;
 
@@ -182,13 +183,14 @@ export class ProductsService {
       }),
     ]);
 
+    const includeOwnerFields = role === 'Owner';
     return {
-      data: products.map((p) => this.serialize(p)),
+      data: products.map((p) => this.serialize(p, includeOwnerFields)),
       pagination: this.paginate(page, limit, total),
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, role?: string) {
     const product = await this.prisma.product.findFirst({
       where: { id, deletedAt: null },
       include: this.includeFull(),
@@ -196,10 +198,10 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-    return this.serialize(product);
+    return this.serialize(product, role === 'Owner');
   }
 
-  async update(id: string, dto: UpdateProductDto, updatedBy: string) {
+  async update(id: string, dto: UpdateProductDto, updatedBy: string, role?: string) {
     const current = await this.prisma.product.findFirst({
       where: { id, deletedAt: null },
     });
@@ -226,6 +228,10 @@ export class ProductsService {
     if (dto.image !== undefined) data.image = await this.upload.uploadDataUrl(dto.image?.trim() || null, 'products');
     if (dto.brandId !== undefined) data.brandId = dto.brandId;
     if (dto.sellingPrice !== undefined) data.sellingPrice = dto.sellingPrice;
+    // Owner-only cost price: persist ONLY when a value is explicitly provided so
+    // that a normal edit (which omits costPrice) never overwrites the stored
+    // cost back to 0. Non-owner edits never include costPrice in the payload.
+    if (dto.costPrice !== undefined) data.costPrice = dto.costPrice;
     if (dto.quantityAlert !== undefined) data.quantityAlert = dto.quantityAlert;
 
     await this.prisma.product.update({ where: { id }, data });
@@ -312,7 +318,7 @@ export class ProductsService {
       data,
     );
 
-    const serialized = this.serialize(updated!);
+    const serialized = this.serialize(updated!, role === 'Owner');
     // Attach the undoable movement ids (empty when no quantity actually changed).
     return { ...serialized, undoMovementIds };
   }
@@ -341,7 +347,7 @@ export class ProductsService {
     return { message: 'Product archived successfully' };
   }
 
-  async restore(id: string, restoredBy: string) {
+  async restore(id: string, restoredBy: string, role?: string) {
     const product = await this.prisma.product.findFirst({
       where: { id, deletedAt: { not: null } },
       include: { brand: true },
@@ -364,7 +370,7 @@ export class ProductsService {
       name: product.name,
     });
 
-    return this.findOne(id);
+    return this.findOne(id, role);
   }
 
   /**
