@@ -305,8 +305,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="w-9" />
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 max-w-[1200px] w-full mx-auto bg-page-bg">{children}</main>
+        {/* Page Content — give desktop more room to breathe (the doc noted the
+            desktop view felt cramped while mobile/tablet were fine). Wider max
+            width and more horizontal padding step up at lg/xl; small screens
+            are unchanged. */}
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 max-w-[1200px] xl:max-w-[1440px] w-full mx-auto bg-page-bg">{children}</main>
       </div>
     </div>
   );
