@@ -76,6 +76,65 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
  * a check and the tint turns solid), second click runs the action. Keeps the
  * actions column tight and professional instead of wide text buttons.
  */
+/**
+ * Standardized header bulk-action button used across ALL Pending-page sections
+ * (Sales, Staff Drafts, Disposals, Expenses) so every "Approve/Accept All" and
+ * "Decline/Clear All" looks and behaves identically:
+ *   - positive → solid green (approve / accept)
+ *   - negative → solid red   (decline / clear)
+ * Two-click confirm: the first click "arms" the button (shows "Confirm?"), the
+ * second runs the action. When armed, a small inline Cancel appears next to it.
+ * `armed` is derived from the caller's shared confirmAction state, so only one
+ * button can be armed at a time.
+ */
+function BulkActionButton({
+  tone,
+  label,
+  icon,
+  armed,
+  disabled,
+  onClick,
+  onCancel,
+  title,
+}: {
+  tone: 'positive' | 'negative';
+  label: string;
+  icon: React.ReactNode;
+  armed: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  onCancel: () => void;
+  title: string;
+}) {
+  const base =
+    'inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed';
+  const cls = tone === 'positive' ? 'bg-accent-green' : 'bg-accent-red';
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        title={armed ? `Confirm: ${title}` : title}
+        aria-label={title}
+        className={`${base} ${cls}`}
+      >
+        {armed ? <Check size={16} /> : icon}
+        <span>{armed ? 'Confirm?' : label}</span>
+      </button>
+      {armed && (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-white/10 hover:text-text-primary"
+        >
+          Cancel
+        </button>
+      )}
+    </>
+  );
+}
+
 function DraftIconButton({
   icon,
   label,
@@ -90,20 +149,12 @@ function DraftIconButton({
   armed: boolean;
   onClick: () => void;
   disabled?: boolean;
-  tone: 'teal' | 'red';
+  tone: 'positive' | 'negative';
   title: string;
 }) {
-  // Match the header "Accept All" / "Clear All" button language:
-  //  - teal  → solid teal fill (like Accept All); armed → solid orange
-  //  - red   → red outline (like Clear All);      armed → solid red
-  const cls =
-    tone === 'teal'
-      ? armed
-        ? 'bg-accent-orange text-black'
-        : 'bg-accent-teal text-white hover:opacity-90'
-      : armed
-        ? 'bg-accent-red text-white'
-        : 'border border-accent-red/40 text-accent-red hover:bg-accent-red/10';
+  // Same green/red language as the header BulkActionButton so every action on
+  // this page matches: positive → solid green, negative → solid red.
+  const cls = tone === 'positive' ? 'bg-accent-green text-white' : 'bg-accent-red text-white';
   return (
     <button
       type="button"
@@ -308,18 +359,26 @@ export default function SalesPendingPage() {
       <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
         <h1 className="text-2xl font-bold text-text-primary">Pending Sales</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={handleApproveAll} disabled={busy || sales.length === 0} className="flex items-center gap-1.5 px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-70">
-            <CheckCircle size={16} /> {confirmAction === 'approve-all-sales' ? 'Confirm Approve All?' : 'Approve All'}
-          </button>
-          {confirmAction === 'approve-all-sales' && (
-            <button onClick={() => setConfirmAction(null)} className="px-3 py-2 bg-white/10 text-text-primary rounded-lg text-sm font-medium hover:bg-white/15 transition">Cancel</button>
-          )}
-          <button onClick={handleDeclineAll} disabled={busy || sales.length === 0} className="flex items-center gap-1.5 px-4 py-2 bg-accent-red text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-70">
-            <XCircle size={16} /> {confirmAction === 'decline-all-sales' ? 'Confirm Decline All?' : 'Decline All'}
-          </button>
-          {confirmAction === 'decline-all-sales' && (
-            <button onClick={() => setConfirmAction(null)} className="px-3 py-2 bg-white/10 text-text-primary rounded-lg text-sm font-medium hover:bg-white/15 transition">Cancel</button>
-          )}
+          <BulkActionButton
+            tone="positive"
+            label="Approve All"
+            icon={<CheckCircle size={16} />}
+            armed={confirmAction === 'approve-all-sales'}
+            disabled={busy || sales.length === 0}
+            onClick={handleApproveAll}
+            onCancel={() => setConfirmAction(null)}
+            title="Approve all pending sales"
+          />
+          <BulkActionButton
+            tone="negative"
+            label="Decline All"
+            icon={<XCircle size={16} />}
+            armed={confirmAction === 'decline-all-sales'}
+            disabled={busy || sales.length === 0}
+            onClick={handleDeclineAll}
+            onCancel={() => setConfirmAction(null)}
+            title="Decline all pending sales"
+          />
         </div>
       </div>
 
@@ -428,7 +487,7 @@ export default function SalesPendingPage() {
                       <td className="px-4 py-4 text-sm text-text-secondary">{idx === 0 ? formatDate(sale.createdAt) : ''}</td>
                       <td className="px-4 py-4">
                         {idx === 0 && (
-                          <div className="flex items-center gap-1">
+                          <div className="act-group">
                             <button onClick={() => runSafe(async () => { await approveSale.mutateAsync(sale.id); setActionStatus(`✓ Sale #${sale.number} approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
                             <button onClick={() => runSafe(async () => { await declineSale.mutateAsync(sale.id); setActionStatus(`Sale #${sale.number} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                             <button onClick={() => { setActionError(null); setEditingSale(sale); }} className="act-btn act-edit" title="Edit"><Pencil size={16} /></button>
@@ -466,11 +525,11 @@ export default function SalesPendingPage() {
                         {sale.customerName && <p className="text-[11px] text-accent-blue">{sale.customerName}</p>}
                         <p className="text-[11px] text-text-muted">{sale.staff?.name ?? '—'} · {formatDate(sale.createdAt)}</p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button onClick={() => runSafe(async () => { await approveSale.mutateAsync(sale.id); setActionStatus(`✓ Sale #${sale.number} approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={18} /></button>
-                        <button onClick={() => runSafe(async () => { await declineSale.mutateAsync(sale.id); setActionStatus(`Sale #${sale.number} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={18} /></button>
-                        <button onClick={() => { setActionError(null); setEditingSale(sale); }} className="act-btn act-edit" title="Edit"><Pencil size={18} /></button>
-                        <button onClick={() => { setActionError(null); setDeletingSale(sale); }} className="act-btn act-delete" title="Delete"><Trash2 size={18} /></button>
+                      <div className="act-group shrink-0">
+                        <button onClick={() => runSafe(async () => { await approveSale.mutateAsync(sale.id); setActionStatus(`✓ Sale #${sale.number} approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
+                        <button onClick={() => runSafe(async () => { await declineSale.mutateAsync(sale.id); setActionStatus(`Sale #${sale.number} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
+                        <button onClick={() => { setActionError(null); setEditingSale(sale); }} className="act-btn act-edit" title="Edit"><Pencil size={16} /></button>
+                        <button onClick={() => { setActionError(null); setDeletingSale(sale); }} className="act-btn act-delete" title="Delete"><Trash2 size={16} /></button>
                       </div>
                     </div>
                     <ul className="space-y-1.5">
@@ -520,25 +579,26 @@ export default function SalesPendingPage() {
             <p className="mt-1 text-xs text-text-muted">In-progress staff carts — not yet submitted for approval.</p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <button
+            <BulkActionButton
+              tone="positive"
+              label="Accept All"
+              icon={<Send size={15} />}
+              armed={confirmAction === 'accept-all-drafts'}
+              disabled={draftBusy || drafts.length === 0}
               onClick={handleAcceptAllDrafts}
-              disabled={draftBusy || drafts.length === 0}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${confirmAction === 'accept-all-drafts' ? 'bg-accent-orange text-black' : 'bg-accent-teal text-white'}`}
+              onCancel={() => setConfirmAction(null)}
               title="Submit every staff member's draft on their behalf"
-            >
-              <Send size={15} /> {confirmAction === 'accept-all-drafts' ? 'Confirm?' : 'Accept All'}
-            </button>
-            <button
-              onClick={handleClearAllDrafts}
+            />
+            <BulkActionButton
+              tone="negative"
+              label="Clear All"
+              icon={<Trash2 size={15} />}
+              armed={confirmAction === 'clear-all-drafts'}
               disabled={draftBusy || drafts.length === 0}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${confirmAction === 'clear-all-drafts' ? 'bg-accent-red text-white' : 'border border-accent-red/40 text-accent-red hover:bg-accent-red/10'}`}
+              onClick={handleClearAllDrafts}
+              onCancel={() => setConfirmAction(null)}
               title="Discard every staff draft without submitting (nothing is sold)"
-            >
-              <Trash2 size={15} /> {confirmAction === 'clear-all-drafts' ? 'Confirm?' : 'Clear All'}
-            </button>
-            {(confirmAction === 'accept-all-drafts' || confirmAction === 'clear-all-drafts') && (
-              <button onClick={() => setConfirmAction(null)} className="rounded-lg px-3 py-2 text-xs font-medium text-text-muted transition hover:bg-white/10 hover:text-text-primary">Cancel</button>
-            )}
+            />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -629,7 +689,7 @@ export default function SalesPendingPage() {
                   <td className="px-5 py-5 align-top">
                     <div className="flex flex-col items-stretch gap-2">
                       <DraftIconButton
-                        tone="teal"
+                        tone="positive"
                         icon={<Send size={15} />}
                         label="Save Draft"
                         armed={confirmAction === `save-draft-${d.staff.id}`}
@@ -649,7 +709,7 @@ export default function SalesPendingPage() {
                         }}
                       />
                       <DraftIconButton
-                        tone="red"
+                        tone="negative"
                         icon={<Trash2 size={15} />}
                         label="Clear"
                         armed={confirmAction === `clear-draft-${d.staff.id}`}
@@ -681,7 +741,7 @@ export default function SalesPendingPage() {
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-2">
                         <DraftIconButton
-                          tone="teal"
+                          tone="positive"
                           icon={<Send size={15} />}
                           label="Save Draft"
                           armed={confirmAction === `save-draft-${d.staff.id}`}
@@ -701,7 +761,7 @@ export default function SalesPendingPage() {
                           }}
                         />
                         <DraftIconButton
-                          tone="red"
+                          tone="negative"
                           icon={<Trash2 size={15} />}
                           label="Clear"
                           armed={confirmAction === `clear-draft-${d.staff.id}`}
@@ -774,26 +834,26 @@ export default function SalesPendingPage() {
             {disposals.length > 0 && <span className="badge badge-neutral">{disposals.length}</span>}
           </h2>
           <div className="flex flex-wrap items-center gap-3">
-            <button
+            <BulkActionButton
+              tone="positive"
+              label="Approve All"
+              icon={<CheckCircle size={15} />}
+              armed={confirmAction === 'approve-all-disposals'}
+              disabled={disposals.length === 0}
               onClick={() => { const n = disposals.length; if (!n) return; if (confirmAction !== 'approve-all-disposals') { setConfirmAction('approve-all-disposals'); return; } setConfirmAction(null); runSafe(async () => { await Promise.all(disposals.map((d) => approveDisposal.mutateAsync(d.id))); setActionStatus(`✓ All ${n} disposal${n === 1 ? '' : 's'} approved (stock deducted).`); }); }}
+              onCancel={() => setConfirmAction(null)}
+              title="Approve all pending disposals"
+            />
+            <BulkActionButton
+              tone="negative"
+              label="Decline All"
+              icon={<XCircle size={15} />}
+              armed={confirmAction === 'decline-all-disposals'}
               disabled={disposals.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-green text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-70"
-            >
-              <CheckCircle size={15} /> {confirmAction === 'approve-all-disposals' ? 'Confirm?' : 'Approve All'}
-            </button>
-            {confirmAction === 'approve-all-disposals' && (
-              <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium">Cancel</button>
-            )}
-            <button
               onClick={() => { const n = disposals.length; if (!n) return; if (confirmAction !== 'decline-all-disposals') { setConfirmAction('decline-all-disposals'); return; } setConfirmAction(null); runSafe(async () => { await Promise.all(disposals.map((d) => declineDisposal.mutateAsync(d.id))); setActionStatus(`All ${n} disposal${n === 1 ? '' : 's'} declined.`); }); }}
-              disabled={disposals.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-red text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-70"
-            >
-              <XCircle size={15} /> {confirmAction === 'decline-all-disposals' ? 'Confirm?' : 'Decline All'}
-            </button>
-            {confirmAction === 'decline-all-disposals' && (
-              <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium">Cancel</button>
-            )}
+              onCancel={() => setConfirmAction(null)}
+              title="Decline all pending disposals"
+            />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -825,7 +885,7 @@ export default function SalesPendingPage() {
                   <td className="px-4 py-4 text-sm text-text-secondary">{d.createdBy}</td>
                   <td className="px-4 py-4 text-sm text-text-secondary">{formatDate(d.createdAt)}</td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-1">
+                    <div className="act-group">
                       <button onClick={() => runSafe(async () => { await approveDisposal.mutateAsync(d.id); setActionStatus(`✓ Disposal of ${d.quantity}× ${d.name} approved (stock deducted).`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
                       <button onClick={() => runSafe(async () => { await declineDisposal.mutateAsync(d.id); setActionStatus(`Disposal of ${d.name} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                     </div>
@@ -852,9 +912,9 @@ export default function SalesPendingPage() {
                         {d.reason && <p className="text-xs text-text-secondary break-words">{d.reason}</p>}
                         <p className="text-[11px] text-text-muted">{d.createdBy} · {formatDate(d.createdAt)}</p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button onClick={() => runSafe(async () => { await approveDisposal.mutateAsync(d.id); setActionStatus(`✓ Disposal of ${d.quantity}× ${d.name} approved (stock deducted).`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={18} /></button>
-                        <button onClick={() => runSafe(async () => { await declineDisposal.mutateAsync(d.id); setActionStatus(`Disposal of ${d.name} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={18} /></button>
+                      <div className="act-group shrink-0">
+                        <button onClick={() => runSafe(async () => { await approveDisposal.mutateAsync(d.id); setActionStatus(`✓ Disposal of ${d.quantity}× ${d.name} approved (stock deducted).`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
+                        <button onClick={() => runSafe(async () => { await declineDisposal.mutateAsync(d.id); setActionStatus(`Disposal of ${d.name} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                       </div>
                     </div>
                   </li>
@@ -873,26 +933,26 @@ export default function SalesPendingPage() {
             {expenses.length > 0 && <span className="badge badge-neutral">{expenses.length}</span>}
           </h2>
           <div className="flex flex-wrap items-center gap-3">
-            <button
+            <BulkActionButton
+              tone="positive"
+              label="Approve All"
+              icon={<CheckCircle size={15} />}
+              armed={confirmAction === 'approve-all-expenses'}
+              disabled={expenses.length === 0}
               onClick={() => { const n = expenses.length; if (!n) return; if (confirmAction !== 'approve-all-expenses') { setConfirmAction('approve-all-expenses'); return; } setConfirmAction(null); runSafe(async () => { await Promise.all(expenses.map((e) => approveExpense.mutateAsync(e.id))); setActionStatus(`✓ All ${n} expense${n === 1 ? '' : 's'} approved.`); }); }}
+              onCancel={() => setConfirmAction(null)}
+              title="Approve all pending expenses"
+            />
+            <BulkActionButton
+              tone="negative"
+              label="Decline All"
+              icon={<XCircle size={15} />}
+              armed={confirmAction === 'decline-all-expenses'}
               disabled={expenses.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-green text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-70"
-            >
-              <CheckCircle size={15} /> {confirmAction === 'approve-all-expenses' ? 'Confirm?' : 'Approve All'}
-            </button>
-            {confirmAction === 'approve-all-expenses' && (
-              <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium">Cancel</button>
-            )}
-            <button
               onClick={() => { const n = expenses.length; if (!n) return; if (confirmAction !== 'decline-all-expenses') { setConfirmAction('decline-all-expenses'); return; } setConfirmAction(null); runSafe(async () => { await Promise.all(expenses.map((e) => declineExpense.mutateAsync(e.id))); setActionStatus(`All ${n} expense${n === 1 ? '' : 's'} declined.`); }); }}
-              disabled={expenses.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-red text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-70"
-            >
-              <XCircle size={15} /> {confirmAction === 'decline-all-expenses' ? 'Confirm?' : 'Decline All'}
-            </button>
-            {confirmAction === 'decline-all-expenses' && (
-              <button onClick={() => setConfirmAction(null)} className="px-2 py-1.5 bg-white/10 text-text-primary rounded-lg text-xs font-medium">Cancel</button>
-            )}
+              onCancel={() => setConfirmAction(null)}
+              title="Decline all pending expenses"
+            />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -918,7 +978,7 @@ export default function SalesPendingPage() {
                   <td className="px-4 py-4 text-sm text-text-secondary max-w-[220px] truncate">{e.note}</td>
                   <td className="px-4 py-4 text-sm text-text-secondary">{formatDate(e.createdAt)}</td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-1">
+                    <div className="act-group">
                       <button onClick={() => runSafe(async () => { await approveExpense.mutateAsync(e.id); setActionStatus(`✓ Expense "${e.note}" approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
                       <button onClick={() => runSafe(async () => { await declineExpense.mutateAsync(e.id); setActionStatus(`Expense "${e.note}" declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                     </div>
@@ -944,9 +1004,9 @@ export default function SalesPendingPage() {
                         <p className="text-xs text-text-secondary break-words">{e.note}</p>
                         <p className="text-[11px] text-text-muted">{e.staff?.name ?? '—'} · {formatDate(e.createdAt)}</p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button onClick={() => runSafe(async () => { await approveExpense.mutateAsync(e.id); setActionStatus(`✓ Expense "${e.note}" approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={18} /></button>
-                        <button onClick={() => runSafe(async () => { await declineExpense.mutateAsync(e.id); setActionStatus(`Expense "${e.note}" declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={18} /></button>
+                      <div className="act-group shrink-0">
+                        <button onClick={() => runSafe(async () => { await approveExpense.mutateAsync(e.id); setActionStatus(`✓ Expense "${e.note}" approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
+                        <button onClick={() => runSafe(async () => { await declineExpense.mutateAsync(e.id); setActionStatus(`Expense "${e.note}" declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                       </div>
                     </div>
                   </li>
