@@ -57,6 +57,10 @@ interface ToastItem {
   title: string;
   action?: ToastAction;
   durationMs: number;
+  // How many times this same notification fired in quick succession. Shown as
+  // a "×N" badge so a burst (e.g. Approve All over 20 items) collapses into a
+  // single toast that counts up instead of flashing 20 separate toasts.
+  count: number;
 }
 
 interface ToastApi {
@@ -73,22 +77,38 @@ const ToastContext = createContext<ToastApi | null>(null);
 let nextId = 1;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  // Exactly one toast is ever visible (null = none). Coalescing rapid repeats
+  // means a burst of identical notifications never bombards the user.
+  const [toast, setToast] = useState<ToastItem | null>(null);
 
   const remove = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToast((cur) => (cur && cur.id === id ? null : cur));
   }, []);
 
   const push = useCallback((kind: ToastKind, message: string, options?: ToastOptions) => {
-    const id = nextId++;
     const durationMs = options?.durationMs ?? (options?.action ? ACTION_DURATION_MS : DURATION_MS);
-    // Only ONE floating notification at a time, globally: a new toast REPLACES
-    // whatever was showing rather than stacking beneath it. So approving,
-    // saving or updating in quick succession shows a single, latest message
-    // instead of a growing pile.
-    setToasts([
-      { id, kind, message, title: options?.title ?? DEFAULT_TITLES[kind], action: options?.action, durationMs },
-    ]);
+    const title = options?.title ?? DEFAULT_TITLES[kind];
+
+    setToast((cur) => {
+      // COALESCE: if the same notification (kind + title + message) is already
+      // showing, don't replace it with a fresh one — just bump its count and
+      // give it a new id so its dismiss timer restarts. A rapid burst (e.g.
+      // "Approve All" firing "Sale approved" 20×) becomes ONE toast that reads
+      // "Sale approved ×20" instead of 20 toasts machine-gunning the corner.
+      // Action toasts (e.g. Undo) never coalesce — each is distinct.
+      if (
+        cur &&
+        !cur.action &&
+        !options?.action &&
+        cur.kind === kind &&
+        cur.title === title &&
+        cur.message === message
+      ) {
+        return { ...cur, id: nextId++, count: cur.count + 1, durationMs };
+      }
+      // Otherwise REPLACE whatever was showing — only one toast at a time.
+      return { id: nextId++, kind, message, title, action: options?.action, durationMs, count: 1 };
+    });
   }, []);
 
   const api: ToastApi = {
@@ -103,12 +123,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {/* Single toast — fixed top-right, above everything, never clipped by
           layout. Top-right keeps it clear of the bottom-right floating Draft
-          Order button on the staff pages. Only one toast is ever in the list
-          (see push), so this renders at most one card. */}
+          Order button on the staff pages. At most one toast exists at a time
+          (see push); rapid repeats coalesce into it with a ×N count. */}
       <div className="pointer-events-none fixed top-4 right-4 z-[100] flex w-[min(92vw,380px)] flex-col gap-2.5">
-        {toasts.map((t) => (
-          <ToastCard key={t.id} toast={t} onDismiss={() => remove(t.id)} />
-        ))}
+        {toast && <ToastCard key={toast.id} toast={toast} onDismiss={() => remove(toast.id)} />}
       </div>
     </ToastContext.Provider>
   );
@@ -202,7 +220,12 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
         <AnimatedStatusIcon kind={toast.kind} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-tight text-text-primary">{toast.title}</p>
+        <p className="flex items-center gap-1.5 text-sm font-semibold leading-tight text-text-primary">
+          <span className="min-w-0 truncate">{toast.title}</span>
+          {toast.count > 1 && (
+            <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-text-secondary">×{toast.count}</span>
+          )}
+        </p>
         <p className="mt-0.5 text-sm leading-snug text-text-secondary break-words">{toast.message}</p>
         {toast.action && (
           <button
