@@ -44,6 +44,25 @@ export class StatsController {
     return { success: true, data };
   }
 
+  // Owner-ONLY. Profit & Loss uses each sale item's snapshotted cost price,
+  // which is confidential — Admin and Staff must never see cost-derived
+  // figures (Capital / Gross Profit / Net Profit / Margin).
+  @Get('profit-summary')
+  @Roles('Owner')
+  @ApiOperation({ summary: 'Owner-only Profit & Loss (Revenue, Capital/COGS, Net Profit, Margin)' })
+  async profitSummary(
+    @Query('branchId') branchId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const data = await this.statsService.profitSummary(
+      branchId || undefined,
+      startDate || undefined,
+      endDate || undefined,
+    );
+    return { success: true, data };
+  }
+
   // No @Roles here: Staff need this for their own daily report. The service
   // forces a Staff caller to their own branch, so they can't read another
   // branch's numbers.
