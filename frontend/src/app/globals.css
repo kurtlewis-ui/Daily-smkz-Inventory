@@ -19,6 +19,23 @@ body {
 }
 
 /* ----------------------------------------------------------------------
+   DARK THEME tokens (default). Previously dark mode relied only on the
+   Tailwind fallback values, where card-border was a solid #2a2a2a — a hard,
+   bright line that's harsh on the eye across all the data tables. Define the
+   dark tokens here so the border/divider is a SOFT translucent-white hairline
+   instead: it still defines edges, but doesn't glare. `.content-light` below
+   overrides these for light mode. Only the border tokens are set here; other
+   surfaces keep their existing Tailwind fallbacks.
+   ---------------------------------------------------------------------- */
+:root {
+  /* Soft hairline for card edges and table row dividers (was #2a2a2a). */
+  --content-card-border: rgba(255, 255, 255, 0.08);
+  /* A slightly more visible variant for input fields, which need to read as
+     defined controls. */
+  --content-input-border: rgba(255, 255, 255, 0.14);
+}
+
+/* ----------------------------------------------------------------------
    Content area theme — CSS variable overrides.
    Default (dark): white buttons, white glows, monochrome charts
    Light: black buttons, dark glows, colorful charts
