@@ -405,12 +405,24 @@ select optgroup {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 34px;
-  width: 34px;
+  height: 30px;
+  width: 30px;
   border-radius: 0.5rem;
   transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 .act-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Groups the per-row action icons into one compact, tidy cluster so the
+   Actions column reads as a single control instead of scattered buttons. */
+.act-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 0.625rem;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08));
+  background-color: rgba(255, 255, 255, 0.02);
+}
 
 .act-approve { color: var(--content-text-secondary, #b0b0b0); }
 .act-approve:hover:not(:disabled) { color: #10b981; background-color: rgba(16, 185, 129, 0.12); }
