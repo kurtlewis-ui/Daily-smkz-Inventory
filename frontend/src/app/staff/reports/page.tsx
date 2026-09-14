@@ -299,6 +299,7 @@ export default function StaffDailyReportPage() {
             <p className="text-sm font-semibold text-text-primary">Total Sales: <span className="font-bold">{peso(sales.reduce((sum, s) => sum + s.total, 0))}</span></p>
             <p className="text-sm text-text-secondary">Total Cash: <span className="font-medium text-text-primary">{peso(sales.reduce((sum, s) => s.items.filter((i) => i.paymentMethod === 'Cash' || (i.paymentMethod === 'Split' && i.paymentSplit)).reduce((a, i) => a + (i.paymentMethod === 'Cash' ? i.subTotal : (i.paymentSplit as any)?.cash ?? 0), 0) + sum, 0))}</span></p>
             <p className="text-sm text-text-secondary">Total Gcash: <span className="font-medium text-text-primary">{peso(sales.reduce((sum, s) => s.items.filter((i) => i.paymentMethod === 'Gcash' || (i.paymentMethod === 'Split' && i.paymentSplit)).reduce((a, i) => a + (i.paymentMethod === 'Gcash' ? i.subTotal : (i.paymentSplit as any)?.gcash ?? 0), 0) + sum, 0))}</span></p>
+            <p className="text-sm text-text-secondary">Total Discount: <span className="font-medium text-text-primary">{peso(sales.reduce((sum, s) => sum + s.items.reduce((a, i) => a + (i.discount ?? 0), 0), 0))}</span></p>
           </div>
         </div>
       )}
@@ -406,7 +407,7 @@ export default function StaffDailyReportPage() {
           the peso amounts don't get cramped/clipped in three tight columns,
           and lays out as three centered columns from `sm` up. */}
       <div className="mt-6 rounded-xl border border-card-border bg-card-bg p-5 shadow-sm">
-        <div className="flex flex-col divide-y divide-card-border sm:grid sm:grid-cols-3 sm:gap-4 sm:divide-y-0 sm:text-center">
+        <div className="flex flex-col divide-y divide-card-border sm:grid sm:grid-cols-4 sm:gap-4 sm:divide-y-0 sm:text-center">
           <div className="flex items-center justify-between py-2 sm:block sm:py-0">
             <p className="text-xs text-text-secondary sm:mb-1">Total Sales</p>
             <p className="text-lg font-bold text-text-primary tabular-nums break-words">{peso(allSales.reduce((sum, s) => sum + s.total, 0))}</p>
@@ -414,6 +415,10 @@ export default function StaffDailyReportPage() {
           <div className="flex items-center justify-between py-2 sm:block sm:py-0">
             <p className="text-xs text-text-secondary sm:mb-1">Total Expenses</p>
             <p className="text-lg font-bold text-accent-red tabular-nums break-words">{peso(allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
+          </div>
+          <div className="flex items-center justify-between py-2 sm:block sm:py-0">
+            <p className="text-xs text-text-secondary sm:mb-1">Total Discount</p>
+            <p className="text-lg font-bold text-accent-blue tabular-nums break-words">{peso(allSales.reduce((sum, s) => sum + s.items.reduce((a, i) => a + (i.discount ?? 0), 0), 0))}</p>
           </div>
           <div className="flex items-center justify-between py-2 sm:block sm:py-0">
             <p className="text-xs text-text-secondary sm:mb-1">Net</p>

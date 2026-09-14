@@ -431,6 +431,12 @@ function DraftBag() {
     () => items.reduce((sum, i) => sum + i.unitPrice * i.quantity - (i.discount ?? 0), 0),
     [items],
   );
+  // Total discount staged in the cart (Σ per-item discount). Display only —
+  // itemsTotal above is already net of it, so nothing is double-counted.
+  const itemsDiscountTotal = useMemo(
+    () => items.reduce((sum, i) => sum + (i.discount ?? 0), 0),
+    [items],
+  );
   const expensesTotal = useMemo(
     () => expenses.reduce((sum, e) => sum + e.amount, 0),
     [expenses],
@@ -736,9 +742,15 @@ function DraftBag() {
               // area above yields instead — this is what guarantees the
               // Clear/Save buttons below stay on screen no matter how many
               // items are in the cart or how short the device is.
-              <div className="shrink-0 border-t border-card-border p-4 space-y-4">
-                {/* Items Summary — capped height with its own scroll so a long
-                    product list can't push the totals + Clear/Save off-screen. */}
+              // The whole footer is capped and split into a SCROLLABLE summary
+              // + a PINNED action row. On short screens (small phones, landscape,
+              // on-screen keyboard open) the summary scrolls internally while the
+              // Clear/Save buttons stay fixed at the bottom — so they can never be
+              // pushed off-screen, no matter how many items are in the cart.
+              <div className="shrink-0 flex max-h-[60vh] flex-col border-t border-card-border">
+                <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Items Summary — its own inner scroll cap so a long product
+                    list stays compact within the (already scrollable) summary. */}
                 {items.length > 0 && (
                   <div className="text-xs pb-3 border-b border-card-border">
                     <p className="font-semibold text-text-primary text-sm mb-2">Items Summary</p>
@@ -776,6 +788,12 @@ function DraftBag() {
                         <span className="text-text-secondary">Total Gcash</span>
                         <span className="text-text-primary">{peso(paymentTotals.gcash)}</span>
                       </div>
+                      {itemsDiscountTotal > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-secondary">Total Discount</span>
+                          <span className="text-text-primary">{peso(itemsDiscountTotal)}</span>
+                        </div>
+                      )}
                     </>
                   )}
                   {expenses.length > 0 && (
@@ -791,7 +809,9 @@ function DraftBag() {
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                </div>
+                {/* Pinned action row — always visible, never scrolls away. */}
+                <div className="shrink-0 border-t border-card-border p-4 grid grid-cols-2 gap-3">
                   {confirmClear ? (
                     <>
                       <button onClick={handleClear} className="confirm-enter w-full rounded-lg bg-accent-red px-3 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition">Yes, Clear</button>

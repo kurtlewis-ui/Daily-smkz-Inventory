@@ -682,6 +682,7 @@ export default function SalesPendingPage() {
                   </td>
                   <td className="px-5 py-5 text-right align-top">
                     {d.items.length > 0 && <p className="text-sm font-semibold tabular-nums text-text-primary">{peso(d.total)}</p>}
+                    {d.discountTotal > 0 && <p className="text-xs tabular-nums text-accent-blue">−{peso(d.discountTotal)} disc.</p>}
                     {d.expenses.length > 0 && <p className="text-xs tabular-nums text-accent-red">−{peso(d.expensesTotal)}</p>}
                     {d.items.length > 0 && d.expenses.length > 0 && (
                       <p className="mt-0.5 text-xs font-semibold tabular-nums text-accent-purple-light">Net {peso(d.total - d.expensesTotal)}</p>
@@ -816,6 +817,7 @@ export default function SalesPendingPage() {
                       )}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-card-border/60 pt-3 text-sm">
                         {d.items.length > 0 && <span className="font-semibold tabular-nums text-text-primary">{peso(d.total)}</span>}
+                        {d.discountTotal > 0 && <span className="tabular-nums text-accent-blue">−{peso(d.discountTotal)} disc.</span>}
                         {d.expenses.length > 0 && <span className="tabular-nums text-accent-red">−{peso(d.expensesTotal)}</span>}
                         {d.items.length > 0 && d.expenses.length > 0 && <span className="font-semibold tabular-nums text-accent-purple-light">Net {peso(d.total - d.expensesTotal)}</span>}
                       </div>
