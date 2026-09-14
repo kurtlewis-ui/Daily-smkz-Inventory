@@ -12,6 +12,7 @@ import { useAuthStore } from '@/lib/store';
 import { getApiErrorMessage } from '@/lib/api';
 import { TableSkeleton } from '@/components/Skeleton';
 import { Select } from '@/components/Select';
+import { phBusinessToday } from '@/lib/business-day';
 
 function peso(n: number) {
   return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -30,13 +31,6 @@ function itemPaymentLabel(item: { paymentMethod: string; bankNote?: string | nul
   }
   return item.paymentMethod;
 }
-function todayLocalDate() {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
 // A submitted item is visible on the report the instant it's saved.
 // Declined items are excluded since they are permanently removed.
 
@@ -47,7 +41,11 @@ export default function StaffDailyReportPage() {
   const [search, setSearch] = useState('');
 
   const branchName = useAuthStore((s) => s.user?.branch?.name);
-  const today = useMemo(() => todayLocalDate(), []);
+  // Use the PH BUSINESS date (2 AM–2 AM), not the device-local calendar date,
+  // so the window matches how the backend files sales. Using the device date
+  // is what made the report come back empty right after saving (e.g. just
+  // after midnight, or on a device in a different timezone).
+  const today = useMemo(() => phBusinessToday(), []);
 
   const { data, isLoading, isError, error } = useSalesRecords({
     search: search || undefined,
@@ -112,7 +110,9 @@ export default function StaffDailyReportPage() {
         )}
         <h1 className="text-2xl font-bold text-text-primary">Daily Report</h1>
         <p className="mt-0.5 text-xs text-text-muted">
-          {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {/* Label the PH business day being shown (parse as local noon to
+              avoid an off-by-one from timezone shifts on a bare YYYY-MM-DD). */}
+          {new Date(`${today}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
 
