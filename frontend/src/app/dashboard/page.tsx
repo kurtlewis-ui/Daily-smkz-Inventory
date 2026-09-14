@@ -172,6 +172,7 @@ function OwnerDashboard() {
               { value: 'weekly', label: 'Weekly' },
               { value: 'monthly', label: 'Monthly' },
               { value: 'yearly', label: 'Yearly' },
+              { value: 'all', label: 'All Time' },
             ]} />
             <Select value={overviewShop} onChange={setOverviewShop} ariaLabel="Shop" className="w-auto min-w-[140px]" options={[{ value: '', label: 'All Shops' }, ...branches.map((b) => ({ value: b.id, label: b.name }))]} />
           </div>
@@ -317,7 +318,8 @@ function OwnerDashboard() {
 function formatBucket(iso: string, period: string) {
   const d = new Date(iso);
   if (period === 'yearly') return d.toLocaleDateString(undefined, { year: 'numeric' });
-  if (period === 'monthly') return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+  // 'all' is bucketed by month on the backend — label with month + year.
+  if (period === 'monthly' || period === 'all') return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
   if (period === 'weekly') return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }

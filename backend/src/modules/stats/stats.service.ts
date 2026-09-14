@@ -55,8 +55,25 @@ export class StatsService {
    * Approved-sales totals bucketed over time for the Sales Overview chart.
    */
   async salesOverview(period: string, branchId?: string) {
-    const unit = period === 'monthly' ? 'month' : period === 'weekly' ? 'week' : 'day';
-    const sinceDays = period === 'monthly' ? 365 : period === 'weekly' ? 84 : 14;
+    // Map each period to a Postgres date_trunc unit and a lookback window.
+    // `unit` is chosen from this fixed whitelist (never user input), so it's
+    // safe to interpolate into the SQL below.
+    //   daily   → day buckets, last 14 days
+    //   weekly  → week buckets, last 84 days
+    //   monthly → month buckets, last 365 days
+    //   yearly  → year buckets, ALL history (no lookback)
+    //   all     → month buckets, ALL history (no lookback) — a readable line
+    //             across the whole sales history
+    // `sinceDays = null` means no date floor (include everything).
+    let unit: 'day' | 'week' | 'month' | 'year';
+    let sinceDays: number | null;
+    switch (period) {
+      case 'monthly': unit = 'month'; sinceDays = 365; break;
+      case 'weekly': unit = 'week'; sinceDays = 84; break;
+      case 'yearly': unit = 'year'; sinceDays = null; break;
+      case 'all': unit = 'month'; sinceDays = null; break;
+      default: unit = 'day'; sinceDays = 14; break;
+    }
 
     const params: any[] = [];
     let branchClause = '';
@@ -64,6 +81,10 @@ export class StatsService {
       params.push(branchId);
       branchClause = ` AND branch_id = $${params.length}::uuid`;
     }
+
+    // Only apply a lower date bound when the period has a lookback window;
+    // 'yearly' and 'all' include the full history.
+    const sinceClause = sinceDays !== null ? ` AND created_at >= now() - interval '${sinceDays} days'` : '';
 
     // Bucket on the Philippine BUSINESS clock (created_at shifted +8h to PH,
     // then -2h so the day/week/month boundary lands at 2 AM PH). Postgres
@@ -74,8 +95,7 @@ export class StatsService {
     const sql =
       `SELECT (date_trunc('${unit}', ${clock}) - interval '8 hours' + interval '2 hours') AS bucket, ` +
       `COALESCE(SUM(total), 0) AS total, COUNT(*) AS count ` +
-      `FROM sales WHERE status = 'APPROVED' ` +
-      `AND created_at >= now() - interval '${sinceDays} days'${branchClause} ` +
+      `FROM sales WHERE status = 'APPROVED'${sinceClause}${branchClause} ` +
       `GROUP BY 1 ORDER BY 1 ASC`;
 
     const rows = await this.prisma.$queryRawUnsafe<
