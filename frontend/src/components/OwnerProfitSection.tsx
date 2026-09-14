@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useProfitSummary, useBranches } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
+import { useStoredBranch } from '@/lib/useStoredBranch';
 import { Download, Store, CalendarDays, RotateCcw } from 'lucide-react';
 import { Select } from '@/components/Select';
 
@@ -61,7 +62,6 @@ export function OwnerProfitSection() {
 function ProfitContent() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [branchId, setBranchId] = useState('');
   const [activeRange, setActiveRange] = useState<QuickRange | 'custom'>('all');
   const [exporting, setExporting] = useState(false);
 
@@ -74,6 +74,8 @@ function ProfitContent() {
 
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
+  // Shared+persisted branch filter ('' = All Shops), remembered across the site.
+  const [branchId, setBranchId] = useStoredBranch(branches);
 
   // Profit & Loss is computed on the SERVER so it can use each sale item's
   // confidential cost price (never exposed to the browser) and cover ALL

@@ -33,12 +33,12 @@ import { StockHistoryModal } from '@/components/StockHistoryModal';
 import { Select } from '@/components/Select';
 import { NumberStepper } from '@/components/NumberStepper';
 import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
+import { useStoredBranch } from '@/lib/useStoredBranch';
 
 const ENTRIES_OPTIONS = [5, 10, 25, 50, 100, 'All'] as const;
 
 export default function ProductsPage() {
   const [search, setSearch] = useState('');
-  const [shopFilter, setShopFilter] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState<number | 'All'>(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,6 +47,8 @@ export default function ProductsPage() {
   const { data: brandData } = useBrands();
   const branches = branchData?.data ?? [];
   const brands = brandData?.data ?? [];
+  // Shared+persisted branch filter ('' = All Shops), remembered across the site.
+  const [shopFilter, setShopFilter] = useStoredBranch(branches);
   const isAdmin = useAuthStore((s) => {
     const role = s.user?.role?.name;
     return role === 'Admin' || role === 'Owner';

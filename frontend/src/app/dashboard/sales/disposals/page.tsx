@@ -8,6 +8,7 @@ import { usePagination, Pagination } from '@/components/Pagination';
 import { Select } from '@/components/Select';
 import { NumberStepper } from '@/components/NumberStepper';
 import { useUnsavedGuard } from '@/lib/useUnsavedGuard';
+import { useStoredBranch } from '@/lib/useStoredBranch';
 
 function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -18,13 +19,14 @@ function formatDate(iso: string) {
 
 export default function DisposalsPage() {
   const [search, setSearch] = useState('');
-  const [selectedShop, setSelectedShop] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
 
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
+  // Shared+persisted branch filter ('' = All Shops), remembered across the site.
+  const [selectedShop, setSelectedShop] = useStoredBranch(branches);
 
   const { data, isLoading, isError, error } = useDisposals({
     search, branchId: selectedShop || undefined, startDate: startDate || undefined, endDate: endDate || undefined,

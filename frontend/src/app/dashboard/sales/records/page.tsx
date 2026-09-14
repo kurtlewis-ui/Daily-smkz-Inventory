@@ -6,6 +6,7 @@ import { useSalesRecords, useBranches, useBranchSummary } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
 import { usePagination, Pagination } from '@/components/Pagination';
 import { Select } from '@/components/Select';
+import { useStoredBranch } from '@/lib/useStoredBranch';
 import type { PaymentMethod } from '@/lib/types';
 
 function peso(n: number) {
@@ -37,12 +38,13 @@ function formatDate(iso: string) {
 
 export default function SalesRecordsPage() {
   const [search, setSearch] = useState('');
-  const [selectedShop, setSelectedShop] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
+  // Shared+persisted branch filter ('' = All Shops), remembered across the site.
+  const [selectedShop, setSelectedShop] = useStoredBranch(branches);
 
   const { data, isLoading, isError, error } = useSalesRecords({
     search,
