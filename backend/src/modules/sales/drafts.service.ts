@@ -318,6 +318,9 @@ export class DraftsService {
       (sum, i) => sum + Number(i.unitPrice ?? 0) * Number(i.quantity ?? 0) - Number(i.discount ?? 0),
       0,
     );
+    // Total discount staged in this cart (display only; `total` is already net
+    // of it, so it must never be subtracted again).
+    const discountTotal = items.reduce((sum, i) => sum + Number(i.discount ?? 0), 0);
     const expensesTotal = expenses.reduce((sum, e) => sum + Number(e.amount ?? 0), 0);
     return {
       id: draft.id,
@@ -328,6 +331,7 @@ export class DraftsService {
       expenses,
       customerName: draft.customerName,
       total,
+      discountTotal,
       expensesTotal,
       updatedAt: draft.updatedAt,
     };

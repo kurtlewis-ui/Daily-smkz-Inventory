@@ -212,6 +212,7 @@ export interface StaffDraft {
   expenses: DraftExpenseItem[];
   customerName: string | null;
   total: number;
+  discountTotal: number; // total per-item discount staged (display only; already netted out of total)
   expensesTotal: number;
   updatedAt: string;
 }
