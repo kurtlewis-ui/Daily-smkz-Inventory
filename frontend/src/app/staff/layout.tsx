@@ -732,22 +732,29 @@ function DraftBag() {
             </div>
 
             {!isEmpty && (
-              <div className="border-t border-card-border p-4 space-y-4">
-                {/* Items Summary */}
+              // shrink-0 so this footer always keeps its space and the scroll
+              // area above yields instead — this is what guarantees the
+              // Clear/Save buttons below stay on screen no matter how many
+              // items are in the cart or how short the device is.
+              <div className="shrink-0 border-t border-card-border p-4 space-y-4">
+                {/* Items Summary — capped height with its own scroll so a long
+                    product list can't push the totals + Clear/Save off-screen. */}
                 {items.length > 0 && (
-                  <div className="space-y-1.5 text-xs pb-3 border-b border-card-border">
+                  <div className="text-xs pb-3 border-b border-card-border">
                     <p className="font-semibold text-text-primary text-sm mb-2">Items Summary</p>
-                    {Object.entries(
-                      items.reduce<Record<string, number>>((acc, i) => {
-                        acc[i.name] = (acc[i.name] ?? 0) + i.quantity;
-                        return acc;
-                      }, {})
-                    ).map(([name, qty]) => (
-                      <div key={name} className="flex items-center justify-between">
-                        <span className="text-text-secondary truncate">{name}</span>
-                        <span className="text-text-primary font-medium">× {qty}</span>
-                      </div>
-                    ))}
+                    <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
+                      {Object.entries(
+                        items.reduce<Record<string, number>>((acc, i) => {
+                          acc[i.name] = (acc[i.name] ?? 0) + i.quantity;
+                          return acc;
+                        }, {})
+                      ).map(([name, qty]) => (
+                        <div key={name} className="flex items-center justify-between">
+                          <span className="text-text-secondary truncate">{name}</span>
+                          <span className="text-text-primary font-medium">× {qty}</span>
+                        </div>
+                      ))}
+                    </div>
                     <div className="flex items-center justify-between pt-2 mt-1">
                       <span className="text-text-secondary font-medium">Total Items</span>
                       <span className="text-text-primary font-bold">{items.reduce((s, i) => s + i.quantity, 0)}</span>

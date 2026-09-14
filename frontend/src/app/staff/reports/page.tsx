@@ -402,20 +402,22 @@ export default function StaffDailyReportPage() {
         )}
       </div>
 
-      {/* Today's Totals — always visible */}
+      {/* Today's Totals — always visible. Stacks into rows on small phones so
+          the peso amounts don't get cramped/clipped in three tight columns,
+          and lays out as three centered columns from `sm` up. */}
       <div className="mt-6 rounded-xl border border-card-border bg-card-bg p-5 shadow-sm">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-xs text-text-secondary mb-1">Total Sales</p>
-            <p className="text-lg font-bold text-text-primary">{peso(allSales.reduce((sum, s) => sum + s.total, 0))}</p>
+        <div className="flex flex-col divide-y divide-card-border sm:grid sm:grid-cols-3 sm:gap-4 sm:divide-y-0 sm:text-center">
+          <div className="flex items-center justify-between py-2 sm:block sm:py-0">
+            <p className="text-xs text-text-secondary sm:mb-1">Total Sales</p>
+            <p className="text-lg font-bold text-text-primary tabular-nums break-words">{peso(allSales.reduce((sum, s) => sum + s.total, 0))}</p>
           </div>
-          <div>
-            <p className="text-xs text-text-secondary mb-1">Total Expenses</p>
-            <p className="text-lg font-bold text-accent-red">{peso(allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
+          <div className="flex items-center justify-between py-2 sm:block sm:py-0">
+            <p className="text-xs text-text-secondary sm:mb-1">Total Expenses</p>
+            <p className="text-lg font-bold text-accent-red tabular-nums break-words">{peso(allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
           </div>
-          <div>
-            <p className="text-xs text-text-secondary mb-1">Net</p>
-            <p className="text-lg font-bold text-text-primary">{peso(allSales.reduce((sum, s) => sum + s.total, 0) - allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
+          <div className="flex items-center justify-between py-2 sm:block sm:py-0">
+            <p className="text-xs text-text-secondary sm:mb-1">Net</p>
+            <p className="text-lg font-bold text-text-primary tabular-nums break-words">{peso(allSales.reduce((sum, s) => sum + s.total, 0) - allExpenses.reduce((sum, e) => sum + e.amount, 0))}</p>
           </div>
         </div>
       </div>
