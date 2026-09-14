@@ -120,6 +120,7 @@ function DraftIconButton({
 }
 
 interface EditRow {
+  // Empty string only for a brand-new row before a product is picked.
   productId: string;
   quantity: number;
   discount?: number;
@@ -127,6 +128,17 @@ interface EditRow {
   bankNote?: string | null;
   note?: string | null;
   paymentSplit?: PaymentSplit | null;
+  // Snapshots carried from the original sale line so the row renders and
+  // prices correctly even when the product is no longer in the live catalog
+  // (deleted/archived). unitPrice is what was ACTUALLY charged on this sale.
+  snapshotName?: string;
+  snapshotBrandName?: string;
+  snapshotUnitPrice?: number;
+  // True when this line's product no longer exists in the active catalog.
+  // Such a line can be viewed/removed but not re-pointed to itself, and the
+  // backend would reject re-submitting it, so we block saving until it's
+  // removed or (not possible here) replaced.
+  missingProduct?: boolean;
 }
 
 export default function SalesPendingPage() {
@@ -1004,30 +1016,60 @@ function EditSaleModal({
   const guardedClose = useUnsavedGuard(dirty, onClose);
 
   useEffect(() => {
-    // Seed rows from the sale's current items (skip items whose product was
-    // deleted), carrying over each item's own payment method — payment isn't
-    // editable here; correct it by declining and having the item resubmitted.
+    // Seed rows from ALL of the sale's current items — including any whose
+    // product was later deleted/archived — carrying over each item's own
+    // snapshot (name, brand, unit price) and payment method. (Payment isn't
+    // editable here; correct it by declining and having the item resubmitted.)
+    // Previously this dropped lines whose productId was null and priced the
+    // rest at today's global price, which made the modal show fewer items than
+    // the sale, leave dropdowns unselected, and compute the wrong total.
     setRows(
-      sale.items
-        .filter((i) => i.productId)
-        .map((i) => ({
-          productId: i.productId as string,
+      sale.items.map((i) => {
+        const inCatalog = i.productId ? products.some((p) => p.id === i.productId) : false;
+        return {
+          productId: i.productId ?? '',
           quantity: i.quantity,
           discount: i.discount,
           paymentMethod: i.paymentMethod,
           bankNote: i.bankNote,
           note: i.note,
           paymentSplit: i.paymentSplit,
-        })),
+          snapshotName: i.name,
+          snapshotBrandName: i.brandName,
+          snapshotUnitPrice: i.unitPrice,
+          missingProduct: !inCatalog,
+        };
+      }),
     );
-  }, [sale]);
+    // Re-seed when the sale changes, or once the catalog loads (so the
+    // in-catalog / missing determination is accurate).
+  }, [sale, products]);
 
-  const priceOf = (productId: string) => products.find((p) => p.id === productId)?.sellingPrice ?? 0;
-  const computedTotal = rows.reduce((sum, r) => sum + priceOf(r.productId) * r.quantity - (r.discount ?? 0), 0);
+  // Price a row at what was actually charged (the snapshot), falling back to
+  // the live catalog price only for a freshly-added row with no snapshot.
+  const priceOf = (row: EditRow) => {
+    if (row.snapshotUnitPrice != null) return row.snapshotUnitPrice;
+    return products.find((p) => p.id === row.productId)?.sellingPrice ?? 0;
+  };
+  const computedTotal = rows.reduce((sum, r) => sum + priceOf(r) * r.quantity - (r.discount ?? 0), 0);
+  const hasMissingProduct = rows.some((r) => r.missingProduct);
 
   const setRow = (idx: number, patch: Partial<EditRow>) => {
     setDirty(true);
     setRows((rs) => rs.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  };
+  // Changing the product re-points a row to a live catalog product: drop the
+  // old snapshot so it prices at the newly-selected product's current price,
+  // and clear the missing-product flag.
+  const changeProduct = (idx: number, productId: string) => {
+    setDirty(true);
+    setRows((rs) =>
+      rs.map((r, i) =>
+        i === idx
+          ? { ...r, productId, snapshotName: undefined, snapshotBrandName: undefined, snapshotUnitPrice: undefined, missingProduct: false }
+          : r,
+      ),
+    );
   };
   const addRow = () => {
     const first = products[0];
@@ -1040,6 +1082,11 @@ function EditSaleModal({
   const handleSubmit = async () => {
     if (rows.length === 0) { setErr('A sale must have at least one item.'); return; }
     if (rows.some((r) => r.quantity < 1)) { setErr('All quantities must be at least 1.'); return; }
+    if (rows.some((r) => !r.productId)) { setErr('Every item must have a product selected.'); return; }
+    if (hasMissingProduct) {
+      setErr('One or more items point to a product that no longer exists. Remove those lines before saving (or decline the sale and have it resubmitted).');
+      return;
+    }
     setErr(null);
     try {
       await onSave({
@@ -1078,17 +1125,42 @@ function EditSaleModal({
           </p>
           <div className="space-y-2">
             {rows.length === 0 && <p className="text-xs text-text-muted">No items. Add at least one.</p>}
-            {rows.map((row, idx) => (
-              <div key={`${row.productId}-${idx}`} className="flex flex-col gap-2 rounded-lg border border-card-border p-2 sm:flex-row sm:items-center sm:border-0 sm:p-0">
-                <Select value={row.productId} onChange={(v) => setRow(idx, { productId: v })} ariaLabel="Product" className="w-full sm:flex-1 sm:min-w-0" options={products.map((p) => ({ value: p.id, label: `${p.name}${p.brand ? ` (${p.brand.name})` : ''} — ${peso(p.sellingPrice)}` }))} />
-                <div className="flex items-center gap-2">
-                  <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-24 shrink-0 sm:w-28" />
-                  <span className="flex-1 text-right text-sm text-text-secondary sm:w-20 sm:flex-none">{peso(priceOf(row.productId) * row.quantity - (row.discount ?? 0))}</span>
-                  <span className="w-20 shrink-0 truncate text-xs text-text-muted sm:w-24" title={row.paymentMethod}>{row.paymentMethod}</span>
-                  <button onClick={() => removeRow(idx)} className="shrink-0 p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Remove"><Trash2 size={15} /></button>
+            {rows.map((row, idx) => {
+              const catalogOptions = products.map((p) => ({
+                value: p.id,
+                label: `${p.name}${p.brand ? ` (${p.brand.name})` : ''} — ${peso(p.sellingPrice)}`,
+              }));
+              // If this row's product isn't in the live catalog (deleted /
+              // archived), inject a synthetic option built from the sale's own
+              // snapshot so the dropdown still shows the right product and stays
+              // selected instead of appearing blank.
+              const options =
+                row.productId && !products.some((p) => p.id === row.productId)
+                  ? [
+                      {
+                        value: row.productId,
+                        label: `${row.snapshotName ?? 'Unknown product'}${row.snapshotBrandName ? ` (${row.snapshotBrandName})` : ''}${row.snapshotUnitPrice != null ? ` — ${peso(row.snapshotUnitPrice)}` : ''} (no longer available)`,
+                      },
+                      ...catalogOptions,
+                    ]
+                  : catalogOptions;
+              return (
+                <div key={`${row.productId || 'new'}-${idx}`} className="flex flex-col gap-2 rounded-lg border border-card-border p-2 sm:flex-row sm:items-center sm:border-0 sm:p-0">
+                  <div className="w-full sm:flex-1 sm:min-w-0">
+                    <Select value={row.productId} onChange={(v) => changeProduct(idx, v)} ariaLabel="Product" className="w-full" options={options} />
+                    {row.missingProduct && (
+                      <p className="mt-1 text-[11px] text-accent-orange">This product no longer exists — remove this line to save, or decline the sale and have it resubmitted.</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-24 shrink-0 sm:w-28" />
+                    <span className="flex-1 text-right text-sm text-text-secondary sm:w-20 sm:flex-none">{peso(priceOf(row) * row.quantity - (row.discount ?? 0))}</span>
+                    <span className="w-20 shrink-0 truncate text-xs text-text-muted sm:w-24" title={row.paymentMethod}>{row.paymentMethod}</span>
+                    <button onClick={() => removeRow(idx)} className="shrink-0 p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Remove"><Trash2 size={15} /></button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
