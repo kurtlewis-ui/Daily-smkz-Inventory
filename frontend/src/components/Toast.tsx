@@ -16,10 +16,11 @@ import { X } from 'lucide-react';
  * You can override the bold title by passing a second argument:
  *   toast.success('Order submitted!', 'All set');
  *
- * Mount <ToastProvider> once near the app root (providers.tsx). It renders a
- * fixed stack in the top-right and auto-dismisses each toast after ~2.8s.
- * The stack is rendered at the top level (never inside a drawer/panel), so
- * toasts can't be clipped by surrounding layout.
+ * Mount <ToastProvider> once near the app root (providers.tsx). It shows a
+ * single notification in the top-right and auto-dismisses it after ~2.8s; a
+ * new toast replaces the current one (only one is visible at a time globally).
+ * It is rendered at the top level (never inside a drawer/panel), so toasts
+ * can't be clipped by surrounding layout.
  */
 
 type ToastKind = 'success' | 'error' | 'info';
@@ -81,8 +82,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback((kind: ToastKind, message: string, options?: ToastOptions) => {
     const id = nextId++;
     const durationMs = options?.durationMs ?? (options?.action ? ACTION_DURATION_MS : DURATION_MS);
-    setToasts((prev) => [
-      ...prev,
+    // Only ONE floating notification at a time, globally: a new toast REPLACES
+    // whatever was showing rather than stacking beneath it. So approving,
+    // saving or updating in quick succession shows a single, latest message
+    // instead of a growing pile.
+    setToasts([
       { id, kind, message, title: options?.title ?? DEFAULT_TITLES[kind], action: options?.action, durationMs },
     ]);
   }, []);
@@ -97,9 +101,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      {/* Toast stack — fixed top-right, above everything, never clipped by
-          layout. Top-right keeps toasts clear of the bottom-right floating
-          Draft Order button on the staff pages. */}
+      {/* Single toast — fixed top-right, above everything, never clipped by
+          layout. Top-right keeps it clear of the bottom-right floating Draft
+          Order button on the staff pages. Only one toast is ever in the list
+          (see push), so this renders at most one card. */}
       <div className="pointer-events-none fixed top-4 right-4 z-[100] flex w-[min(92vw,380px)] flex-col gap-2.5">
         {toasts.map((t) => (
           <ToastCard key={t.id} toast={t} onDismiss={() => remove(t.id)} />
