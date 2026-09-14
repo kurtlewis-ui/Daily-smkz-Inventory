@@ -196,31 +196,39 @@ function ProfitContent() {
         </div>
       </div>
 
-      {/* Divider separates the filters from the results */}
-      <div className="border-t border-card-border pt-4 grid grid-cols-2 sm:grid-cols-6 gap-3 text-center">
-        <div>
+      {/* Divider separates the filters from the results.
+          7 metrics, laid out 2-up on phones and in a single row from lg up.
+          Number font is a notch smaller than before (base/xl instead of
+          lg/2xl) with a bit more column gap and per-cell padding, so large
+          values (e.g. billions) don't overlap or crowd their neighbours. */}
+      <div className="border-t border-card-border pt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-5 gap-y-4 text-center">
+        <div className="px-1 min-w-0">
           <p className="text-xs text-text-muted uppercase">Revenue</p>
-          <p className="text-lg sm:text-2xl font-bold tabular-nums leading-tight break-words" style={{ color: '#10b981' }}>{peso(metrics.revenue)}</p>
+          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: '#10b981' }}>{peso(metrics.revenue)}</p>
         </div>
-        <div>
+        <div className="px-1 min-w-0">
           <p className="text-xs text-text-muted uppercase">Capital</p>
-          <p className="text-lg sm:text-2xl font-bold tabular-nums leading-tight break-words" style={{ color: '#06b6d4' }}>{peso(metrics.cogs)}</p>
+          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: '#06b6d4' }}>{peso(metrics.cogs)}</p>
         </div>
-        <div>
+        <div className="px-1 min-w-0">
           <p className="text-xs text-text-muted uppercase">Expenses</p>
-          <p className="text-lg sm:text-2xl font-bold tabular-nums leading-tight break-words" style={{ color: '#ef4444' }}>{peso(metrics.expensesTotal)}</p>
+          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: '#ef4444' }}>{peso(metrics.expensesTotal)}</p>
         </div>
-        <div>
+        <div className="px-1 min-w-0">
           <p className="text-xs text-text-muted uppercase">Disposal Losses</p>
-          <p className="text-lg sm:text-2xl font-bold tabular-nums leading-tight break-words" style={{ color: '#f59e0b' }}>{peso(metrics.disposalLosses)}</p>
+          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: '#f59e0b' }}>{peso(metrics.disposalLosses)}</p>
         </div>
-        <div>
+        <div className="px-1 min-w-0">
+          <p className="text-xs text-text-muted uppercase">Total Discount</p>
+          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: '#ec4899' }}>{peso(metrics.totalDiscount)}</p>
+        </div>
+        <div className="px-1 min-w-0">
           <p className="text-xs text-text-muted uppercase">Net Profit</p>
-          <p className="text-lg sm:text-2xl font-bold tabular-nums leading-tight break-words" style={{ color: metrics.netProfit >= 0 ? '#a78bfa' : '#ef4444' }}>{peso(metrics.netProfit)}</p>
+          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: metrics.netProfit >= 0 ? '#a78bfa' : '#ef4444' }}>{peso(metrics.netProfit)}</p>
         </div>
-        <div>
+        <div className="px-1 min-w-0">
           <p className="text-xs text-text-muted uppercase">Margin</p>
-          <p className="text-lg sm:text-2xl font-bold tabular-nums leading-tight break-words" style={{ color: metrics.margin >= 0 ? '#3b82f6' : '#ef4444' }}>{metrics.margin.toFixed(1)}%</p>
+          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: metrics.margin >= 0 ? '#3b82f6' : '#ef4444' }}>{metrics.margin.toFixed(1)}%</p>
         </div>
       </div>
 
