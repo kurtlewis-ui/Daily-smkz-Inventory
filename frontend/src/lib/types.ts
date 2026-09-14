@@ -170,6 +170,7 @@ export interface Sale {
 export interface SalesSummary {
   cash: number;
   gcash: number;
+  discount: number; // total per-item discount (display only; already netted out of cash/gcash/total)
   total: number;
   count: number;
 }
@@ -240,6 +241,7 @@ export interface BranchSummary {
   totalSales: number;
   totalExpenses: number;
   totalDisposals: number;
+  totalDiscount: number; // total discount on today's approved sales (display only; already netted out of totalSales)
   net: number;
 }
 

@@ -125,7 +125,7 @@ export class StatsService {
     // previous day until the clock passes 2 AM.
     const start = startOfBusinessDay();
 
-    const [salesAgg, expensesAgg, disposalsAgg] = await Promise.all([
+    const [salesAgg, expensesAgg, disposalsAgg, discountAgg] = await Promise.all([
       this.prisma.sale.aggregate({
         where: { branchId: resolvedBranchId, status: SaleStatus.APPROVED, decidedAt: { gte: start } },
         _sum: { total: true },
@@ -148,17 +148,29 @@ export class StatsService {
         },
         _sum: { value: true },
       }),
+      // Total Discount given on today's approved sales (DISPLAY only). Summed
+      // from the sale items whose parent sale is approved & decided today.
+      // totalSales already uses Sale.total (= Σ subTotal, net of discount), so
+      // the discount is NOT subtracted again — this is purely informational.
+      this.prisma.saleItem.aggregate({
+        where: {
+          sale: { branchId: resolvedBranchId, status: SaleStatus.APPROVED, decidedAt: { gte: start } },
+        },
+        _sum: { discount: true },
+      }),
     ]);
 
     const totalSales = Number(salesAgg._sum.total ?? 0);
     const totalExpenses = Number(expensesAgg._sum.amount ?? 0);
     const totalDisposals = Number(disposalsAgg._sum.value ?? 0);
+    const totalDiscount = Number(discountAgg._sum.discount ?? 0);
 
     return {
       branchId: resolvedBranchId,
       totalSales,
       totalExpenses,
       totalDisposals,
+      totalDiscount,
       net: totalSales - totalExpenses - totalDisposals,
     };
   }
