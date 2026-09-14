@@ -211,7 +211,7 @@ export default function SalesPendingPage() {
     branchId: selectedShop || undefined,
   });
   const sales = data?.data ?? [];
-  const summary = data?.summary ?? { cash: 0, gcash: 0, total: 0, count: 0 };
+  const summary = data?.summary ?? { cash: 0, gcash: 0, discount: 0, total: 0, count: 0 };
 
   const approveSale = useApproveSale();
   const declineSale = useDeclineSale();
@@ -399,22 +399,26 @@ export default function SalesPendingPage() {
         <div className="bg-card-bg rounded-xl border border-card-border shadow-sm mb-4">
           <div className="p-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Today (Approved)</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
               <div>
                 <p className="text-xs text-text-secondary">Total Sales</p>
-                <p className="text-lg font-bold text-accent-green">{peso(branchSummary.totalSales)}</p>
+                <p className="text-lg font-bold text-accent-green tabular-nums break-words">{peso(branchSummary.totalSales)}</p>
               </div>
               <div>
                 <p className="text-xs text-text-secondary">Total Expenses</p>
-                <p className="text-lg font-bold text-accent-red">{peso(branchSummary.totalExpenses)}</p>
+                <p className="text-lg font-bold text-accent-red tabular-nums break-words">{peso(branchSummary.totalExpenses)}</p>
               </div>
               <div>
                 <p className="text-xs text-text-secondary">Total Disposals</p>
-                <p className="text-lg font-bold text-accent-orange">{peso(branchSummary.totalDisposals)}</p>
+                <p className="text-lg font-bold text-accent-orange tabular-nums break-words">{peso(branchSummary.totalDisposals)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-secondary">Total Discount</p>
+                <p className="text-lg font-bold text-accent-blue tabular-nums break-words">{peso(branchSummary.totalDiscount)}</p>
               </div>
               <div>
                 <p className="text-xs text-text-secondary">Net</p>
-                <p className="text-lg font-bold text-text-primary">{peso(branchSummary.net)}</p>
+                <p className="text-lg font-bold text-text-primary tabular-nums break-words">{peso(branchSummary.net)}</p>
               </div>
             </div>
           </div>
@@ -560,6 +564,7 @@ export default function SalesPendingPage() {
           <div className="border-l-4 border-accent-blue pl-4 space-y-1">
             <p className="text-sm text-text-primary"><span className="font-medium">Total Cash:</span> {peso(summary.cash)}</p>
             <p className="text-sm text-text-primary"><span className="font-medium">Total Gcash:</span> {peso(summary.gcash)}</p>
+            <p className="text-sm text-text-primary"><span className="font-medium">Total Discount:</span> {peso(summary.discount)}</p>
             <p className="text-sm text-text-primary font-bold">Total Pending: {peso(summary.total)}</p>
           </div>
         </div>
