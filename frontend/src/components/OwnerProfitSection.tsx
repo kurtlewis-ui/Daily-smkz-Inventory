@@ -26,7 +26,7 @@ function ymd(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 
-type QuickRange = 'today' | 'week' | 'month' | 'all';
+type QuickRange = 'today' | 'week' | 'month' | 'year' | 'all';
 
 /** Returns { start, end } YYYY-MM-DD for a quick range, in PH business time. */
 function quickRangeDates(range: QuickRange): { start: string; end: string } {
@@ -40,6 +40,11 @@ function quickRangeDates(range: QuickRange): { start: string; end: string } {
     const daysSinceMonday = (day + 6) % 7;
     const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysSinceMonday));
     return { start: ymd(monday), end: todayStr };
+  }
+  if (range === 'year') {
+    // Calendar year to date: Jan 1 of the current PH business year -> today.
+    const jan1 = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+    return { start: ymd(jan1), end: todayStr };
   }
   // month
   const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -131,6 +136,7 @@ function ProfitContent() {
                 { value: 'today', label: 'Today' },
                 { value: 'week', label: 'This Week' },
                 { value: 'month', label: 'This Month' },
+                { value: 'year', label: 'This Year' },
                 { value: 'all', label: 'All Time' },
                 ...(activeRange === 'custom' ? [{ value: 'custom', label: 'Custom Range' }] : []),
               ]}
