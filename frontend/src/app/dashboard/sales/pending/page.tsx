@@ -28,6 +28,7 @@ import { useToast } from '@/components/Toast';
 import { Select } from '@/components/Select';
 import { NumberStepper } from '@/components/NumberStepper';
 import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
+import { useStoredBranch } from '@/lib/useStoredBranch';
 import type { Sale, PaymentMethod, PaymentSplit } from '@/lib/types';
 
 function peso(n: number) {
@@ -194,20 +195,16 @@ interface EditRow {
 
 export default function SalesPendingPage() {
   const [search, setSearch] = useState('');
-  const [selectedShop, setSelectedShop] = useState('');
 
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
   const { data: productData } = useProducts();
   const products = productData?.data ?? [];
 
-  // No "All Shops" — always scoped to one branch, auto-selecting the first
-  // once branches have loaded.
-  useEffect(() => {
-    if (!selectedShop && branches.length > 0) {
-      setSelectedShop(branches[0].id);
-    }
-  }, [branches, selectedShop]);
+  // No "All Shops" here — always scoped to one branch. Shared+persisted across
+  // the site, so the branch you were working on is remembered on refresh; the
+  // hook auto-selects the first branch when none/invalid is stored.
+  const [selectedShop, setSelectedShop] = useStoredBranch(branches, { allowAll: false });
 
   const { data, isLoading, isError, error } = useSalesPending({
     search,

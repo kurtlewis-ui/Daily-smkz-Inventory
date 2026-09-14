@@ -31,3 +31,25 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+interface SelectedBranchState {
+  // The owner/admin's currently-selected branch filter, shared across the
+  // pages that have a branch/shop filter (Pending Sales, Sales Records,
+  // Disposals, Products, dashboard Profit & Loss). '' means "All Shops" on the
+  // pages that offer it. Persisted so a refresh or navigation keeps the branch
+  // you were working on instead of snapping back to the first/all shops.
+  branchId: string;
+  setBranchId: (branchId: string) => void;
+}
+
+export const useSelectedBranchStore = create<SelectedBranchState>()(
+  persist(
+    (set) => ({
+      branchId: '',
+      setBranchId: (branchId) => set({ branchId }),
+    }),
+    {
+      name: 'vape-shop-selected-branch',
+    },
+  ),
+);
