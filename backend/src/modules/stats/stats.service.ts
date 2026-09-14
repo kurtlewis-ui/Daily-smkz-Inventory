@@ -5,6 +5,7 @@ import { RequestUser } from '../../common/interfaces/request-user.interface';
 import {
   startOfBusinessDay,
   phBusinessClockSql,
+  businessDayRange,
 } from '../../common/utils/business-day.util';
 
 @Injectable()
@@ -159,6 +160,106 @@ export class StatsService {
       totalExpenses,
       totalDisposals,
       net: totalSales - totalExpenses - totalDisposals,
+    };
+  }
+
+  /**
+   * Owner-only Profit & Loss over APPROVED sales for an optional branch and
+   * PH business-day date range.
+   *
+   * This is computed server-side over ALL matching sales (not just one page)
+   * using the cost price that was SNAPSHOTTED onto each sale item at the time
+   * of sale (`SaleItem.costPrice`). The dashboard previously computed this on
+   * the client, but the sale serializer never exposes `costPrice` (it is
+   * Owner-confidential), so the client always saw cost = 0 -> Capital ₱0 and
+   * Margin 100%. Doing it here keeps the raw cost on the server (never sent to
+   * the browser as a per-item value) while still giving the Owner correct
+   * aggregate figures.
+   *
+   * Definitions:
+   *   revenue        = Σ SaleItem.subTotal                 (already net of discount)
+   *   grossSales     = Σ (SaleItem.unitPrice × quantity)   (before discount)
+   *   totalDiscount  = Σ SaleItem.discount                 (= grossSales − revenue)
+   *   capital (COGS) = Σ (SaleItem.costPrice × quantity)   (cost of goods SOLD)
+   *   grossProfit    = revenue − capital
+   *   expenses       = Σ Expense.amount   (APPROVED, same range/branch)
+   *   disposalLosses = Σ Disposal.value   (APPROVED, same range/branch)
+   *   netProfit      = grossProfit − expenses − disposalLosses
+   *   margin         = revenue > 0 ? netProfit / revenue × 100 : 0
+   *
+   * Date filtering mirrors the Sales Records list exactly: APPROVED sales
+   * filtered by `createdAt` over the PH business-day window, scoped by branch.
+   */
+  async profitSummary(
+    branchId: string | undefined,
+    startDate: string | undefined,
+    endDate: string | undefined,
+  ) {
+    const dateRange = businessDayRange(startDate, endDate);
+    const hasDateFilter = dateRange.gte !== undefined || dateRange.lt !== undefined;
+
+    const saleWhere = {
+      status: SaleStatus.APPROVED,
+      ...(branchId ? { branchId } : {}),
+      ...(hasDateFilter ? { createdAt: dateRange } : {}),
+    } as const;
+
+    // Sum the money-side aggregates directly in the database over ALL matching
+    // rows — no pagination, no per-item cost leaving the server.
+    const [itemAgg, expenseAgg, disposalAgg] = await Promise.all([
+      // Aggregate sale items belonging to matching approved sales.
+      this.prisma.saleItem.aggregate({
+        where: { sale: saleWhere },
+        _sum: { subTotal: true, discount: true },
+      }),
+      this.prisma.expense.aggregate({
+        where: {
+          status: ExpenseStatus.APPROVED,
+          ...(branchId ? { branchId } : {}),
+          ...(hasDateFilter ? { createdAt: dateRange } : {}),
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.disposal.aggregate({
+        where: {
+          status: DisposalStatus.APPROVED,
+          ...(branchId ? { branchId } : {}),
+          ...(hasDateFilter ? { createdAt: dateRange } : {}),
+        },
+        _sum: { value: true },
+      }),
+    ]);
+
+    // COGS needs costPrice × quantity, which a single _sum can't express, so
+    // pull just the two numeric columns for the matching items and reduce.
+    // (Only quantity + costPrice are selected — nothing identifying.)
+    const costRows = await this.prisma.saleItem.findMany({
+      where: { sale: saleWhere },
+      select: { quantity: true, costPrice: true },
+    });
+
+    let capital = 0;
+    for (const row of costRows) {
+      capital += Number(row.costPrice) * row.quantity;
+    }
+
+    const revenue = Number(itemAgg._sum.subTotal ?? 0);
+    const totalDiscount = Number(itemAgg._sum.discount ?? 0);
+    const grossProfit = revenue - capital;
+    const expenses = Number(expenseAgg._sum.amount ?? 0);
+    const disposalLosses = Number(disposalAgg._sum.value ?? 0);
+    const netProfit = grossProfit - expenses - disposalLosses;
+    const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+
+    return {
+      revenue,
+      capital,
+      grossProfit,
+      totalDiscount,
+      expenses,
+      disposalLosses,
+      netProfit,
+      margin,
     };
   }
 

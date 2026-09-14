@@ -25,6 +25,7 @@ import type {
   PaymentMethod,
   PaymentSplit,
   Product,
+  ProfitSummary,
   RoleOption,
   Sale,
   SalesOverviewPoint,
@@ -785,6 +786,24 @@ export function useTopProducts(branchId?: string) {
   return useQuery({
     queryKey: ['stats', 'top-products', { branchId }],
     queryFn: () => getData<TopProduct[]>('/stats/top-products', { branchId: branchId || undefined }),
+  });
+}
+
+// Owner-only Profit & Loss. Computed on the server so it can use the
+// confidential per-item cost price (never sent to the browser) and covers ALL
+// matching approved sales, not just one page. branchId '' / undefined = all shops.
+export function useProfitSummary(params?: { branchId?: string; startDate?: string; endDate?: string }) {
+  const branchId = params?.branchId;
+  const startDate = params?.startDate;
+  const endDate = params?.endDate;
+  return useQuery({
+    queryKey: ['stats', 'profit-summary', { branchId, startDate, endDate }],
+    queryFn: () =>
+      getData<ProfitSummary>('/stats/profit-summary', {
+        branchId: branchId || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      }),
   });
 }
 

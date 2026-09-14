@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useSalesOverview, useSalesRecords, useDisposals, useExpenses, useBranches } from '@/lib/hooks';
+import { useState } from 'react';
+import { useProfitSummary, useBranches } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/store';
 import { Download, Store, CalendarDays, RotateCcw } from 'lucide-react';
 import { Select } from '@/components/Select';
@@ -75,49 +75,27 @@ function ProfitContent() {
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
 
-  // Fetch sales overview for date range
-  const { data: salesData } = useSalesOverview('daily', branchId || undefined);
-  const { data: salesRecordsData } = useSalesRecords({ branchId: branchId || undefined, startDate: startDate || undefined, endDate: endDate || undefined });
-  const { data: disposalsData } = useDisposals({ branchId: branchId || undefined, startDate: startDate || undefined, endDate: endDate || undefined });
-  const { data: expensesData } = useExpenses({ branchId: branchId || undefined, startDate: startDate || undefined, endDate: endDate || undefined });
+  // Profit & Loss is computed on the SERVER so it can use each sale item's
+  // confidential cost price (never exposed to the browser) and cover ALL
+  // matching approved sales, not just one page. This is what fixes the old
+  // "Capital ₱0.00 / Margin 100%" bug: the client used to read item.costPrice,
+  // which the sale serializer intentionally omits, so cost always came out 0.
+  const { data: summary } = useProfitSummary({
+    branchId: branchId || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+  });
 
-  const salesRecords = Array.isArray(salesRecordsData?.data) ? salesRecordsData.data : [];
-  const disposals = (Array.isArray(disposalsData?.data) ? disposalsData.data : []).filter((d) => d.status === 'APPROVED');
-  const expenses = (Array.isArray(expensesData?.data) ? expensesData.data : []).filter((e) => e.status === 'APPROVED');
-
-  // Calculate profit metrics with COGS
-  const metrics = useMemo(() => {
-    // Revenue from approved sales
-    let revenue = 0;
-    let cogs = 0;
-    for (const sale of salesRecords) {
-      if (sale.status !== 'APPROVED') continue;
-      revenue += Number(sale.total);
-      for (const item of sale.items ?? []) {
-        // costPrice is snapshotted per sale item (confidential, Owner-only)
-        const itemCost = Number(item.costPrice ?? 0);
-        cogs += itemCost * item.quantity;
-      }
-    }
-
-    // If no sales records with costPrice data, fall back to overview totals
-    if (revenue === 0 && salesData) {
-      const salesPoints = Array.isArray(salesData) ? salesData : [];
-      for (const p of salesPoints) {
-        if (startDate && p.date < startDate) continue;
-        if (endDate && p.date > endDate) continue;
-        revenue += p.total;
-      }
-    }
-
-    const grossProfit = revenue - cogs;
-    const expensesTotal = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
-    const disposalLosses = disposals.reduce((sum, d) => sum + Number(d.value), 0);
-    const netProfit = grossProfit - expensesTotal - disposalLosses;
-    const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
-
-    return { revenue, cogs, grossProfit, expensesTotal, disposalLosses, netProfit, margin };
-  }, [salesRecords, salesData, expenses, disposals, startDate, endDate]);
+  const metrics = {
+    revenue: summary?.revenue ?? 0,
+    cogs: summary?.capital ?? 0,
+    grossProfit: summary?.grossProfit ?? 0,
+    totalDiscount: summary?.totalDiscount ?? 0,
+    expensesTotal: summary?.expenses ?? 0,
+    disposalLosses: summary?.disposalLosses ?? 0,
+    netProfit: summary?.netProfit ?? 0,
+    margin: summary?.margin ?? 0,
+  };
 
   async function handleExportProfit() {
     setExporting(true);

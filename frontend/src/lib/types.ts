@@ -243,6 +243,18 @@ export interface BranchSummary {
   net: number;
 }
 
+// Owner-only Profit & Loss (server-computed using confidential cost prices).
+export interface ProfitSummary {
+  revenue: number;
+  capital: number; // cost of goods SOLD (COGS)
+  grossProfit: number;
+  totalDiscount: number;
+  expenses: number;
+  disposalLosses: number;
+  netProfit: number;
+  margin: number; // percent
+}
+
 export interface ActivityLog {
   id: string;
   userName: string;
