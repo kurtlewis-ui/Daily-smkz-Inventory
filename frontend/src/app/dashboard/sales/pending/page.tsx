@@ -56,11 +56,26 @@ function itemPaymentLabel(item: { paymentMethod: PaymentMethod; bankNote?: strin
   return item.paymentMethod;
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+// Local modal for this page. `size` controls the max width — default keeps the
+// previous max-w-lg so the Delete-sale dialog is unchanged; 'xl' widens the
+// Edit Sale modal (which has multi-column item rows). Full-width on mobile,
+// widening only from the sm breakpoint up so phones stay comfortable.
+function Modal({
+  title,
+  onClose,
+  children,
+  size = 'md',
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+  size?: 'md' | 'xl';
+}) {
+  const widthClass = size === 'xl' ? 'sm:max-w-3xl' : 'sm:max-w-lg';
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="glass relative rounded-lg shadow-xl w-full max-w-lg mx-4 p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+      <div className={`glass relative rounded-lg shadow-xl w-full ${widthClass} p-4 sm:p-6 max-h-[90vh] overflow-y-auto`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-text-primary">{title}</h3>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary transition"><X size={20} /></button>
