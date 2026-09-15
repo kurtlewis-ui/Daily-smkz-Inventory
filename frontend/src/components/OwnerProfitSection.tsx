@@ -54,7 +54,9 @@ function quickRangeDates(range: QuickRange): { start: string; end: string } {
 
 /**
  * Owner-only Profit & Loss section on the dashboard.
- * Shows: Revenue - COGS - Expenses - Disposal Losses = Net Profit.
+ * Shows: Total Gross Sales, Discount, Capital (COGS), Expenses, Disposal
+ * Losses, Net Profit, Margin. Net Profit & Margin are computed on NET revenue
+ * (gross − discount) so the discount is only ever counted once.
  * Only renders if user.role.name === 'Owner'.
  */
 export function OwnerProfitSection() {
@@ -94,6 +96,7 @@ function ProfitContent() {
   });
 
   const metrics = {
+    grossSales: summary?.grossSales ?? 0,
     revenue: summary?.revenue ?? 0,
     cogs: summary?.capital ?? 0,
     grossProfit: summary?.grossProfit ?? 0,
@@ -203,8 +206,8 @@ function ProfitContent() {
           values (e.g. billions) don't overlap or crowd their neighbours. */}
       <div className="border-t border-card-border pt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-5 gap-y-4 text-center">
         <div className="px-1 min-w-0">
-          <p className="text-xs text-text-muted uppercase">Revenue</p>
-          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: '#10b981' }}>{peso(metrics.revenue)}</p>
+          <p className="text-xs text-text-muted uppercase">Total Gross Sales</p>
+          <p className="text-base sm:text-xl font-bold tabular-nums leading-tight break-words" style={{ color: '#10b981' }}>{peso(metrics.grossSales)}</p>
         </div>
         <div className="px-1 min-w-0">
           <p className="text-xs text-text-muted uppercase">Capital</p>

@@ -168,10 +168,11 @@ export interface Sale {
 }
 
 export interface SalesSummary {
+  grossSales: number; // Σ(unitPrice × qty) BEFORE discount; total = grossSales − discount
   cash: number;
   gcash: number;
-  discount: number; // total per-item discount (display only; already netted out of cash/gcash/total)
-  total: number;
+  discount: number; // total per-item discount (Gross − Discount = Net; subtracted once)
+  total: number; // NET total (after discount)
   count: number;
 }
 
@@ -239,16 +240,18 @@ export interface ExpenseSummary {
 // Today's approved Total Sales / Total Expenses / Net for a branch.
 export interface BranchSummary {
   branchId: string;
-  totalSales: number;
+  totalGrossSales: number; // before discount (= totalSales + totalDiscount)
+  totalSales: number; // NET sales (after discount)
   totalExpenses: number;
   totalDisposals: number;
-  totalDiscount: number; // total discount on today's approved sales (display only; already netted out of totalSales)
+  totalDiscount: number; // Gross − Discount = Net; subtracted once
   net: number;
 }
 
 // Owner-only Profit & Loss (server-computed using confidential cost prices).
 export interface ProfitSummary {
-  revenue: number;
+  grossSales: number; // before discount (= revenue + totalDiscount)
+  revenue: number; // NET revenue (after discount) — profit/margin are based on this
   capital: number; // cost of goods SOLD (COGS)
   grossProfit: number;
   totalDiscount: number;

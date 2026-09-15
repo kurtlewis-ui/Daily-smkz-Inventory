@@ -54,7 +54,7 @@ export default function SalesRecordsPage() {
   });
 
   const sales = data?.data ?? [];
-  const summary = data?.summary ?? { cash: 0, gcash: 0, discount: 0, total: 0, count: 0 };
+  const summary = data?.summary ?? { grossSales: 0, cash: 0, gcash: 0, discount: 0, total: 0, count: 0 };
   // Paginate by SALE (10 per page) — each sale renders several item rows.
   const { pageItems: pagedSales, resetPage, controlProps } = usePagination(sales, 10);
 
@@ -99,8 +99,12 @@ export default function SalesRecordsPage() {
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Today (Approved)</p>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
               <div>
-                <p className="text-xs text-text-secondary">Total Sales</p>
-                <p className="text-lg font-bold text-accent-green tabular-nums break-words">{peso(branchSummary.totalSales)}</p>
+                <p className="text-xs text-text-secondary">Total Gross Sales</p>
+                <p className="text-lg font-bold text-accent-green tabular-nums break-words">{peso(branchSummary.totalGrossSales)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-secondary">Total Discount</p>
+                <p className="text-lg font-bold text-accent-blue tabular-nums break-words">{peso(branchSummary.totalDiscount)}</p>
               </div>
               <div>
                 <p className="text-xs text-text-secondary">Total Expenses</p>
@@ -109,10 +113,6 @@ export default function SalesRecordsPage() {
               <div>
                 <p className="text-xs text-text-secondary">Total Disposals</p>
                 <p className="text-lg font-bold text-accent-orange tabular-nums break-words">{peso(branchSummary.totalDisposals)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-text-secondary">Total Discount</p>
-                <p className="text-lg font-bold text-accent-blue tabular-nums break-words">{peso(branchSummary.totalDiscount)}</p>
               </div>
               <div>
                 <p className="text-xs text-text-secondary">Net</p>
@@ -267,10 +267,12 @@ export default function SalesRecordsPage() {
         {/* Summary */}
         <div className="p-4 border-t border-card-border">
           <div className="border-l-4 border-accent-blue pl-4 space-y-1">
-            <p className="text-sm text-text-primary font-semibold">Total Sales: {peso(summary.total)}</p>
-            <p className="text-sm text-text-primary"><span className="font-medium">Total Cash:</span> {peso(summary.cash)}</p>
-            <p className="text-sm text-text-primary"><span className="font-medium">Total Gcash:</span> {peso(summary.gcash)}</p>
-            <p className="text-sm text-text-primary"><span className="font-medium">Total Discount:</span> {peso(summary.discount)}</p>
+            {/* Gross − Discount = Net Sales, then Net split by payment method. */}
+            <p className="text-sm text-text-primary"><span className="font-medium">Total Gross Sales:</span> {peso(summary.grossSales)}</p>
+            <p className="text-sm text-text-secondary"><span className="font-medium">Total Discount:</span> −{peso(summary.discount)}</p>
+            <p className="text-sm text-text-primary font-bold border-t border-card-border pt-1 mt-1">Total Net Sales: {peso(summary.total)}</p>
+            <p className="text-sm text-text-secondary pt-1"><span className="font-medium">Total Cash:</span> {peso(summary.cash)}</p>
+            <p className="text-sm text-text-secondary"><span className="font-medium">Total Gcash:</span> {peso(summary.gcash)}</p>
           </div>
         </div>
       </div>
