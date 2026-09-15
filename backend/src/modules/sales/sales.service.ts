@@ -148,12 +148,17 @@ export class SalesService {
       // DB-level groupBy on the sale's single payment method.
       this.prisma.saleItem.findMany({
         where: { sale: where },
-        select: { paymentMethod: true, subTotal: true, paymentSplit: true, discount: true },
+        select: { paymentMethod: true, subTotal: true, paymentSplit: true, discount: true, unitPrice: true, quantity: true },
       }),
     ]);
 
-    const summary = { cash: 0, gcash: 0, bankTransfer: 0, cashless: 0, discount: 0, total: 0, count: total };
+    // grossSales = Σ(unitPrice × qty) BEFORE discount. total (net) below is
+    // grossSales − discount. Showing both makes the reduction transparent:
+    // Gross − Discount = Net. The discount is only ever subtracted ONCE
+    // (gross → net); the cash/gcash buckets already use the net subTotal.
+    const summary = { grossSales: 0, cash: 0, gcash: 0, bankTransfer: 0, cashless: 0, discount: 0, total: 0, count: total };
     for (const item of summaryItems) {
+      summary.grossSales += Number(item.unitPrice) * item.quantity;
       // Total Discount is the sum of per-item discounts. This is DISPLAY only:
       // the payment buckets below use subTotal (= unitPrice*qty - discount),
       // so the discount is already deducted from cash/gcash/total — we must NOT

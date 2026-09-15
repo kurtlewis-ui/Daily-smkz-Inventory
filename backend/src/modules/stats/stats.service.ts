@@ -180,13 +180,18 @@ export class StatsService {
       }),
     ]);
 
+    // `totalSales` here is the NET (Σ Sale.total, already after discount).
     const totalSales = Number(salesAgg._sum.total ?? 0);
     const totalExpenses = Number(expensesAgg._sum.amount ?? 0);
     const totalDisposals = Number(disposalsAgg._sum.value ?? 0);
     const totalDiscount = Number(discountAgg._sum.discount ?? 0);
+    // Gross sales = net + discount = Σ(unitPrice × qty) before any discount.
+    // Derived (no extra query) so Gross − Discount = Net reconciles exactly.
+    const totalGrossSales = totalSales + totalDiscount;
 
     return {
       branchId: resolvedBranchId,
+      totalGrossSales,
       totalSales,
       totalExpenses,
       totalDisposals,
@@ -277,6 +282,9 @@ export class StatsService {
 
     const revenue = Number(itemAgg._sum.subTotal ?? 0);
     const totalDiscount = Number(itemAgg._sum.discount ?? 0);
+    // Gross sales before discount = net revenue + discount = Σ(unitPrice × qty).
+    // Display only; profit/margin below stay based on net `revenue`.
+    const grossSales = revenue + totalDiscount;
     const grossProfit = revenue - capital;
     const expenses = Number(expenseAgg._sum.amount ?? 0);
     const disposalLosses = Number(disposalAgg._sum.value ?? 0);
@@ -284,6 +292,7 @@ export class StatsService {
     const margin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
     return {
+      grossSales,
       revenue,
       capital,
       grossProfit,
