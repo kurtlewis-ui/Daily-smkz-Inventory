@@ -1175,7 +1175,7 @@ function EditSaleModal({
   };
 
   return (
-    <Modal title={`Edit Sale #${sale.number}`} onClose={guardedClose}>
+    <Modal title={`Edit Sale #${sale.number}`} onClose={guardedClose} size="xl">
       <div className="space-y-4" onInput={() => setDirty(true)}>
         <div>
           <label className="block text-sm font-medium text-text-primary mb-1">Customer (optional)</label>
@@ -1212,17 +1212,17 @@ function EditSaleModal({
                     ]
                   : catalogOptions;
               return (
-                <div key={`${row.productId || 'new'}-${idx}`} className="flex flex-col gap-2 rounded-lg border border-card-border p-2 sm:flex-row sm:items-center sm:border-0 sm:p-0">
+                <div key={`${row.productId || 'new'}-${idx}`} className="flex flex-col gap-2 rounded-lg border border-card-border p-3 sm:flex-row sm:items-center sm:gap-3 sm:border-0 sm:p-0">
                   <div className="w-full sm:flex-1 sm:min-w-0">
                     <Select value={row.productId} onChange={(v) => changeProduct(idx, v)} ariaLabel="Product" className="w-full" options={options} />
                     {row.missingProduct && (
                       <p className="mt-1 text-[11px] text-accent-orange">This product no longer exists — remove this line to save, or decline the sale and have it resubmitted.</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-24 shrink-0 sm:w-28" />
-                    <span className="flex-1 text-right text-sm text-text-secondary sm:w-20 sm:flex-none">{peso(priceOf(row) * row.quantity - (row.discount ?? 0))}</span>
-                    <span className="w-20 shrink-0 truncate text-xs text-text-muted sm:w-24" title={row.paymentMethod}>{row.paymentMethod}</span>
+                  <div className="flex items-center gap-3">
+                    <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-28 shrink-0" />
+                    <span className="flex-1 text-right text-sm font-medium text-text-primary tabular-nums sm:w-24 sm:flex-none">{peso(priceOf(row) * row.quantity - (row.discount ?? 0))}</span>
+                    <span className="w-16 shrink-0 truncate text-xs text-text-muted sm:w-20" title={row.paymentMethod}>{row.paymentMethod}</span>
                     <button onClick={() => removeRow(idx)} className="shrink-0 p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Remove"><Trash2 size={15} /></button>
                   </div>
                 </div>
