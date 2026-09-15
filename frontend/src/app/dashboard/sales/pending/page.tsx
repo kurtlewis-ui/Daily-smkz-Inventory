@@ -198,13 +198,19 @@ export default function SalesPendingPage() {
 
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
-  const { data: productData } = useProducts();
-  const products = productData?.data ?? [];
 
   // No "All Shops" here — always scoped to one branch. Shared+persisted across
   // the site, so the branch you were working on is remembered on refresh; the
   // hook auto-selects the first branch when none/invalid is stored.
   const [selectedShop, setSelectedShop] = useStoredBranch(branches, { allowAll: false });
+
+  // Load the FULL active catalog for the currently-selected branch (not the
+  // default 20-row first page, which made the Edit Sale modal wrongly flag
+  // most sold items as "no longer exists"). Scoped to the branch so the prices
+  // shown match what that branch charges. All pending sales here belong to this
+  // branch, so this is the right catalog for editing them.
+  const { data: productData } = useProducts({ branchId: selectedShop || undefined, limit: 1000 });
+  const products = productData?.data ?? [];
 
   const { data, isLoading, isError, error } = useSalesPending({
     search,
