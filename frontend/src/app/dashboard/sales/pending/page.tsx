@@ -577,14 +577,32 @@ export default function SalesPendingPage() {
 
         {/* Summary */}
         <div className="p-4 border-t border-card-border">
-          <div className="border-l-4 border-accent-blue pl-4 space-y-1">
-            {/* Reads top-down: Gross − Discount = Net Sales, then Net split by
-                payment method. Discount is subtracted exactly once. */}
-            <p className="text-sm text-text-primary"><span className="font-medium">Total Gross Sales:</span> {peso(summary.grossSales)}</p>
-            <p className="text-sm text-text-secondary"><span className="font-medium">Total Discount:</span> −{peso(summary.discount)}</p>
-            <p className="text-sm text-text-primary font-bold border-t border-card-border pt-1 mt-1">Total Net Sales: {peso(summary.total)}</p>
-            <p className="text-sm text-text-secondary pt-1"><span className="font-medium">Total Cash:</span> {peso(summary.cash)}</p>
-            <p className="text-sm text-text-secondary"><span className="font-medium">Total Gcash:</span> {peso(summary.gcash)}</p>
+          {/* Label left, amount right (tabular-nums) so every peso lines up in
+              one column. Reads top-down: Gross − Discount = Net Sales, then Net
+              split by payment method (indented). Discount is subtracted once. */}
+          <div className="border-l-4 border-accent-blue pl-4 max-w-xs space-y-2.5">
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <span className="text-text-secondary">Total Gross Sales</span>
+              <span className="font-medium text-text-primary tabular-nums">{peso(summary.grossSales)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <span className="text-text-secondary">Total Discount</span>
+              <span className="text-accent-red tabular-nums">−{peso(summary.discount)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 border-t border-card-border pt-2.5 text-sm">
+              <span className="font-bold text-text-primary">Total Net Sales</span>
+              <span className="font-bold text-text-primary tabular-nums">{peso(summary.total)}</span>
+            </div>
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between gap-4 pl-3 text-sm">
+                <span className="text-text-muted">Cash</span>
+                <span className="text-text-secondary tabular-nums">{peso(summary.cash)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4 pl-3 text-sm">
+                <span className="text-text-muted">Gcash</span>
+                <span className="text-text-secondary tabular-nums">{peso(summary.gcash)}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
