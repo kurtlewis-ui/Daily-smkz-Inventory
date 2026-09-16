@@ -8,7 +8,6 @@ import {
   useProducts,
   useApproveSale,
   useDeclineSale,
-  useDeleteSale,
   useUpdateSale,
   useDisposalsPending,
   useApproveDisposal,
@@ -236,7 +235,6 @@ export default function SalesPendingPage() {
 
   const approveSale = useApproveSale();
   const declineSale = useDeclineSale();
-  const deleteSale = useDeleteSale();
   const updateSale = useUpdateSale();
 
   // Pending disposals (admin approves/declines these too) — live.
@@ -271,7 +269,6 @@ export default function SalesPendingPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [deletingSale, setDeletingSale] = useState<Sale | null>(null);
   const [confirmAction, setConfirmAction] = useState<string | null>(null);
 
   // Auto-dismiss success messages after 5 seconds.
@@ -315,7 +312,7 @@ export default function SalesPendingPage() {
     });
   };
 
-  const busy = approveSale.isPending || declineSale.isPending || deleteSale.isPending;
+  const busy = approveSale.isPending || declineSale.isPending;
 
   // Owner-only bulk action: submit EVERY staff draft on their behalf, so all
   // in-progress carts become pending sales in one click. Runs the same
@@ -513,7 +510,6 @@ export default function SalesPendingPage() {
                             <button onClick={() => runSafe(async () => { await approveSale.mutateAsync(sale.id); setActionStatus(`✓ Sale #${sale.number} approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
                             <button onClick={() => runSafe(async () => { await declineSale.mutateAsync(sale.id); setActionStatus(`Sale #${sale.number} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                             <button onClick={() => { setActionError(null); setEditingSale(sale); }} className="act-btn act-edit" title="Edit"><Pencil size={16} /></button>
-                            <button onClick={() => { setActionError(null); setDeletingSale(sale); }} className="act-btn act-delete" title="Delete"><Trash2 size={16} /></button>
                           </div>
                         )}
                       </td>
@@ -551,7 +547,6 @@ export default function SalesPendingPage() {
                         <button onClick={() => runSafe(async () => { await approveSale.mutateAsync(sale.id); setActionStatus(`✓ Sale #${sale.number} approved.`); })} className="act-btn act-approve" title="Approve"><CheckCircle size={16} /></button>
                         <button onClick={() => runSafe(async () => { await declineSale.mutateAsync(sale.id); setActionStatus(`Sale #${sale.number} declined.`); })} className="act-btn act-decline" title="Decline"><XCircle size={16} /></button>
                         <button onClick={() => { setActionError(null); setEditingSale(sale); }} className="act-btn act-edit" title="Edit"><Pencil size={16} /></button>
-                        <button onClick={() => { setActionError(null); setDeletingSale(sale); }} className="act-btn act-delete" title="Delete"><Trash2 size={16} /></button>
                       </div>
                     </div>
                     <ul className="space-y-1.5">
@@ -1063,23 +1058,6 @@ export default function SalesPendingPage() {
         />
       )}
 
-      {deletingSale && (
-        <Modal title="Delete Pending Sale" onClose={() => setDeletingSale(null)}>
-          <p className="text-sm text-text-secondary mb-4">
-            Delete pending sale <strong>#{deletingSale.number}</strong>? This cannot be undone.
-          </p>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setDeletingSale(null)} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
-            <button
-              onClick={() => runSafe(async () => { await deleteSale.mutateAsync(deletingSale.id); setDeletingSale(null); })}
-              disabled={deleteSale.isPending}
-              className="px-4 py-2 bg-accent-red text-white rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-60"
-            >
-              {deleteSale.isPending ? 'Deleting...' : 'Yes, Delete'}
-            </button>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }
