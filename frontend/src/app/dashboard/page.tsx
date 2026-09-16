@@ -26,9 +26,12 @@ function peso(n: number) {
   return `\u20B1${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
-// Chart colors — monochrome for dark, colorful for light
-const DONUT_COLORS_DARK = ['#ffffff', '#d4d4d4', '#a3a3a3', '#737373', '#e5e5e5', '#c0c0c0', '#f5f5f5', '#a0a0a0'];
-const DONUT_COLORS_LIGHT = ['#10b981', '#34d399', '#6ee7b7', '#60a5fa', '#a78bfa', '#f59e0b', '#f87171', '#94a3b8'];
+// Chart palettes — colorful in BOTH themes now (dark used to be grayscale).
+// Dark uses slightly brighter/saturated tones so they pop on the near-black
+// canvas; light uses the softer originals. Same hue order so a series keeps a
+// consistent color between themes.
+const DONUT_COLORS_DARK = ['#34d399', '#60a5fa', '#a78bfa', '#fbbf24', '#f87171', '#22d3ee', '#f472b6', '#a3e635'];
+const DONUT_COLORS_LIGHT = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -271,7 +274,7 @@ function OwnerDashboard() {
         ) : (
           <>
             {/* Horizontal bar chart — disposed products */}
-            <DisposedBarChart data={disposedChartData} height={Math.max(288, disposedPreview.length * 40)} isDark={isDark} />
+            <DisposedBarChart data={disposedChartData} height={Math.max(288, disposedPreview.length * 40)} colors={isDark ? DONUT_COLORS_DARK : DONUT_COLORS_LIGHT} isDark={isDark} />
 
 
             {/* View All / Show Less toggle */}
