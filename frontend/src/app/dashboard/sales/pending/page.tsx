@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
-import { Search, Pencil, Trash2, X, CheckCircle, XCircle, Plus, Loader2, Recycle, ShoppingBag, PhilippinePeso, Send, Check } from 'lucide-react';
+import { Search, Pencil, Trash2, X, CheckCircle, XCircle, Loader2, Recycle, ShoppingBag, PhilippinePeso, Send, Check } from 'lucide-react';
 import {
   useSalesPending,
   useBranches,
@@ -1104,18 +1104,25 @@ function EditSaleModal({
   const guardedClose = useUnsavedGuard(dirty, onClose);
 
   useEffect(() => {
-    // Seed rows from ALL of the sale's current items — including any whose
-    // product was later deleted/archived — carrying over each item's own
-    // snapshot (name, brand, unit price) and payment method. (Payment isn't
-    // editable here; correct it by declining and having the item resubmitted.)
-    // Previously this dropped lines whose productId was null and priced the
-    // rest at today's global price, which made the modal show fewer items than
-    // the sale, leave dropdowns unselected, and compute the wrong total.
+    // Seed rows from ALL of the sale's current items, resolving each to the
+    // live catalog by productId FIRST, then falling back to a name+brand match.
+    // The name fallback fixes lines that showed a false "no longer exists":
+    // even when a product's id differs from what the sale recorded (e.g. IDs
+    // drifted), the same product is re-linked by its name+brand snapshot, so
+    // it stays selected and saveable. A line is only truly "missing" when it
+    // matches NEITHER id nor name+brand.
+    const norm = (s?: string | null) => (s ?? '').trim().toLowerCase();
     setRows(
       sale.items.map((i) => {
-        const inCatalog = i.productId ? products.some((p) => p.id === i.productId) : false;
+        const match =
+          (i.productId ? products.find((p) => p.id === i.productId) : undefined) ??
+          products.find(
+            (p) => norm(p.name) === norm(i.name) && norm(p.brand?.name) === norm(i.brandName),
+          );
         return {
-          productId: i.productId ?? '',
+          // Use the resolved catalog id when found (so the dropdown pre-selects
+          // and save works); otherwise keep the original id for reference.
+          productId: match?.id ?? i.productId ?? '',
           quantity: i.quantity,
           discount: i.discount,
           paymentMethod: i.paymentMethod,
@@ -1125,12 +1132,12 @@ function EditSaleModal({
           snapshotName: i.name,
           snapshotBrandName: i.brandName,
           snapshotUnitPrice: i.unitPrice,
-          missingProduct: !inCatalog,
+          missingProduct: !match,
         };
       }),
     );
     // Re-seed when the sale changes, or once the catalog loads (so the
-    // in-catalog / missing determination is accurate).
+    // id / name-fallback resolution is accurate).
   }, [sale, products]);
 
   // Price a row at what was actually charged (the snapshot), falling back to
@@ -1158,12 +1165,6 @@ function EditSaleModal({
           : r,
       ),
     );
-  };
-  const addRow = () => {
-    const first = products[0];
-    if (!first) return;
-    setDirty(true);
-    setRows((rs) => [...rs, { productId: first.id, quantity: 1, paymentMethod: 'Cash' as PaymentMethod }]);
   };
   const removeRow = (idx: number) => { setDirty(true); setRows((rs) => rs.filter((_, i) => i !== idx)); };
 
@@ -1204,24 +1205,38 @@ function EditSaleModal({
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-text-primary">Items</label>
-            <button onClick={addRow} className="flex items-center gap-1 text-sm text-accent-blue hover:underline"><Plus size={14} /> Add item</button>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="block text-sm font-semibold text-text-primary">Items</label>
+            <span className="text-xs text-text-muted">{rows.length} item{rows.length === 1 ? '' : 's'}</span>
           </div>
-          <p className="mb-2 text-xs text-text-muted">
+          <p className="mb-3 text-xs text-text-muted">
             Payment method isn&apos;t editable here — decline the sale and have the staff resubmit it to change how an item was paid.
           </p>
+
+          {/* Column headers (desktop) so each field is labelled and aligned. */}
+          <div className="hidden sm:grid sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-center sm:gap-3 px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+            <span>Product</span>
+            <span className="w-28 text-center">Qty</span>
+            <span className="w-28 text-right">Line total</span>
+            <span className="w-20 text-center">Payment</span>
+            <span className="w-8" />
+          </div>
+
           <div className="space-y-2">
-            {rows.length === 0 && <p className="text-xs text-text-muted">No items. Add at least one.</p>}
+            {rows.length === 0 && (
+              <p className="rounded-lg border border-dashed border-card-border px-3 py-4 text-center text-xs text-text-muted">
+                No items left. A sale must keep at least one item — cancel to keep the sale as-is.
+              </p>
+            )}
             {rows.map((row, idx) => {
               const catalogOptions = products.map((p) => ({
                 value: p.id,
                 label: `${p.name}${p.brand ? ` (${p.brand.name})` : ''} — ${peso(p.sellingPrice)}`,
               }));
-              // If this row's product isn't in the live catalog (deleted /
-              // archived), inject a synthetic option built from the sale's own
-              // snapshot so the dropdown still shows the right product and stays
-              // selected instead of appearing blank.
+              // If this row's product truly isn't in the live catalog (matched
+              // neither by id nor name+brand), inject a synthetic option from
+              // the sale's own snapshot so the dropdown still shows what was
+              // sold instead of appearing blank.
               const options =
                 row.productId && !products.some((p) => p.id === row.productId)
                   ? [
@@ -1233,18 +1248,21 @@ function EditSaleModal({
                     ]
                   : catalogOptions;
               return (
-                <div key={`${row.productId || 'new'}-${idx}`} className="flex flex-col gap-2 rounded-lg border border-card-border p-3 sm:flex-row sm:items-center sm:gap-3 sm:border-0 sm:p-0">
-                  <div className="w-full sm:flex-1 sm:min-w-0">
+                <div
+                  key={`${row.productId || 'new'}-${idx}`}
+                  className={`rounded-xl border p-3 transition sm:grid sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-center sm:gap-3 sm:p-2.5 ${row.missingProduct ? 'border-accent-orange/40 bg-accent-orange/5' : 'border-card-border bg-white/[0.02] hover:bg-white/[0.04]'}`}
+                >
+                  <div className="mb-2 min-w-0 sm:mb-0">
                     <Select value={row.productId} onChange={(v) => changeProduct(idx, v)} ariaLabel="Product" className="w-full" options={options} />
                     {row.missingProduct && (
                       <p className="mt-1 text-[11px] text-accent-orange">This product no longer exists — remove this line to save, or decline the sale and have it resubmitted.</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-28 shrink-0" />
-                    <span className="flex-1 text-right text-sm font-medium text-text-primary tabular-nums sm:w-24 sm:flex-none">{peso(priceOf(row) * row.quantity - (row.discount ?? 0))}</span>
-                    <span className="w-16 shrink-0 truncate text-xs text-text-muted sm:w-20" title={row.paymentMethod}>{row.paymentMethod}</span>
-                    <button onClick={() => removeRow(idx)} className="shrink-0 p-1.5 text-accent-red hover:bg-red-500/10 rounded transition" title="Remove"><Trash2 size={15} /></button>
+                  <div className="flex items-center justify-between gap-3 sm:contents">
+                    <NumberStepper min={1} ariaLabel="Quantity" value={String(row.quantity)} onChange={(v) => setRow(idx, { quantity: parseInt(v) || 1 })} className="w-28 shrink-0 sm:justify-self-center" />
+                    <span className="w-28 text-right text-sm font-semibold text-text-primary tabular-nums">{peso(priceOf(row) * row.quantity - (row.discount ?? 0))}</span>
+                    <span className="w-20 truncate text-center text-xs text-text-muted" title={row.paymentMethod}>{row.paymentMethod}</span>
+                    <button onClick={() => removeRow(idx)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-accent-red transition hover:bg-accent-red/10 sm:justify-self-end" title="Remove item"><Trash2 size={15} /></button>
                   </div>
                 </div>
               );
@@ -1253,10 +1271,11 @@ function EditSaleModal({
         </div>
 
         <div className="flex items-center justify-between border-t border-card-border pt-3">
-          <span className="text-sm font-semibold text-text-primary">New total: {peso(computedTotal)}</span>
+          <span className="text-sm text-text-muted">New total</span>
+          <span className="text-lg font-bold text-text-primary tabular-nums">{peso(computedTotal)}</span>
         </div>
 
-        {err && <p className="text-sm text-accent-red">{err}</p>}
+        {err && <p className="rounded-lg border border-accent-red/30 bg-accent-red/10 px-3 py-2 text-sm text-accent-red">{err}</p>}
 
         <div className="flex justify-end gap-2">
           <button onClick={guardedClose} className="px-4 py-2 border border-input-border rounded-lg text-sm text-text-primary hover:opacity-80 transition">Cancel</button>
