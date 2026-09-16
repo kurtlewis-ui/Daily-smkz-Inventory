@@ -140,15 +140,38 @@ table tbody tr:hover {
   background-color: var(--content-row-hover, rgba(255, 255, 255, 0.04)) !important;
 }
 
-/* Secondary/cancel buttons — visible in both themes */
+/* Secondary/cancel buttons — visible in both themes. Sizing (padding/radius/
+   text), a focus ring, and the disabled state are baked in so every
+   .btn-secondary matches .btn-grad's shape without each call site re-declaring
+   them. */
 .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;              /* px-4 py-2 — matches .btn-grad */
+  border-radius: 0.5rem;             /* rounded-lg */
+  font-size: 0.875rem;               /* text-sm */
+  line-height: 1.25rem;
+  font-weight: 500;
   background-color: var(--content-secondary-btn-bg, rgba(255, 255, 255, 0.1));
   border: 1px solid var(--content-input-border, #333333);
+  color: var(--content-text-primary, #f0f0f0);
   transition: all 0.15s ease;
 }
 
 .btn-secondary:hover {
   opacity: 0.8;
+}
+
+.btn-secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--content-input-focus, #ffffff) 30%, transparent);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 /* Smooth transition when switching themes */
@@ -594,9 +617,13 @@ select optgroup {
    Reusable UI component classes
    ---------------------------------------------------------------------- */
 @layer components {
-  /* Primary action button — white in dark mode, black in light mode */
+  /* Primary action button — white in dark mode, black in light mode.
+     Sizing (padding/radius/text), a keyboard focus ring, and the disabled
+     state are baked in here so every .btn-grad across the app is consistent
+     without each call site re-declaring them. Callers can still override with
+     their own utilities where genuinely needed. */
   .btn-grad {
-    @apply bg-btn-primary text-btn-primary-text shadow-sm transition-all hover:opacity-90 active:scale-[0.97] font-medium;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium bg-btn-primary text-btn-primary-text shadow-sm transition-all hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus focus-visible:ring-offset-1 focus-visible:ring-offset-transparent disabled:opacity-60 disabled:pointer-events-none;
   }
 
   .icon-btn {
