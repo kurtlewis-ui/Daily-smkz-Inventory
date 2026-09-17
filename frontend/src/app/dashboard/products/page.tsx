@@ -658,8 +658,19 @@ function ImportModal({ branches, onClose }: { branches: { id: string; name: stri
   async function onFile(file: File) {
     setError(null); setResult(null);
     try {
-      const text = await readFileAsText(file);
-      const { headers, rows: csvRows } = parseCsv(text);
+      // Accept both Excel (.xlsx) and CSV. .xlsx is parsed via the xlsx lib
+      // (already shipped for export/template) into the SAME { headers, rows }
+      // shape the CSV parser returns, so everything below is format-agnostic.
+      const isXlsx = /\.xlsx$/i.test(file.name);
+      let headers: string[];
+      let csvRows: Record<string, string>[];
+      if (isXlsx) {
+        const { parseXlsxFile } = await import('@/lib/xlsx-utils');
+        ({ headers, rows: csvRows } = await parseXlsxFile(file));
+      } else {
+        const text = await readFileAsText(file);
+        ({ headers, rows: csvRows } = parseCsv(text));
+      }
       const required = ['Name', 'Brand', 'SellingPrice'];
       const missing = required.filter((h) => !headers.includes(h));
       if (missing.length) { setError(`Missing required column(s): ${missing.join(', ')}`); return; }
@@ -688,12 +699,12 @@ function ImportModal({ branches, onClose }: { branches: { id: string; name: stri
   }
 
   return (
-    <Modal title="Import Products (CSV)" onClose={onClose}>
+    <Modal title="Import Products (Excel or CSV)" onClose={onClose}>
       <div className="space-y-4">
         <p className="text-xs text-text-muted">
-          CSV columns: <strong>Name, Brand, SellingPrice, QuantityAlert</strong>, plus one column per shop name for stock. Brands are created automatically if they don&apos;t exist. Existing products (matched by name) are updated.
+          Accepts <strong>.xlsx</strong> or <strong>.csv</strong>. Columns: <strong>Name, Brand, SellingPrice, QuantityAlert</strong>, plus one column per shop name for stock. Brands are created automatically if they don&apos;t exist. Existing products (matched by name) are updated.
         </p>
-        <input type="file" accept=".csv,text/csv" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
+        <input type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} className="w-full border border-input-border rounded px-3 py-2 text-sm bg-input-bg" />
         {fileName && <p className="text-sm text-text-secondary">Parsed <strong>{rows.length}</strong> row(s) from {fileName}.</p>}
         {error && <p className="text-sm text-accent-red">{error}</p>}
         {result && (
