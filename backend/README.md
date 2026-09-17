@@ -158,6 +158,31 @@ src/
 - **Response envelope:** All responses wrapped in `{ success, data, meta }`.
 - **Soft deletes:** Users use `deletedAt` instead of hard deletion.
 
+## Production database & connection pooling (Supabase)
+
+The app runs migrations on boot (`runMigrationsOnBoot()` in `src/main.ts`), then
+serves traffic. On Supabase, the two jobs want **different** connections:
+
+| Job | Connection | Port | Why |
+| --- | --- | --- | --- |
+| App runtime queries | Transaction pooler | `6543` | Scales to many concurrent clients (lots of branches/tabs). Add `?pgbouncer=true`. |
+| Migrations + seed | Session pooler / direct | `5432` | The 6543 transaction pooler can't run Prisma migrations (advisory locks, prepared statements, session DDL). |
+
+Set these env vars on the host (e.g. Render):
+
+```bash
+# What the running app uses for all normal queries — the fast transaction pooler
+DATABASE_URL="postgresql://postgres.<ref>:<pw>@<region>.pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Used ONLY for boot migrations + seed — the 5432 session pooler
+MIGRATE_DATABASE_URL="postgresql://postgres.<ref>:<pw>@<region>.pooler.supabase.com:5432/postgres"
+```
+
+If `MIGRATE_DATABASE_URL` is unset, migrations fall back to `DATABASE_URL` — so a
+single-URL setup where `DATABASE_URL` is already a 5432 connection keeps working
+unchanged. To skip in-app migrations entirely (e.g. run them from CI), set
+`RUN_MIGRATIONS_ON_BOOT=false`.
+
 ## Next Modules To Implement
 
 Following the implementation roadmap:

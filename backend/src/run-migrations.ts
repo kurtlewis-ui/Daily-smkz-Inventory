@@ -23,8 +23,26 @@ import { spawnSync } from 'child_process';
  *     a cold DB), and
  *   - retry with backoff so a waking database simply succeeds.
  *
+ * CONNECTION POOLING (Supabase)
+ * ------------------------------
+ * On Supabase the runtime app should connect via the TRANSACTION pooler
+ * (port 6543), which scales to many concurrent clients — ideal for a
+ * multi-branch deployment with lots of browser tabs polling. But the
+ * transaction pooler does NOT support the session-level operations Prisma
+ * migrations need (advisory locks, prepared statements, DDL in long
+ * sessions), so `prisma migrate deploy` must run against a SESSION pooler /
+ * direct connection (port 5432).
+ *
+ * To let the app do both, migrations honour an optional MIGRATE_DATABASE_URL:
+ * if set, migrations run against THAT url while the rest of the app keeps
+ * using DATABASE_URL (which can safely point at the 6543 transaction pooler).
+ * If MIGRATE_DATABASE_URL is unset, migrations fall back to DATABASE_URL, so
+ * existing single-URL setups keep working unchanged.
+ *
  * Controlled by env:
  *   RUN_MIGRATIONS_ON_BOOT = "false" to skip entirely (default: run).
+ *   MIGRATE_DATABASE_URL   = optional 5432 (session/direct) url used ONLY for
+ *                            migrations + seed; defaults to DATABASE_URL.
  *   MIGRATE_MAX_ATTEMPTS   = number of tries (default 5).
  */
 const BACKOFF_MS = [0, 8000, 15000, 25000, 40000];
@@ -33,12 +51,26 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * The connection string used for migrations + seed. Prefers MIGRATE_DATABASE_URL
+ * (a 5432 session/direct connection that supports migration operations) and
+ * falls back to DATABASE_URL so single-URL setups keep working. This is what
+ * lets the runtime DATABASE_URL point at the 6543 transaction pooler.
+ */
+function migrationEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  if (process.env.MIGRATE_DATABASE_URL) {
+    env.DATABASE_URL = process.env.MIGRATE_DATABASE_URL;
+  }
+  return env;
+}
+
 function attemptMigrate(): boolean {
   const result = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
     stdio: 'inherit',
     shell: false,
     env: {
-      ...process.env,
+      ...migrationEnv(),
       // The advisory lock only prevents two concurrent migrators from racing.
       // A single Render instance has none, and the lock's non-configurable 10s
       // acquire timeout is exactly what fails on a cold Neon DB — so disable it.
@@ -59,7 +91,7 @@ function runSeed() {
   const result = spawnSync('npx', ['prisma', 'db', 'seed'], {
     stdio: 'inherit',
     shell: false,
-    env: { ...process.env },
+    env: migrationEnv(),
   });
   if (result.status === 0) {
     logger.log('Seed complete (bootstrap roles/admin ensured).');
