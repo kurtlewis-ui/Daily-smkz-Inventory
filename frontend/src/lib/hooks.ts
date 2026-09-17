@@ -43,12 +43,27 @@ import type {
 // or the device is offline (see below), so idle tabs cost nothing.
 const LIVE_POLL_MS = 30_000;
 
+// A slower cadence for SECONDARY live data on the Pending Sales page. That page
+// mounts ~5 pollers at once; keeping them all at 30s is the biggest single
+// compute drain. Only the main pending-sales list needs to feel snappy — the
+// staff drafts, pending disposals, pending expenses, and the "today" branch
+// summary change less often, so polling them every 60s (instead of 30s) roughly
+// halves those four/five requests' DB load with no meaningful UX difference.
+const SLOW_POLL_MS = 60_000;
+
 // Returns false when the browser tab is hidden or the device is offline,
 // pausing polling to save bandwidth, battery, and database compute.
 function shouldPoll(): number | false {
   if (typeof document !== 'undefined' && document.hidden) return false;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
   return LIVE_POLL_MS;
+}
+
+// Same hidden/offline gating as shouldPoll, but at the slower secondary cadence.
+function shouldPollSlow(): number | false {
+  if (typeof document !== 'undefined' && document.hidden) return false;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
+  return SLOW_POLL_MS;
 }
 
 // Every backend response is wrapped as { success, data, pagination?, summary? }.
@@ -692,7 +707,7 @@ export function useMyDraftExists() {
   return useQuery({
     queryKey: ['my-draft-exists'],
     queryFn: () => getData<MyDraftContent>('/sales/draft'),
-    refetchInterval: shouldPoll,
+    refetchInterval: shouldPollSlow,
   });
 }
 
@@ -702,7 +717,7 @@ export function useStaffDrafts(branchId?: string) {
   return useQuery({
     queryKey: ['staff-drafts', { branchId }],
     queryFn: () => getData<StaffDraft[]>('/sales/drafts', { branchId: branchId || undefined }),
-    refetchInterval: shouldPoll,
+    refetchInterval: shouldPollSlow,
   });
 }
 
@@ -864,7 +879,7 @@ export function useDisposalsPending(params?: { search?: string; branchId?: strin
         summary: (res.data.summary ?? { totalValue: 0, totalQuantity: 0, count: 0 }) as DisposalSummary,
       };
     },
-    refetchInterval: shouldPoll,
+    refetchInterval: shouldPollSlow,
   });
 }
 
@@ -947,7 +962,7 @@ export function useExpensesPending(params?: { search?: string; branchId?: string
         summary: (res.data.summary ?? { totalAmount: 0, count: 0 }) as ExpenseSummary,
       };
     },
-    refetchInterval: shouldPoll,
+    refetchInterval: shouldPollSlow,
   });
 }
 
@@ -977,7 +992,7 @@ export function useBranchSummary(branchId?: string, options?: { enabled?: boolea
   return useQuery({
     queryKey: ['stats', 'branch-summary', { branchId }],
     queryFn: () => getData<BranchSummary>('/stats/branch-summary', { branchId: branchId || undefined }),
-    refetchInterval: shouldPoll,
+    refetchInterval: shouldPollSlow,
     // Admin/Owner must pass a specific branch — skip the query entirely
     // when none is selected (e.g. "All Shops" on the Sales Records page)
     // instead of firing a request that's guaranteed to 400.
