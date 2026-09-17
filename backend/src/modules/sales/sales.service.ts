@@ -534,17 +534,36 @@ export class SalesService {
     items: { productId: string | null; name: string; quantity: number }[],
     userId?: string,
   ) {
+    // Perf: previously this did 3 sequential DB round-trips PER item inside the
+    // transaction (conditional updateMany + a findUnique to read the new
+    // quantity + a stockMovement.create). On a remote DB the latency of those
+    // round-trips stacked up and made multi-item saves feel slow. Now each item
+    // does ONE atomic statement — a conditional `UPDATE ... RETURNING quantity`
+    // — and all the stock-movement rows are inserted together in a single
+    // createMany after the loop. Round-trips drop from ~3N to N+1.
+    //
+    // Correctness is unchanged: the `WHERE quantity >= needed` guard is still
+    // re-evaluated under the row lock (so it can't oversell under concurrency),
+    // and RETURNING gives the TRUE post-decrement quantity — so the logged
+    // quantityAfter stays exactly as accurate as before. A throw mid-loop still
+    // rolls back the whole transaction because every statement uses `tx`.
+    const movements: Prisma.StockMovementCreateManyInput[] = [];
+
     for (const item of items) {
       if (!item.productId) continue;
-      const result = await tx.inventory.updateMany({
-        where: {
-          productId: item.productId,
-          branchId,
-          quantity: { gte: item.quantity },
-        },
-        data: { quantity: { decrement: item.quantity } },
-      });
-      if (result.count === 0) {
+
+      const rows = await tx.$queryRaw<{ quantity: number }[]>(Prisma.sql`
+        UPDATE "inventory"
+        SET "quantity" = "quantity" - ${item.quantity}, "updated_at" = NOW()
+        WHERE "product_id" = ${item.productId}::uuid
+          AND "branch_id" = ${branchId}::uuid
+          AND "quantity" >= ${item.quantity}
+        RETURNING "quantity"
+      `);
+
+      if (rows.length === 0) {
+        // Either no inventory row, or not enough stock. Read the current amount
+        // (only on the failure path) to give a precise error message.
         const inv = await tx.inventory.findUnique({
           where: { productId_branchId: { productId: item.productId, branchId } },
         });
@@ -552,21 +571,20 @@ export class SalesService {
           `Insufficient stock for "${item.name}" (need ${item.quantity}, have ${inv?.quantity ?? 0})`,
         );
       }
-      // Log stock movement
-      const inv = await tx.inventory.findUnique({
-        where: { productId_branchId: { productId: item.productId, branchId } },
+
+      movements.push({
+        productId: item.productId,
+        branchId,
+        userId: userId ?? null,
+        type: 'SALE' as const,
+        quantityChange: -item.quantity,
+        quantityAfter: Number(rows[0].quantity),
+        description: 'Added orders.',
       });
-      await tx.stockMovement.create({
-        data: {
-          productId: item.productId,
-          branchId,
-          userId: userId ?? null,
-          type: 'SALE',
-          quantityChange: -item.quantity,
-          quantityAfter: inv?.quantity ?? 0,
-          description: 'Added orders.',
-        },
-      });
+    }
+
+    if (movements.length > 0) {
+      await tx.stockMovement.createMany({ data: movements });
     }
   }
 
@@ -577,35 +595,42 @@ export class SalesService {
     items: { productId: string | null; quantity: number }[],
     userId?: string,
   ) {
+    // Perf mirror of reserveStock: was 2-3 round-trips per item (upsert +
+    // findUnique + stockMovement.create). Now each item is ONE atomic
+    // `INSERT ... ON CONFLICT DO UPDATE ... RETURNING quantity`, and the
+    // movement rows are inserted together in a single createMany afterwards.
+    //
+    // The ON CONFLICT keeps the original upsert semantics: if the branch's
+    // inventory row was removed while the sale was pending, it's recreated with
+    // the restored quantity (id via gen_random_uuid(), matching how Prisma would
+    // generate it); otherwise the existing row is incremented. RETURNING gives
+    // the true post-increment quantity for an exact quantityAfter.
+    const movements: Prisma.StockMovementCreateManyInput[] = [];
+
     for (const item of items) {
       if (!item.productId) continue;
-      // Upsert (not updateMany): if the branch's inventory row was removed while
-      // this sale was pending, recreate it with the restored quantity instead of
-      // silently losing the stock. Mirrors DisposalsService.decline.
-      await tx.inventory.upsert({
-        where: { productId_branchId: { productId: item.productId, branchId } },
-        create: {
-          productId: item.productId,
-          branchId,
-          quantity: item.quantity,
-        },
-        update: { quantity: { increment: item.quantity } },
+
+      const rows = await tx.$queryRaw<{ quantity: number }[]>(Prisma.sql`
+        INSERT INTO "inventory" ("id", "product_id", "branch_id", "quantity", "updated_at")
+        VALUES (gen_random_uuid(), ${item.productId}::uuid, ${branchId}::uuid, ${item.quantity}, NOW())
+        ON CONFLICT ("product_id", "branch_id")
+        DO UPDATE SET "quantity" = "inventory"."quantity" + ${item.quantity}, "updated_at" = NOW()
+        RETURNING "quantity"
+      `);
+
+      movements.push({
+        productId: item.productId,
+        branchId,
+        userId: userId ?? null,
+        type: 'RETURN' as const,
+        quantityChange: item.quantity,
+        quantityAfter: Number(rows[0]?.quantity ?? item.quantity),
+        description: 'Restored product quantity after clearing orders.',
       });
-      // Log stock movement
-      const inv = await tx.inventory.findUnique({
-        where: { productId_branchId: { productId: item.productId, branchId } },
-      });
-      await tx.stockMovement.create({
-        data: {
-          productId: item.productId,
-          branchId,
-          userId: userId ?? null,
-          type: 'RETURN',
-          quantityChange: item.quantity,
-          quantityAfter: inv?.quantity ?? 0,
-          description: 'Restored product quantity after clearing orders.',
-        },
-      });
+    }
+
+    if (movements.length > 0) {
+      await tx.stockMovement.createMany({ data: movements });
     }
   }
 
