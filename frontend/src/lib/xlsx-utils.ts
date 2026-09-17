@@ -151,3 +151,49 @@ export function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
     reader.readAsArrayBuffer(file);
   });
 }
+
+
+/**
+ * Parse an uploaded .xlsx File into the SAME shape as parseCsv()
+ * ({ headers, rows }), so the product Import can accept Excel files with no
+ * change to its downstream validation/mapping. Reads the FIRST worksheet.
+ *
+ * - Header row = the first row of the sheet.
+ * - Each data row becomes a Record<string,string> keyed by header, with values
+ *   coerced to trimmed strings (numbers -> their string form) so it matches how
+ *   the CSV path already hands values to the importer.
+ */
+export async function parseXlsxFile(
+  file: File,
+): Promise<{ headers: string[]; rows: Record<string, string>[] }> {
+  const buffer = await file.arrayBuffer();
+  const wb = XLSX.read(buffer, { type: 'array' });
+  const firstSheetName = wb.SheetNames[0];
+  if (!firstSheetName) return { headers: [], rows: [] };
+  const ws = wb.Sheets[firstSheetName];
+
+  // Read as a matrix (array-of-arrays) so we control header handling exactly
+  // like the CSV parser, instead of letting the lib guess keys.
+  const matrix = XLSX.utils.sheet_to_json<(string | number | null)[]>(ws, {
+    header: 1,
+    blankrows: false,
+    defval: '',
+    raw: false, // formatted text — keeps values consistent with what users see
+  });
+
+  if (!matrix.length) return { headers: [], rows: [] };
+
+  const headers = (matrix[0] ?? []).map((h) => String(h ?? '').trim());
+  const rows: Record<string, string>[] = [];
+  for (let r = 1; r < matrix.length; r++) {
+    const cells = matrix[r] ?? [];
+    const row: Record<string, string> = {};
+    headers.forEach((h, c) => {
+      if (!h) return;
+      const v = cells[c];
+      row[h] = v == null ? '' : String(v).trim();
+    });
+    rows.push(row);
+  }
+  return { headers, rows };
+}
