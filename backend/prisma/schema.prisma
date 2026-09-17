@@ -324,6 +324,11 @@ model Sale {
   @@index([staffId])
   @@index([status])
   @@index([createdAt(sort: Desc)])
+  // Composite index matching the hottest read pattern: "pending sales for a
+  // given branch, newest first" (filter branchId + status, order by createdAt
+  // desc). At many-branch scale a single composite index serves this far
+  // better than combining three separate single-column indexes.
+  @@index([branchId, status, createdAt(sort: Desc)])
   @@map("sales")
 }
 
