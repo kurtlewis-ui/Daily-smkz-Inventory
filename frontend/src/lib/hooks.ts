@@ -34,12 +34,17 @@ import type {
   TopProduct,
 } from './types';
 
-// Staff Drafts / Pending Disposals / Pending Expenses poll this often on the
-// admin's Pending Sales page so it feels close to real-time.
-const LIVE_POLL_MS = 10_000;
+// How often the "live" pages (Pending Sales/Disposals/Expenses, Staff Drafts,
+// branch summary) re-check the server. Set to 30s (was 10s) to cut database
+// compute usage ~3x — a constantly-polling DB never gets to sleep, which burns
+// through Neon's monthly compute allowance. 30s still feels near-real-time for
+// approvals (and your OWN actions update instantly via mutation invalidation,
+// independent of this timer). Polling also fully pauses when the tab is hidden
+// or the device is offline (see below), so idle tabs cost nothing.
+const LIVE_POLL_MS = 30_000;
 
 // Returns false when the browser tab is hidden or the device is offline,
-// pausing polling to save bandwidth and battery.
+// pausing polling to save bandwidth, battery, and database compute.
 function shouldPoll(): number | false {
   if (typeof document !== 'undefined' && document.hidden) return false;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return false;
@@ -989,10 +994,11 @@ export function useMe() {
     queryFn: () => getData<AuthUser>('/auth/me'),
     // Poll so a server-side profile change (e.g. an owner/admin reassigning
     // this staff to a different branch) is picked up without waiting for the
-    // next login or token refresh. 45s (vs the 10s live-poll used by the admin
-    // pending pages) is plenty for a profile reassignment and cuts a request
-    // that fires on every staff page; a tab refocus still refetches instantly.
-    refetchInterval: () => (shouldPoll() === false ? false : 45_000),
+    // next login or token refresh. 90s is plenty for a rare profile
+    // reassignment and further cuts database compute; a tab refocus still
+    // refetches instantly (refetchOnWindowFocus), so changes are picked up
+    // the moment the staff returns to the tab. Pauses when the tab is hidden.
+    refetchInterval: () => (shouldPoll() === false ? false : 90_000),
     refetchOnWindowFocus: true,
   });
 }
