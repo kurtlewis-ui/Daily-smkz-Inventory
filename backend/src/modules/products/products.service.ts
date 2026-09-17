@@ -147,7 +147,7 @@ export class ProductsService {
       this.prisma.product.count({ where }),
       this.prisma.product.findMany({
         where,
-        include: this.includeFull(branchId),
+        select: this.selectFull(branchId),
         // Manual display order (owners can drag to reorder); creation order is
         // the tie-breaker so products without an explicit order stay stable.
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
@@ -176,7 +176,7 @@ export class ProductsService {
       this.prisma.product.count({ where }),
       this.prisma.product.findMany({
         where,
-        include: this.includeFull(),
+        select: this.selectFull(),
         orderBy: { deletedAt: 'desc' },
         skip,
         take: limit,
@@ -828,6 +828,42 @@ export class ProductsService {
       inventory: {
         where: branchId ? { branchId } : undefined,
         include: { branch: { select: { id: true, name: true } } },
+      },
+    };
+  }
+
+  /**
+   * Like includeFull, but as an explicit `select` that lists ONLY the columns
+   * serialize() actually reads. Used by the LIST endpoints (findAll /
+   * findArchived) where fetching every product column — notably the large
+   * `image` text field on every row — makes big responses slow. This returns
+   * the exact same shape serialize() expects (same brand/inventory nesting and
+   * the image field), so the API response is unchanged; only the set of columns
+   * pulled from Postgres is trimmed. Write paths keep using includeFull().
+   */
+  private selectFull(branchId?: string): Prisma.ProductSelect {
+    return {
+      id: true,
+      name: true,
+      slug: true,
+      image: true,
+      sellingPrice: true,
+      costPrice: true,
+      quantityAlert: true,
+      sortOrder: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+      deletedAt: true,
+      brand: { select: { id: true, name: true, slug: true } },
+      inventory: {
+        where: branchId ? { branchId } : undefined,
+        select: {
+          branchId: true,
+          quantity: true,
+          sellingPrice: true,
+          branch: { select: { id: true, name: true } },
+        },
       },
     };
   }
