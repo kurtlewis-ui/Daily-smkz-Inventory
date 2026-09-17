@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { JwtStrategy } from './strategies/jwt.strategy';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtPayload, JwtRefreshPayload } from '../../common/interfaces/request-user.interface';
 import { UploadService } from '../../common/upload/upload.service';
@@ -114,6 +115,10 @@ export class AuthService {
     await this.prisma.session.delete({
       where: { id: sessionId },
     });
+
+    // Drop this session from the JWT auth cache so logout takes effect
+    // immediately rather than after the cache TTL.
+    JwtStrategy.invalidate(userId, sessionId);
 
     // Create audit log
     await this.createAuditLog(userId, 'LOGOUT', null, null);
