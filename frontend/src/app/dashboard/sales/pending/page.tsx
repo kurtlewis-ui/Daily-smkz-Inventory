@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Search, Pencil, Trash2, X, CheckCircle, XCircle, Loader2, Recycle, ShoppingBag, PhilippinePeso, Send, Check } from 'lucide-react';
 import {
   useSalesPending,
@@ -28,6 +28,7 @@ import { Select } from '@/components/Select';
 import { NumberStepper } from '@/components/NumberStepper';
 import { useUnsavedGuard, withScrollPreserved } from '@/lib/useUnsavedGuard';
 import { useStoredBranch } from '@/lib/useStoredBranch';
+import { filterSalesByProduct } from '@/lib/sale-search';
 import type { Sale, PaymentMethod, PaymentSplit } from '@/lib/types';
 
 function peso(n: number) {
@@ -226,11 +227,14 @@ export default function SalesPendingPage() {
   const { data: productData } = useProducts({ branchId: selectedShop || undefined, limit: 1000 });
   const products = productData?.data ?? [];
 
+  // Note: search is applied CLIENT-SIDE (see filterSalesByProduct) so it filters
+  // to the matching ITEM rows, not whole sales. We intentionally do NOT pass
+  // `search` to the backend here — the server search returns whole sales, which
+  // is the behavior we're replacing.
   const { data, isLoading, isError, error } = useSalesPending({
-    search,
     branchId: selectedShop || undefined,
   });
-  const sales = data?.data ?? [];
+  const sales = useMemo(() => filterSalesByProduct(data?.data ?? [], search), [data?.data, search]);
   const summary = data?.summary ?? { grossSales: 0, cash: 0, gcash: 0, discount: 0, total: 0, count: 0 };
 
   const approveSale = useApproveSale();
@@ -517,7 +521,7 @@ export default function SalesPendingPage() {
                   ))}
                   <tr className="bg-accent-orange/10 border-b border-card-border">
                     <td colSpan={10} className="px-4 py-2 text-sm font-semibold text-accent-orange">
-                      Total for Sale #{sale.number}: {peso(sale.total)}
+                      Total for Sale #{sale.number}: {peso(sale.visibleTotal)}
                     </td>
                   </tr>
                 </Fragment>
@@ -567,7 +571,7 @@ export default function SalesPendingPage() {
                         </li>
                       ))}
                     </ul>
-                    <p className="mt-2 text-right text-xs font-semibold text-accent-orange">Total: {peso(sale.total)}</p>
+                    <p className="mt-2 text-right text-xs font-semibold text-accent-orange">Total: {peso(sale.visibleTotal)}</p>
                   </li>
                 ))}
               </ul>

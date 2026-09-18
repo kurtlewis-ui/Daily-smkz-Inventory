@@ -1,8 +1,9 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 import { useSalesRecords, useBranches, useBranchSummary } from '@/lib/hooks';
+import { filterSalesByProduct } from '@/lib/sale-search';
 import { getApiErrorMessage } from '@/lib/api';
 import { usePagination, Pagination } from '@/components/Pagination';
 import { Select } from '@/components/Select';
@@ -46,16 +47,19 @@ export default function SalesRecordsPage() {
   // Shared+persisted branch filter ('' = All Shops), remembered across the site.
   const [selectedShop, setSelectedShop] = useStoredBranch(branches);
 
+  // Search is applied CLIENT-SIDE so it filters to the matching ITEM rows
+  // (by product name or brand), not whole sales — matching the Pending Sales
+  // behavior. So we don't pass `search` to the backend here.
   const { data, isLoading, isError, error } = useSalesRecords({
-    search,
     branchId: selectedShop || undefined,
     startDate: startDate || undefined,
     endDate: endDate || undefined,
   });
 
-  const sales = data?.data ?? [];
+  const sales = useMemo(() => filterSalesByProduct(data?.data ?? [], search), [data?.data, search]);
   const summary = data?.summary ?? { grossSales: 0, cash: 0, gcash: 0, discount: 0, total: 0, count: 0 };
   // Paginate by SALE (10 per page) — each sale renders several item rows.
+  // Pagination runs on the already-filtered list so pages reflect the search.
   const { pageItems: pagedSales, resetPage, controlProps } = usePagination(sales, 10);
 
   // Today's approved Total Sales / Total Expenses / Net for the selected
@@ -200,7 +204,7 @@ export default function SalesRecordsPage() {
                   ))}
                   <tr className="bg-accent-orange/10 border-b border-card-border">
                     <td colSpan={10} className="px-4 py-2 text-sm font-semibold text-accent-orange">
-                      Total for Sale #{sale.number}{sale.branch ? ` (${sale.branch.name})` : ''}: {peso(sale.total)}
+                      Total for Sale #{sale.number}{sale.branch ? ` (${sale.branch.name})` : ''}: {peso(sale.visibleTotal)}
                     </td>
                   </tr>
                 </Fragment>
@@ -249,7 +253,7 @@ export default function SalesRecordsPage() {
                     </ul>
                     <div className="mt-2 flex items-center justify-between gap-2 text-xs text-text-muted">
                       <span>{sale.staff?.name ?? '—'} · {formatDate(sale.createdAt)}</span>
-                      <span className="shrink-0 font-semibold text-accent-orange">Total: {peso(sale.total)}</span>
+                      <span className="shrink-0 font-semibold text-accent-orange">Total: {peso(sale.visibleTotal)}</span>
                     </div>
                   </li>
                 ))}
