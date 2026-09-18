@@ -128,14 +128,12 @@ export default function BrandProductsPage() {
                     LOW
                   </div>
                 )}
-                <div className="flex aspect-square items-center justify-center overflow-hidden bg-surface-muted">
+                <div className="flex aspect-square items-center justify-center overflow-hidden bg-card-bg">
                   {p.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover" />
                   ) : (
-                    <span className="select-none text-4xl font-bold uppercase text-text-muted/50">
-                      {p.name?.trim().charAt(0) || '?'}
-                    </span>
+                    <span className="text-xs text-text-muted">No Image Available</span>
                   )}
                 </div>
                 <div className="px-3 py-3 bg-surface-muted">
