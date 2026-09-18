@@ -13,6 +13,7 @@ import { getApiErrorMessage } from '@/lib/api';
 import { TableSkeleton } from '@/components/Skeleton';
 import { Select } from '@/components/Select';
 import { phBusinessToday } from '@/lib/business-day';
+import { filterSalesByProduct } from '@/lib/sale-search';
 
 function peso(n: number) {
   return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -47,15 +48,16 @@ export default function StaffDailyReportPage() {
   // after midnight, or on a device in a different timezone).
   const today = useMemo(() => phBusinessToday(), []);
 
+  // Load the full day (no server search): search is applied CLIENT-SIDE below
+  // so it filters to matching ITEM rows, and so the daily summary totals stay
+  // based on ALL of today's sales regardless of the search text.
   const { data, isLoading, isError, error } = useSalesRecords({
-    search: search || undefined,
     startDate: today,
     endDate: today,
   });
   const approvedSales = data?.data ?? [];
 
   const { data: pendingData } = useSalesPending({
-    search: search || undefined,
     startDate: today,
     endDate: today,
   });
@@ -71,8 +73,13 @@ export default function StaffDailyReportPage() {
     [pendingSales, approvedSales],
   );
 
-  // Tables only show PENDING sales
-  const sales = useMemo(() => allSales.filter((s) => s.status === 'PENDING'), [allSales]);
+  // "View by Sale" table shows PENDING sales, with the product search applied
+  // CLIENT-SIDE so it filters to the matching item rows (and recomputes each
+  // sale's visible total). The daily summary below still uses allSales (full).
+  const sales = useMemo(
+    () => filterSalesByProduct(allSales.filter((s) => s.status === 'PENDING'), search),
+    [allSales, search],
+  );
 
   const { data: disposalsData } = useDisposals({ startDate: today, endDate: today });
   const allDisposals = (disposalsData?.data ?? []).filter((d) => d.status !== 'DECLINED');
@@ -203,7 +210,7 @@ export default function StaffDailyReportPage() {
                   ))}
                   <tr className="bg-surface-muted border-t border-card-border">
                     <td colSpan={8} className="px-4 py-2 text-sm font-semibold text-text-primary">
-                      Total for Sale #{sale.number}: {peso(sale.total)}
+                      Total for Sale #{sale.number}: {peso(sale.visibleTotal)}
                     </td>
                   </tr>
                 </Fragment>
@@ -242,7 +249,7 @@ export default function StaffDailyReportPage() {
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-2 text-right text-xs font-semibold text-text-primary">Total: {peso(sale.total)}</p>
+                  <p className="mt-2 text-right text-xs font-semibold text-text-primary">Total: {peso(sale.visibleTotal)}</p>
                 </li>
               ))}
             </ul>
