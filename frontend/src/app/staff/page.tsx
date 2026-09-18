@@ -76,16 +76,17 @@ export default function StaffHomePage() {
                   onClick={() => router.push(`/staff/brands/${brand.id}`)}
                   className="tile-hover group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm hover:border-input-focus"
                 >
-                  <div className="flex aspect-square items-center justify-center overflow-hidden bg-surface-muted">
+                  {/* Solid (not translucent) background: a semi-transparent fill
+                      here (bg-white/5) was mis-clipped by iOS Safari on the
+                      rounded, overflow-hidden, GPU-promoted tile, showing a hard
+                      vertical "split". A solid color composites cleanly on iOS and
+                      looks identical on desktop. */}
+                  <div className="flex aspect-square items-center justify-center overflow-hidden bg-card-bg">
                     {brand.coverImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={brand.coverImage} alt={brand.name} loading="lazy" className="h-full w-full object-cover" />
                     ) : (
-                      // No cover image: show a clean, centered initial instead of an
-                      // empty translucent box (which rendered as an odd split artifact).
-                      <span className="select-none text-4xl font-bold uppercase text-text-muted/50">
-                        {brand.name?.trim().charAt(0) || '?'}
-                      </span>
+                      <span className="text-xs text-text-muted">No Image Available</span>
                     )}
                   </div>
                   <div className="px-3 py-3 bg-surface-muted">
@@ -108,14 +109,12 @@ export default function StaffHomePage() {
                     onClick={() => p.brand?.id ? router.push(`/staff/brands/${p.brand.id}`) : undefined}
                     className="tile-hover flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm hover:border-input-focus"
                   >
-                    <div className="flex aspect-square items-center justify-center overflow-hidden bg-surface-muted">
+                    <div className="flex aspect-square items-center justify-center overflow-hidden bg-card-bg">
                       {p.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover" />
                       ) : (
-                        <span className="select-none text-4xl font-bold uppercase text-text-muted/50">
-                          {p.name?.trim().charAt(0) || '?'}
-                        </span>
+                        <span className="text-xs text-text-muted">No Image</span>
                       )}
                     </div>
                     <div className="px-3 py-3 bg-surface-muted">
