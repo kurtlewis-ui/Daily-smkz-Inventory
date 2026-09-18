@@ -23,16 +23,4 @@ export class AppController {
   getVersion() {
     return this.appService.getVersion();
   }
-
-  /**
-   * TEMPORARY diagnostic: measures how long DB round-trips take FROM INSIDE the
-   * backend (server -> Supabase -> back), separate from the browser->Render leg.
-   * This isolates network/DB latency from Render CPU/app time. Remove after use.
-   * GET /diag/db-timing
-   */
-  @Public()
-  @Get('diag/db-timing')
-  getDbTiming() {
-    return this.appService.getDbTiming();
-  }
 }
