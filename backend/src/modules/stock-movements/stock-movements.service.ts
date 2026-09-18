@@ -42,7 +42,10 @@ export class StockMovementsService {
           product: { select: { id: true, name: true } },
           branch: { select: { id: true, name: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        // Order by the monotonic insertion counter, not created_at: rows from
+        // one multi-item sale share the same created_at, so seq is what keeps
+        // the running "Remaining Quantity" in correct, stable order.
+        orderBy: { seq: 'desc' },
         skip,
         take: limit,
       }),
