@@ -12,6 +12,14 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { runMigrationsOnBoot } from './run-migrations';
 
+// Global safety net: JSON.stringify throws on BigInt values. We now have a
+// BigInt column (StockMovement.seq); response paths deliberately don't emit it,
+// but this guard guarantees that if any raw row carrying a BigInt is ever
+// returned, it serializes as a string instead of crashing the request.
+(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
+  return this.toString();
+};
+
 async function bootstrap() {
   // Apply pending DB migrations FIRST, resiliently (retries a cold/suspended
   // Neon database, advisory lock disabled). Doing this in-app means it works
