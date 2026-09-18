@@ -241,6 +241,13 @@ enum StockMovementType {
 
 model StockMovement {
   id            String            @id @default(uuid()) @db.Uuid
+  // Monotonic insertion counter. createdAt alone can't order rows written in
+  // the SAME transaction (a multi-item sale) because they share one now()
+  // timestamp — which made the history list show them in a scrambled order and
+  // the running "Remaining Quantity" look inconsistent. `seq` is a database
+  // autoincrement assigned in true insertion order, so ordering by it is exact
+  // and deterministic even for same-timestamp rows.
+  seq           BigInt            @default(autoincrement())
   productId     String            @map("product_id") @db.Uuid
   branchId      String            @map("branch_id") @db.Uuid
   userId        String?           @map("user_id") @db.Uuid
@@ -258,6 +265,8 @@ model StockMovement {
   branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
   user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  // History is ordered by seq (see above), scoped to product+branch.
+  @@index([productId, branchId, seq(sort: Desc)])
   @@index([productId, branchId, createdAt(sort: Desc)])
   @@index([branchId])
   @@index([userId])

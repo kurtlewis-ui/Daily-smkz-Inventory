@@ -753,7 +753,9 @@ export class ProductsService {
           // (a sale, another restock, or an undo we already applied), refuse.
           const latest = await tx.stockMovement.findFirst({
             where: { productId: movement.productId, branchId: movement.branchId },
-            orderBy: { createdAt: 'desc' },
+            // Order by seq (insertion order) to match how the history UI decides
+            // "newest" — so undo agrees with the row shown at the top.
+            orderBy: { seq: 'desc' },
           });
           if (!latest || latest.id !== movement.id) {
             throw new BadRequestException(
