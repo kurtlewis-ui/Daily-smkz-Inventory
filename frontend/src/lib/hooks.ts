@@ -97,6 +97,60 @@ function useInvalidate() {
     keys.forEach((key) => qc.invalidateQueries({ queryKey: key }));
 }
 
+// ---------------------------------------------------------------------------
+// Instant product-list cache updates.
+//
+// Product create/update/archive used to ONLY invalidate ['products'], which
+// forces a full refetch of the (largest) products list before the screen
+// reflects the change. On a slow/throttled server that refetch is ~1s, so
+// saving/editing FELT slow even though the write itself was fast.
+//
+// These helpers patch every cached ['products', ...] list in place so the UI
+// updates immediately, then trigger a BACKGROUND refetch (refetchType:'none'
+// re-runs only on next use / mounted queries reconcile silently) so the cache
+// still converges with the server without blocking what the user sees.
+// ---------------------------------------------------------------------------
+interface ProductListCache {
+  data: Product[];
+  pagination?: Pagination;
+  summary?: SalesSummary;
+}
+
+function useProductCache() {
+  const qc = useQueryClient();
+
+  // Apply a transform to the data array of every cached products list.
+  const patchLists = (fn: (list: Product[]) => Product[]) => {
+    qc.setQueriesData<ProductListCache>({ queryKey: ['products'] }, (old) => {
+      if (!old || !Array.isArray(old.data)) return old;
+      return { ...old, data: fn(old.data) };
+    });
+  };
+
+  return {
+    // Replace an existing product (by id) across all cached lists.
+    upsert: (product: Product | undefined | null) => {
+      if (!product || !product.id) return;
+      patchLists((list) => {
+        const idx = list.findIndex((p) => p.id === product.id);
+        if (idx === -1) return list; // not in this list (e.g. filtered out) — leave as-is
+        const next = list.slice();
+        next[idx] = { ...next[idx], ...product };
+        return next;
+      });
+    },
+    // Remove a product (by id) from all cached lists — for archive/delete.
+    remove: (id: string) => {
+      patchLists((list) => list.filter((p) => p.id !== id));
+    },
+    // Reconcile with the server WITHOUT blocking the UI: mounted lists refetch
+    // quietly in the background; the instant patch above already updated them.
+    reconcileInBackground: () => {
+      qc.invalidateQueries({ queryKey: ['products'], refetchType: 'active' });
+    },
+  };
+}
+
 // Standardized toast callbacks for mutations. Pass a success message; failures
 // automatically surface the API error text as an error toast. Pages that show
 // their own inline error can still catch the thrown error as before — the
@@ -373,22 +427,35 @@ export function useCreateProduct() {
 // (e.g. with an "Undo" action for the quantity changes just made).
 export function useUpdateProduct(opts?: { silent?: boolean }) {
   const invalidate = useInvalidate();
+  const products = useProductCache();
   const t = useMutationToasts('Product updated');
   return useMutation({
     mutationFn: ({ id, ...body }: ProductMutationInput & { id: string }) =>
       api.patch(`/products/${id}`, body).then((r) => r.data.data as { undoMovementIds?: string[] } & Record<string, unknown>),
-    onSuccess: () => { invalidate(['products'], ['product']); if (!opts?.silent) t.onSuccess(); },
+    onSuccess: (result) => {
+      // Instantly reflect the saved product in every cached list (the server
+      // returns the full updated product), so the screen updates without
+      // waiting for a refetch. Then reconcile in the background.
+      products.upsert(result as unknown as Product);
+      products.reconcileInBackground();
+      invalidate(['product'], ['stats']);
+      if (!opts?.silent) t.onSuccess();
+    },
     onError: t.onError,
   });
 }
 
 export function useArchiveProduct() {
   const invalidate = useInvalidate();
+  const products = useProductCache();
   const t = useMutationToasts('Product archived');
   return useMutation({
     mutationFn: (id: string) => api.delete(`/products/${id}`).then((r) => r.data.data),
-    onSuccess: () => { invalidate(['products'], ['stats']); t.onSuccess(); },
-    onError: t.onError,
+    // Optimistically drop the row from all cached lists so it disappears
+    // immediately, then reconcile with the server in the background.
+    onMutate: (id: string) => { products.remove(id); },
+    onSuccess: () => { products.reconcileInBackground(); invalidate(['stats']); t.onSuccess(); },
+    onError: (err) => { products.reconcileInBackground(); t.onError(err); },
   });
 }
 
