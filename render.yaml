@@ -23,18 +23,29 @@ services:
     buildCommand: npm install --include=dev && npx prisma generate && npm run build
     # Just boot the app. Migrations AND seeding now run INSIDE the app on
     # startup (see backend/src/run-migrations.ts), resiliently: the migration
-    # advisory lock is disabled and a cold/suspended Neon DB is retried with
+    # advisory lock is disabled and a cold/suspended DB is retried with
     # backoff, so the "P1002 ... timed out acquiring a postgres advisory lock"
     # cold-start failure can't abort the deploy anymore. Because there's no
     # "&& migrate && seed" chain here, a transient DB hiccup can't half-fail
     # the start command.
+    #
+    # DATABASE URLS (Supabase, Singapore region ap-southeast-1 to match this
+    # service's region — co-locating them keeps DB round-trips ~15ms instead of
+    # the ~400ms seen when the DB was in another region):
+    #   DATABASE_URL         -> transaction pooler, port 6543, ?pgbouncer=true
+    #   MIGRATE_DATABASE_URL -> session pooler,     port 5432 (needed for migrations)
     startCommand: node dist/main.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      # Paste your Neon Postgres connection string here when prompted.
+      # Supabase transaction pooler (port 6543, ?pgbouncer=true), Singapore
+      # region (ap-southeast-1) to match this service. Paste when prompted.
       - key: DATABASE_URL
+        sync: false
+      # Supabase session pooler (port 5432) — used ONLY for boot migrations,
+      # which the transaction pooler can't run. Same Singapore project.
+      - key: MIGRATE_DATABASE_URL
         sync: false
       # Set this to your deployed frontend URL, e.g. https://your-app.vercel.app
       - key: CORS_ORIGIN
