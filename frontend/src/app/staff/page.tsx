@@ -76,12 +76,16 @@ export default function StaffHomePage() {
                   onClick={() => router.push(`/staff/brands/${brand.id}`)}
                   className="tile-hover group flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm hover:border-input-focus"
                 >
-                  <div className="flex aspect-square items-center justify-center bg-white/5">
+                  <div className="flex aspect-square items-center justify-center overflow-hidden bg-surface-muted">
                     {brand.coverImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={brand.coverImage} alt={brand.name} loading="lazy" className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xs text-text-muted">No Image Available</span>
+                      // No cover image: show a clean, centered initial instead of an
+                      // empty translucent box (which rendered as an odd split artifact).
+                      <span className="select-none text-4xl font-bold uppercase text-text-muted/50">
+                        {brand.name?.trim().charAt(0) || '?'}
+                      </span>
                     )}
                   </div>
                   <div className="px-3 py-3 bg-surface-muted">
@@ -104,12 +108,14 @@ export default function StaffHomePage() {
                     onClick={() => p.brand?.id ? router.push(`/staff/brands/${p.brand.id}`) : undefined}
                     className="tile-hover flex flex-col overflow-hidden rounded-xl border border-card-border bg-card-bg text-left shadow-sm hover:border-input-focus"
                   >
-                    <div className="flex aspect-square items-center justify-center bg-white/5">
+                    <div className="flex aspect-square items-center justify-center overflow-hidden bg-surface-muted">
                       {p.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={p.image} alt={p.name} loading="lazy" className="h-full w-full object-cover" />
                       ) : (
-                        <span className="text-xs text-text-muted">No Image</span>
+                        <span className="select-none text-4xl font-bold uppercase text-text-muted/50">
+                          {p.name?.trim().charAt(0) || '?'}
+                        </span>
                       )}
                     </div>
                     <div className="px-3 py-3 bg-surface-muted">

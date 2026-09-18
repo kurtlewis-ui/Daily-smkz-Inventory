@@ -175,6 +175,9 @@ export default function StaffDailyReportPage() {
                         {idx === 0 && (
                           <>
                             {`#${sale.number}`}
+                            {sale.staff?.name && (
+                              <p className="text-[10px] font-normal text-text-secondary mt-0.5">{sale.staff.name}</p>
+                            )}
                             {sale.customerName && (
                               <p className="text-[10px] font-normal text-accent-blue mt-0.5">{sale.customerName}</p>
                             )}
@@ -216,6 +219,7 @@ export default function StaffDailyReportPage() {
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-text-primary">#{sale.number}</p>
+                      {sale.staff?.name && <p className="text-[11px] text-text-secondary">{sale.staff.name}</p>}
                       {sale.customerName && <p className="text-[11px] text-accent-blue">{sale.customerName}</p>}
                     </div>
                     <span className="shrink-0 text-[11px] text-text-muted">{formatDate(sale.createdAt)}</span>
