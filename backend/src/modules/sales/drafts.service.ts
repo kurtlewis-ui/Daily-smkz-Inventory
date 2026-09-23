@@ -22,7 +22,6 @@ export class DraftsService {
    * empty draft around once every section is empty.
    */
   async upsertMine(dto: UpsertDraftDto, actor: RequestUser) {
-    const branchId = await this.resolveBranchForActor(actor);
     const disposalItems = dto.disposalItems ?? [];
     const expenses = dto.expenses ?? [];
 
@@ -30,6 +29,18 @@ export class DraftsService {
       await this.prisma.draftOrder.deleteMany({ where: { staffId: actor.userId } });
       return { message: 'Draft cleared' };
     }
+
+    // A draft is tied to the branch it was CREATED at, not the staff's current
+    // branch. If the staff is later reassigned (Branch A -> Branch B), their
+    // existing draft must STAY under Branch A. So: reuse the existing draft's
+    // branchId when updating, and only fall back to the staff's current branch
+    // when creating a brand-new draft. (This is the fix for drafts silently
+    // moving to the new branch when the staff was transferred.)
+    const existing = await this.prisma.draftOrder.findUnique({
+      where: { staffId: actor.userId },
+      select: { branchId: true },
+    });
+    const branchId = existing?.branchId ?? (await this.resolveBranchForActor(actor));
 
     const data = {
       branchId,
@@ -203,6 +214,10 @@ export class DraftsService {
             })),
           },
           staffActor,
+          // Force the draft's ORIGINAL branch. The staff actor's current branch
+          // may differ (they were reassigned); the sale must record under the
+          // branch the draft was created at.
+          draft.branchId,
         );
         remainingItems = [];
       } catch (e: any) {
@@ -218,6 +233,7 @@ export class DraftsService {
           await this.disposalsService.create(
             { branchId: draft.branchId, productId: d.productId, quantity: d.quantity, reason: d.reason },
             staffActor,
+            draft.branchId,
           ),
         );
       } catch (e: any) {
@@ -234,6 +250,7 @@ export class DraftsService {
           await this.expensesService.create(
             { branchId: draft.branchId, amount: ex.amount, note: ex.note },
             staffActor,
+            draft.branchId,
           ),
         );
       } catch (e: any) {
