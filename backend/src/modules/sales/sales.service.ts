@@ -432,7 +432,7 @@ export class SalesService {
    * of the product's global default.
    */
   private buildSaleItems(
-    dtoItems: { productId: string; quantity: number; discount?: number; paymentMethod: PaymentMethod; bankNote?: string; note?: string; paymentSplit?: { cash: number; gcash: number; bankTransfer: number; cashless: number } }[],
+    dtoItems: { productId: string; quantity: number; discount?: number; paymentMethod: PaymentMethod; bankNote?: string; note?: string; paymentSplit?: { cash: number; gcash: number; bankTransfer: number; cashless: number }; addedAt?: string }[],
     productMap: Map<string, { id: string; name: string; sellingPrice: Prisma.Decimal; costPrice?: Prisma.Decimal; brand: { name: string } }>,
     branchPriceMap?: Map<string, Prisma.Decimal | null>,
   ) {
@@ -451,6 +451,14 @@ export class SalesService {
         );
       }
       const subTotal = lineTotal.sub(discount);
+      // Preserve the item's original time (e.g. when it was staged in the draft
+      // cart) if one was supplied and is a valid date; otherwise leave null and
+      // the UI falls back to the sale's createdAt.
+      let addedAt: Date | null = null;
+      if (item.addedAt) {
+        const parsed = new Date(item.addedAt);
+        if (!isNaN(parsed.getTime())) addedAt = parsed;
+      }
       return {
         productId: product.id,
         name: product.name,
@@ -460,6 +468,7 @@ export class SalesService {
         costPrice,
         discount,
         subTotal,
+        addedAt,
         ...this.resolveItemPayment(item, subTotal, product.name),
       };
     });
@@ -748,6 +757,10 @@ export class SalesService {
         bankNote: i.bankNote ?? null,
         note: i.note ?? null,
         paymentSplit: i.paymentSplit ?? null,
+        // Per-item original time (e.g. when staged in the draft). Null for older
+        // rows / live sales that didn't supply one — the UI falls back to the
+        // sale's createdAt.
+        addedAt: i.addedAt ?? null,
       })),
       createdAt: sale.createdAt,
       decidedAt: sale.decidedAt,

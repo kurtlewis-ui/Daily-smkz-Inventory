@@ -150,6 +150,9 @@ export interface SaleLineItem {
   bankNote: string | null;
   note: string | null;
   paymentSplit: PaymentSplit | null;
+  // Original time this line was added (e.g. staged in the draft cart). Null for
+  // older rows / live sales — callers fall back to the sale's createdAt.
+  addedAt: string | null;
 }
 
 export interface Sale {

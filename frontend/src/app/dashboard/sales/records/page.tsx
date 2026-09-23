@@ -199,7 +199,11 @@ export default function SalesRecordsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-text-secondary">{sale.staff?.name ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{idx === 0 ? formatDate(sale.createdAt) : ''}</td>
+                      {/* Per-item time: show each line's own added time (e.g. when it
+                          was staged in the draft) so items added at different times
+                          don't all show the batch submit time. Falls back to the
+                          sale's time for older rows / live sales without a per-item time. */}
+                      <td className="px-4 py-3 text-sm text-text-secondary">{formatDate(item.addedAt ?? sale.createdAt)}</td>
                     </tr>
                   ))}
                   <tr className="bg-accent-orange/10 border-b border-card-border">
@@ -246,6 +250,7 @@ export default function SalesRecordsPage() {
                             <span>Qty: <span className="text-text-secondary">{item.quantity}</span></span>
                             <span>{peso(item.unitPrice)}</span>
                             <span className="inline-flex items-center gap-1"><span className={`badge-dot ${paymentDotColor(item.paymentMethod)}`} />{itemPaymentLabel(item)}</span>
+                            <span>{formatDate(item.addedAt ?? sale.createdAt)}</span>
                           </div>
                           {!!item.discount && <p className="mt-0.5 text-accent-orange">−{peso(item.discount)} discount</p>}
                         </li>
