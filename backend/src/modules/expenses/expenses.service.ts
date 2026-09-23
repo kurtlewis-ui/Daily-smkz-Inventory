@@ -11,8 +11,8 @@ export class ExpensesService {
   constructor(private prisma: PrismaService) {}
 
   /** Log an expense. Starts PENDING, awaiting Admin approval (no stock impact). */
-  async create(dto: CreateExpenseDto, actor: RequestUser) {
-    const branchId = await this.resolveBranchForActor(actor, dto.branchId);
+  async create(dto: CreateExpenseDto, actor: RequestUser, forceBranchId?: string) {
+    const branchId = await this.resolveBranchForActor(actor, dto.branchId, forceBranchId);
 
     const expense = await this.prisma.expense.create({
       data: {
@@ -170,7 +170,25 @@ export class ExpensesService {
     };
   }
 
-  private async resolveBranchForActor(actor: RequestUser, branchId?: string) {
+  private async resolveBranchForActor(
+    actor: RequestUser,
+    branchId?: string,
+    // Trusted internal override for the draft-submit path: use the draft's
+    // original branch (after checking it's active) instead of the staff's
+    // current branch. See DraftsService.saveForStaff.
+    forceBranchId?: string,
+  ) {
+    if (forceBranchId) {
+      const forced = await this.prisma.branch.findFirst({
+        where: { id: forceBranchId, deletedAt: null },
+      });
+      if (!forced) {
+        throw new BadRequestException(
+          "This draft's original shop no longer exists or has been archived.",
+        );
+      }
+      return forceBranchId;
+    }
     if (actor.role === 'Staff') {
       const me = await this.prisma.user.findUnique({
         where: { id: actor.userId },

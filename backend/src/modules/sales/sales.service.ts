@@ -22,8 +22,8 @@ export class SalesService {
    * "look valid" only to have the second approval mysteriously fail later.
    * If declined or deleted while still pending, the reservation is restored.
    */
-  async create(dto: CreateSaleDto, actor: RequestUser) {
-    const branchId = await this.resolveBranchForActor(actor, dto.branchId);
+  async create(dto: CreateSaleDto, actor: RequestUser, forceBranchId?: string) {
+    const branchId = await this.resolveBranchForActor(actor, dto.branchId, forceBranchId);
 
     // Load all referenced products in one query, including THIS branch's
     // inventory row so we can price each line at the branch's own price.
@@ -654,7 +654,29 @@ export class SalesService {
     return counter.count;
   }
 
-  private async resolveBranchForActor(actor: RequestUser, branchId?: string) {
+  private async resolveBranchForActor(
+    actor: RequestUser,
+    branchId?: string,
+    // Trusted internal override used ONLY by the draft-submit path. A draft is
+    // tied to the branch it was created at; when an admin submits a staff's
+    // draft, the sale must use THAT branch — not the staff's (possibly changed)
+    // current branch. When set, we use this exact branch (after checking it's
+    // active), bypassing the staff-current-branch rule that protects LIVE sales.
+    forceBranchId?: string,
+  ) {
+    if (forceBranchId) {
+      const forced = await this.prisma.branch.findFirst({
+        where: { id: forceBranchId, deletedAt: null },
+      });
+      if (!forced) {
+        throw new BadRequestException(
+          "This draft's original shop no longer exists or has been archived. " +
+            'Assign the draft to an active shop before submitting it.',
+        );
+      }
+      return forceBranchId;
+    }
+
     if (actor.role === 'Staff') {
       const me = await this.prisma.user.findUnique({
         where: { id: actor.userId },
