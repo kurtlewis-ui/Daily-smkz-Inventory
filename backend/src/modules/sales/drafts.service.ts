@@ -211,6 +211,9 @@ export class DraftsService {
               bankNote: i.bankNote ?? undefined,
               note: i.note ?? undefined,
               paymentSplit: i.paymentSplit ?? undefined,
+              // Preserve each item's original draft add-time so Sales Records can
+              // show its true time rather than the batch submit time.
+              addedAt: i.addedAt ?? undefined,
             })),
           },
           staffActor,

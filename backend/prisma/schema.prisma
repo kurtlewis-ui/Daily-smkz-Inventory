@@ -369,6 +369,13 @@ model SaleItem {
   discount  Decimal @default(0) @db.Decimal(10, 2)
   subTotal  Decimal @map("sub_total") @db.Decimal(12, 2)
 
+  // When this specific line was originally added (e.g. staged in the draft cart
+  // at a certain time). Preserves the true per-item time so Sales Records can
+  // show each item's own time instead of only the sale's submit time. Nullable:
+  // older rows (and live sales that don't supply it) fall back to the sale's
+  // createdAt at display time.
+  addedAt   DateTime? @map("added_at") @db.Timestamp(6)
+
   // How this specific item was paid for.
   paymentMethod PaymentMethod @default(Cash) @map("payment_method")
   // Which bank, when paymentMethod is BankTransfer (or included in a split).
