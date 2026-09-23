@@ -205,7 +205,10 @@ export default function StaffDailyReportPage() {
                       <td className="px-4 py-3 text-sm text-text-secondary max-w-[200px]">
                         <span className="break-words">{itemPaymentLabel(item)}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{idx === 0 ? formatDate(sale.createdAt) : ''}</td>
+                      {/* Per-item time: each line shows its own added time (when it
+                          was staged in the draft), falling back to the sale's time
+                          for items without one (older rows / live sales). */}
+                      <td className="px-4 py-3 text-sm text-text-secondary">{formatDate(item.addedAt ?? sale.createdAt)}</td>
                     </tr>
                   ))}
                   <tr className="bg-surface-muted border-t border-card-border">
@@ -243,6 +246,7 @@ export default function StaffDailyReportPage() {
                           <span>Qty: <span className="text-text-secondary">{item.quantity}</span></span>
                           <span>{peso(item.unitPrice)}</span>
                           <span>{itemPaymentLabel(item)}</span>
+                          <span>{formatDate(item.addedAt ?? sale.createdAt)}</span>
                         </div>
                         {!!item.discount && <p className="mt-0.5 text-accent-orange">−{peso(item.discount)} discount</p>}
                         {item.note && <p className="mt-0.5 italic text-text-muted break-words">{item.note}</p>}
