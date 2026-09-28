@@ -155,11 +155,32 @@ Also make sure the backend's `CORS_ORIGIN` matches the frontend's real origin
 
 ---
 
-## Step 6 — (Optional) custom domain for the API
+## Step 6 — Custom domain (bought in Hostinger)
 
-You can leave the API on `*.vercel.app`, or add a subdomain like
-`api.dailysmokzvs.com` to the backend Vercel project (Vercel shows the DNS
-record to add in Hostinger). If you do, update `NEXT_PUBLIC_API_URL` to match.
+The site's custom domain was purchased in **Hostinger** and its DNS points the
+**frontend** at Vercel. That setup is unchanged by this migration — only the
+backend moves. You have two choices for the backend's URL:
+
+### Option A — leave the backend on `*.vercel.app` (simplest)
+The frontend (on your Hostinger domain) just calls
+`https://your-backend.vercel.app` via `NEXT_PUBLIC_API_URL`. **No Hostinger DNS
+changes needed.** The API URL doesn't need to be branded.
+
+### Option B — give the API a subdomain, e.g. `api.yourdomain.com` (nicer)
+1. Backend Vercel project → **Settings → Domains** → add `api.yourdomain.com`.
+2. Vercel shows a DNS record (usually a **CNAME**: `api` → `cname.vercel-dns.com`).
+3. In **Hostinger → your domain → DNS Zone**, add that exact record.
+4. Wait for Vercel to verify (minutes–hours).
+5. Set the frontend's `NEXT_PUBLIC_API_URL = https://api.yourdomain.com/api/v1`
+   and redeploy the frontend.
+
+> If `api.yourdomain.com` is a subdomain of the SAME domain as the frontend,
+> you may set `COOKIE_SAMESITE=lax` (same-site) instead of `none`. Both work;
+> `none` + `secure=true` is the safe default for different domains.
+
+> Whichever option you pick, make sure the backend's `CORS_ORIGIN` env var
+> exactly matches the frontend's origin (your Hostinger custom domain, e.g.
+> `https://yourdomain.com`), or the browser will block API calls.
 
 ---
 
