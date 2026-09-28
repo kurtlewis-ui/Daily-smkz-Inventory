@@ -42,7 +42,15 @@ async function bootstrapServer(): Promise<Express> {
 
 function getServer(): Promise<Express> {
   if (!cachedServer) {
-    cachedServer = bootstrapServer();
+    cachedServer = bootstrapServer().catch((err) => {
+      // If bootstrap fails, log the REAL cause (visible in Vercel runtime logs)
+      // and clear the cache so the next request retries a fresh bootstrap
+      // instead of reusing a rejected promise.
+      // eslint-disable-next-line no-console
+      console.error('[serverless] Nest bootstrap failed:', err);
+      cachedServer = null;
+      throw err;
+    });
   }
   return cachedServer;
 }
@@ -51,6 +59,24 @@ export default async function handler(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  const server = await getServer();
-  server(req as never, res as never);
+  try {
+    const server = await getServer();
+    server(req as never, res as never);
+  } catch (err) {
+    // Surface the real error in the response + logs instead of an opaque
+    // FUNCTION_INVOCATION_FAILED, so misconfiguration (e.g. a bad DATABASE_URL
+    // or a missing Prisma engine) is diagnosable.
+    // eslint-disable-next-line no-console
+    console.error('[serverless] request handling failed:', err);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader('content-type', 'application/json');
+      res.end(
+        JSON.stringify({
+          error: 'ServerlessBootstrapError',
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }
 }
