@@ -47,6 +47,5 @@ dist/
 build/
 
 
-# Vercel: empty static output dir created at build time for API-only project
-/public
+# Vercel local dir
 .vercel
