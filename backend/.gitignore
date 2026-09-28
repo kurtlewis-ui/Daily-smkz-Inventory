@@ -45,3 +45,8 @@ prisma/migrations/*_migration/
 # Build
 dist/
 build/
+
+
+# Vercel: empty static output dir created at build time for API-only project
+/public
+.vercel
