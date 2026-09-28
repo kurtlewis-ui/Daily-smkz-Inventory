@@ -1,9 +1,21 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import helmet from 'helmet';
-import * as cookieParser from 'cookie-parser';
 import { json, urlencoded } from 'express';
+
+// cookie-parser and helmet are CommonJS modules. Depending on the bundler's
+// module-interop settings, `import * as x` / `import x from` can yield the
+// module NAMESPACE object instead of the callable export — which breaks under
+// Vercel's @vercel/node bundler with "TypeError: cookieParser is not a
+// function". Loading them via require() and unwrapping a possible `.default`
+// gives the actual callable in every environment (Nest build AND Vercel).
+/* eslint-disable @typescript-eslint/no-var-requires */
+const cookieParserImport = require('cookie-parser');
+const cookieParser: (...args: any[]) => any =
+  cookieParserImport.default ?? cookieParserImport;
+const helmetImport = require('helmet');
+const helmet: (...args: any[]) => any = helmetImport.default ?? helmetImport;
+/* eslint-enable @typescript-eslint/no-var-requires */
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
