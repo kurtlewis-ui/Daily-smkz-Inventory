@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Plus, X, Loader2 } from 'lucide-react';
 import { useDisposals, useCreateDisposal, useBranches, useProducts } from '@/lib/hooks';
 import { getApiErrorMessage } from '@/lib/api';
@@ -19,9 +19,17 @@ function formatDate(iso: string) {
 
 export default function DisposalsPage() {
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showModal, setShowModal] = useState(false);
+
+  // Debounce search by 300ms so typing fires one request after the user stops,
+  // instead of one request per keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: branchData } = useBranches();
   const branches = branchData?.data ?? [];
@@ -29,7 +37,7 @@ export default function DisposalsPage() {
   const [selectedShop, setSelectedShop] = useStoredBranch(branches);
 
   const { data, isLoading, isError, error } = useDisposals({
-    search, branchId: selectedShop || undefined, startDate: startDate || undefined, endDate: endDate || undefined,
+    search: debouncedSearch, branchId: selectedShop || undefined, startDate: startDate || undefined, endDate: endDate || undefined,
   });
   // Show only approved disposals (the stock actually written off).
   const disposals = (data?.data ?? []).filter((d) => d.status === 'APPROVED');
