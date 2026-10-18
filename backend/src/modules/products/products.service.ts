@@ -202,23 +202,24 @@ export class ProductsService {
   }
 
   async update(id: string, dto: UpdateProductDto, updatedBy: string, role?: string) {
-    const current = await this.prisma.product.findFirst({
-      where: { id, deletedAt: null },
-    });
+    // Perf: the three pre-checks (product exists, brand exists, branches exist)
+    // are independent, so run them in parallel instead of three sequential DB
+    // round-trips. On a high-latency connection this alone removes ~2 trips'
+    // worth of "Saving…" wait.
+    const [current, brand] = await Promise.all([
+      this.prisma.product.findFirst({ where: { id, deletedAt: null } }),
+      dto.brandId
+        ? this.prisma.brand.findFirst({ where: { id: dto.brandId, deletedAt: null } })
+        : Promise.resolve(null),
+      this.assertBranchesExist(dto.quantities),
+    ]);
+
     if (!current) {
       throw new NotFoundException('Product not found');
     }
-
-    if (dto.brandId) {
-      const brand = await this.prisma.brand.findFirst({
-        where: { id: dto.brandId, deletedAt: null },
-      });
-      if (!brand) {
-        throw new NotFoundException('Brand not found');
-      }
+    if (dto.brandId && !brand) {
+      throw new NotFoundException('Brand not found');
     }
-
-    await this.assertBranchesExist(dto.quantities);
 
     const data: any = {};
     if (dto.name !== undefined) {
@@ -307,16 +308,15 @@ export class ProductsService {
 
     const updated = await this.prisma.product.findUnique({
       where: { id },
-      include: this.includeFull(),
+      select: this.selectFull(),
     });
 
-    await this.audit(
-      updatedBy,
-      'PRODUCT_UPDATED',
-      id,
-      { name: current.name },
-      data,
-    );
+    // Perf: the audit log is a fire-and-forget record — the user shouldn't wait
+    // an extra DB round-trip for it before the Save completes. Kick it off
+    // without blocking the response; log (don't throw) if it ever fails so a
+    // logging hiccup can't break a successful save.
+    void this.audit(updatedBy, 'PRODUCT_UPDATED', id, { name: current.name }, data)
+      .catch(() => undefined);
 
     const serialized = this.serialize(updated!, role === 'Owner');
     // Attach the undoable movement ids (empty when no quantity actually changed).
