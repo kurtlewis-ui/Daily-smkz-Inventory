@@ -101,7 +101,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw ForbiddenException when account is locked', async () => {
+    it('rejects invalid credentials even when the legacy lock flag is set', async () => {
       prisma.user.findUnique.mockResolvedValue({ ...mockUser, isLocked: true });
 
       await expect(
@@ -110,7 +110,26 @@ describe('AuthService', () => {
           '127.0.0.1',
           'jest',
         ),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    // handleFailedLogin intentionally tracks failures without locking accounts.
+    it('allows a correct password despite the legacy lock flag', async () => {
+      prisma.user.findUnique.mockResolvedValue({ ...mockUser, isLocked: true });
+      const compare = jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
+      const hash = jest.spyOn(bcrypt, 'hash').mockResolvedValue('hashed-token' as never);
+      prisma.session.create.mockResolvedValue({ id: 'session-uuid', tokenVersion: 1 });
+      prisma.session.update.mockResolvedValue({});
+      prisma.user.update.mockResolvedValue(mockUser);
+      try {
+        const result = await service.login(
+          { email: mockUser.email, password: 'correct' }, '127.0.0.1', 'jest',
+        );
+        expect(result).toHaveProperty('accessToken');
+      } finally {
+        compare.mockRestore();
+        hash.mockRestore();
+      }
     });
 
     it('should throw ForbiddenException when account is inactive', async () => {
