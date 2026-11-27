@@ -29,6 +29,7 @@ import type { ProductRow } from '@/lib/xlsx-utils';
 import { useAuthStore } from '@/lib/store';
 import { ImageCropModal } from '@/components/ImageCropModal';
 import type { Product, ImportResult, RestockResult } from '@/lib/types';
+import { UndoLastRestock } from '@/components/UndoLastRestock';
 import { StockHistoryModal } from '@/components/StockHistoryModal';
 import { Select } from '@/components/Select';
 import { NumberStepper } from '@/components/NumberStepper';
@@ -334,6 +335,7 @@ export default function ProductsPage() {
             <AlertTriangle size={14} /> Reset Stock
           </button>
         )}
+        {isAdmin && <UndoLastRestock />}
       </div>
       {reorderMode && (
         <div className="rounded-lg border border-accent-green/30 bg-accent-green/10 px-4 py-2 text-sm text-text-secondary">
@@ -746,7 +748,6 @@ let lastSubmittedRestockSignature: string | null = null;
 
 function RestockModal({ products, branches, isOwner, onClose }: { products: Product[]; branches: { id: string; name: string }[]; isOwner: boolean; onClose: () => void }) {
   const restock = useRestock({ silent: true });
-  const undoStock = useUndoStock();
   const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RestockResult | null>(null);
@@ -855,26 +856,8 @@ function RestockModal({ products, branches, isOwner, onClose }: { products: Prod
       // Remember this exact submission so an accidental re-upload is caught.
       lastSubmittedRestockSignature = signatureOf(items);
       setResult(res);
-      const ids = Array.isArray((res as any)?.movementIds) ? (res as any).movementIds as string[] : [];
       const msg = `Restocked ${res.updated} of ${res.total} ${res.total === 1 ? 'entry' : 'entries'}`;
-      if (isOwner && ids.length > 0) {
-        toast.show('success', msg, {
-          action: {
-            label: 'Undo',
-            onClick: async () => {
-              try {
-                const u = await undoStock.mutateAsync(ids);
-                if (u.undone > 0) toast.success(`Reverted ${u.undone} ${u.undone === 1 ? 'entry' : 'entries'}.`, 'Undone');
-                else toast.error(u.skipped[0]?.reason ?? 'Nothing to undo.');
-              } catch (e) {
-                toast.error(getApiErrorMessage(e));
-              }
-            },
-          },
-        });
-      } else {
-        toast.success(msg);
-      }
+      toast.success(msg + '. Use Undo Last Restock on Products to review and undo this upload.');
     }
     catch (e) { setError(getApiErrorMessage(e)); }
   }

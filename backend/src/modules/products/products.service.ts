@@ -13,6 +13,7 @@ import { RestockItemDto } from './dto/restock.dto';
 import { slugify } from '../../common/utils/string.util';
 // (UndoStockDto is validated at the controller; the service takes the id list.)
 import { UploadService } from '../../common/upload/upload.service';
+import { latestRestockBatch, lockRestockBatches, undoRestockBatch } from './restock-batches';
 
 @Injectable()
 export class ProductsService {
@@ -20,6 +21,9 @@ export class ProductsService {
     private prisma: PrismaService,
     private upload: UploadService,
   ) {}
+
+  latestRestock() { return latestRestockBatch(this.prisma); }
+  undoRestock(id: string, userId: string) { return undoRestockBatch(this.prisma, id, userId); }
 
   async create(dto: CreateProductDto, createdBy: string, role?: string) {
     const brand = await this.prisma.brand.findFirst({
@@ -581,79 +585,46 @@ export class ProductsService {
     const targets = [...addByKey.values()];
     if (targets.length === 0) {
       await this.audit(userId, 'PRODUCTS_RESTOCKED', userId, null, { updated: 0 });
-      return { updated: 0, total: items.length, warnings, movementIds: [] as string[] };
+      return { updated: 0, total: items.length, warnings, batchId: null, movementIds: [] as string[] };
     }
 
-    // Current quantities for the affected pairs, so quantityAfter = before + add
-    // is exact (no per-row re-read needed).
-    const existing = await this.prisma.inventory.findMany({
-      where: {
-        productId: { in: [...new Set(targets.map((t) => t.productId))] },
-        branchId: { in: [...new Set(targets.map((t) => t.branchId))] },
-      },
-      select: { productId: true, branchId: true, quantity: true },
-    });
-    const currentQty = new Map(existing.map((e) => [qtyKey(e.productId, e.branchId), e.quantity]));
-
-    // Rows that don't have an inventory row yet must be created (at 0) BEFORE
-    // the bulk increment so the UPDATE has something to add to.
-    const existingKeys = new Set(existing.map((e) => qtyKey(e.productId, e.branchId)));
-    const missing = targets.filter((t) => !existingKeys.has(qtyKey(t.productId, t.branchId)));
-
-    // Movement rows (RESTOCK, positive add). quantityAfter computed from the
-    // snapshot: before (0 for missing) + amount added.
-    const movementData = targets.map((t) => {
-      const before = currentQty.get(qtyKey(t.productId, t.branchId)) ?? 0;
-      return {
-        productId: t.productId,
-        branchId: t.branchId,
-        userId,
-        type: 'RESTOCK' as const,
-        quantityChange: t.quantity,
-        quantityAfter: before + t.quantity,
-        description: 'Restocked product.',
-      };
-    });
-
-    // ONE parameterized bulk UPDATE that increments each pair by its own amount:
-    //   UPDATE inventory SET quantity = quantity + v.add
-    //   FROM (VALUES ($1::uuid,$2::uuid,$3::int), ...) AS v(pid, bid, add)
-    //   WHERE inventory.product_id = v.pid AND inventory.branch_id = v.bid
-    // Values are bound as parameters (never string-interpolated).
-    const valueRows = targets.map(
-      (t) => Prisma.sql`(${t.productId}::uuid, ${t.branchId}::uuid, ${t.quantity}::int)`,
-    );
-    const bulkIncrement = Prisma.sql`
-      UPDATE "inventory" AS inv
-      SET "quantity" = inv."quantity" + v.add, "updated_at" = NOW()
-      FROM (VALUES ${Prisma.join(valueRows)}) AS v(pid, bid, add)
-      WHERE inv."product_id" = v.pid AND inv."branch_id" = v.bid
-    `;
-
-    // Everything in ONE transaction (all-or-nothing): create missing rows,
-    // increment all pairs in a single statement, then insert all movements
-    // (createManyAndReturn gives us the ids for the one-tap Undo).
-    const created = await this.prisma.$transaction(async (tx) => {
-      if (missing.length > 0) {
-        await tx.inventory.createMany({
-          data: missing.map((m) => ({ productId: m.productId, branchId: m.branchId, quantity: 0 })),
-          skipDuplicates: true,
-        });
-      }
-      await tx.$executeRaw(bulkIncrement);
-      return tx.stockMovement.createManyAndReturn({
-        data: movementData,
-        select: { id: true },
+    // Persist batch identity, stock and its ledger together. Read resulting
+    // quantities from UPDATE RETURNING while holding inventory row locks; a
+    // pre-transaction snapshot could be stale after a simultaneous sale.
+    const result = await this.prisma.$transaction(async tx => {
+      await lockRestockBatches(tx);
+      await tx.inventory.createMany({
+        data: targets.map(t => ({ productId: t.productId, branchId: t.branchId, quantity: 0 })),
+        skipDuplicates: true,
       });
-    });
-
-    const movementIds = created.map((m) => m.id);
-
-    await this.audit(userId, 'PRODUCTS_RESTOCKED', userId, null, { updated: targets.length });
-
-    // Return the ids of the movements we just created so the client can offer a
-    // precise, one-tap "Undo" of exactly this batch.
-    return { updated: targets.length, total: items.length, warnings, movementIds };
+      const values = targets.map(t => Prisma.sql`(${t.productId}::uuid, ${t.branchId}::uuid, ${t.quantity}::int)`);
+      const changed = await tx.$queryRaw<{ productId: string; branchId: string; quantity: number }[]>(Prisma.sql`
+        UPDATE inventory AS inv
+        SET quantity = inv.quantity + v.add, updated_at = NOW()
+        FROM (VALUES ${Prisma.join(values)}) AS v(pid, bid, add)
+        WHERE inv.product_id = v.pid AND inv.branch_id = v.bid
+          AND EXISTS (SELECT 1 FROM products p JOIN brands br ON br.id = p.brand_id
+            WHERE p.id = inv.product_id AND p.deleted_at IS NULL AND br.deleted_at IS NULL)
+          AND EXISTS (SELECT 1 FROM branches b WHERE b.id = inv.branch_id AND b.deleted_at IS NULL)
+        RETURNING inv.product_id AS "productId", inv.branch_id AS "branchId", inv.quantity`);
+      if (changed.length !== targets.length) throw new BadRequestException('Stock availability changed. Refresh and retry the restock.');
+      const batch = await tx.restockBatch.create({ data: {
+        createdById: userId, entryCount: targets.length,
+        productCount: new Set(targets.map(t => t.productId)).size,
+        branchCount: new Set(targets.map(t => t.branchId)).size,
+        totalQuantity: targets.reduce((sum, t) => sum + t.quantity, 0),
+      } });
+      const quantities = new Map(changed.map(r => [qtyKey(r.productId, r.branchId), r.quantity]));
+      const created = await tx.stockMovement.createManyAndReturn({ data: targets.map(t => ({
+        productId: t.productId, branchId: t.branchId, userId, type: 'RESTOCK', restockBatchId: batch.id,
+        quantityChange: t.quantity, quantityAfter: quantities.get(qtyKey(t.productId, t.branchId))!,
+        description: 'Restocked product.',
+      })), select: { id: true } });
+      await tx.auditLog.create({ data: { userId, action: 'PRODUCTS_RESTOCKED', entityType: 'RestockBatch', entityId: batch.id,
+        newValues: { updated: targets.length, batchId: batch.id } } });
+      return { batchId: batch.id, movementIds: created.map(m => m.id) };
+    }, { timeout: 30000, isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    return { updated: targets.length, total: items.length, warnings, ...result };
   }
 
   /**
@@ -734,6 +705,10 @@ export class ProductsService {
       const movement = await this.prisma.stockMovement.findUnique({ where: { id } });
       if (!movement) {
         skipped.push({ id, reason: 'Movement not found.' });
+        continue;
+      }
+      if (movement.restockBatchId) {
+        skipped.push({ id, reason: 'Use Undo Last Restock on Products to undo the entire batch.' });
         continue;
       }
       if (movement.type !== 'RESTOCK' && movement.type !== 'ADJUSTMENT') {

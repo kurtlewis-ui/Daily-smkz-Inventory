@@ -63,6 +63,20 @@ export class ProductsController {
     return { success: true, data };
   }
 
+  @Get('restock-batches/latest')
+  @Roles('Owner', 'Admin')
+  @ApiOperation({ summary: 'Review the latest tracked restock batch' })
+  async latestRestock() {
+    return { success: true, data: await this.productsService.latestRestock() };
+  }
+
+  @Post('restock-batches/:id/undo')
+  @Roles('Owner', 'Admin')
+  @ApiOperation({ summary: 'Undo the entire latest restock batch atomically' })
+  async undoRestock(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: RequestUser) {
+    return { success: true, data: await this.productsService.undoRestock(id, user.userId) };
+  }
+
   @Post('stock-movements/undo')
   @Roles('Owner')
   @ApiOperation({ summary: 'Owner-only: undo restock/adjustment stock movements (appends compensating movements)' })

@@ -358,6 +358,7 @@ export type StockMovementType = 'SALE' | 'RESTOCK' | 'DISPOSAL' | 'RETURN' | 'AD
 
 export interface StockMovement {
   id: string;
+  restockBatchId?: string | null;
   productId: string;
   productName: string;
   branchId: string;
