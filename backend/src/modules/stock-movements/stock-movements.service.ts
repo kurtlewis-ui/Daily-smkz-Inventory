@@ -54,6 +54,7 @@ export class StockMovementsService {
     return {
       data: movements.map((m) => ({
         id: m.id,
+        restockBatchId: m.restockBatchId,
         productId: m.productId,
         productName: m.product.name,
         branchId: m.branchId,

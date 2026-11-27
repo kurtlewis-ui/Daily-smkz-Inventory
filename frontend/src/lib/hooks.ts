@@ -7,6 +7,7 @@ import {
   type QueryKey,
 } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from './api';
+import { useAuthStore } from './store';
 import { useToast } from '@/components/Toast';
 import type { DraftItem, DraftDisposalItem, DraftExpense } from './draft';
 import type {
@@ -384,6 +385,7 @@ export interface RestockItem {
 }
 
 export interface RestockResultData {
+  batchId?: string | null;
   updated: number;
   total: number;
   warnings: string[];
@@ -400,8 +402,38 @@ export function useRestock(opts?: { silent?: boolean }) {
   return useMutation({
     mutationFn: (items: RestockItem[]) =>
       api.post('/products/restock', { items }).then((r) => r.data.data as RestockResultData),
-    onSuccess: () => { invalidate(['products'], ['stats']); if (!opts?.silent) t.onSuccess(); },
+    onSuccess: () => { invalidate(['products'], ['stats'], ['restock-batches'], ['stock-movements']); if (!opts?.silent) t.onSuccess(); },
     onError: t.onError,
+  });
+}
+
+export interface RestockBatchSummary {
+  id: string;
+  createdAt: string;
+  undoneAt: string | null;
+  uploader: string;
+  entryCount: number;
+  productCount: number;
+  branchCount: number;
+  totalQuantity: number;
+}
+
+export function useLatestRestockBatch() {
+  const role = useAuthStore(s => s.user?.role?.name);
+  return useQuery({
+    queryKey: ['restock-batches', 'latest'],
+    enabled: role === 'Owner' || role === 'Admin',
+    queryFn: () => api.get('/products/restock-batches/latest').then(r => r.data.data as RestockBatchSummary | null),
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useUndoRestockBatch() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (id: string) => api.post(`/products/restock-batches/${id}/undo`).then(r => r.data.data as { id: string; undone: number }),
+    onSuccess: () => invalidate(['products'], ['stats'], ['brands'], ['stock-movements'], ['restock-batches'], ['activity-logs']),
   });
 }
 

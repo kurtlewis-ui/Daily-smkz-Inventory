@@ -73,6 +73,7 @@ model User {
   expensesCreated Expense[] @relation("ExpenseStaff")
   expensesDecided Expense[] @relation("ExpenseDecidedBy")
   stockMovements  StockMovement[]
+  restockBatches RestockBatch[]
 
   @@index([roleId])
   @@index([branchId])
@@ -255,6 +256,7 @@ model StockMovement {
   seq           BigInt            @default(autoincrement())
   productId     String            @map("product_id") @db.Uuid
   branchId      String            @map("branch_id") @db.Uuid
+  restockBatchId String? @map("restock_batch_id") @db.Uuid
   userId        String?           @map("user_id") @db.Uuid
   type          StockMovementType
   // Positive = stock added, Negative = stock removed.
@@ -270,12 +272,15 @@ model StockMovement {
   branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
   user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  restockBatch RestockBatch? @relation(fields: [restockBatchId], references: [id], onDelete: Restrict)
+
   // History is ordered by seq (see above), scoped to product+branch.
   @@index([productId, branchId, seq(sort: Desc)])
   @@index([productId, branchId, createdAt(sort: Desc)])
   @@index([branchId])
   @@index([userId])
   @@index([createdAt(sort: Desc)])
+  @@index([restockBatchId])
   @@map("stock_movements")
 }
 
@@ -508,4 +513,22 @@ model Expense {
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("expenses")
+}
+
+
+model RestockBatch {
+  id String @id @default(uuid()) @db.Uuid
+  seq Int @unique @default(autoincrement())
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  createdById String? @map("created_by_id") @db.Uuid
+  entryCount Int @map("entry_count")
+  productCount Int @map("product_count")
+  branchCount Int @map("branch_count")
+  totalQuantity Int @map("total_quantity")
+  undoneAt DateTime? @map("undone_at") @db.Timestamp(6)
+  undoneById String? @map("undone_by_id") @db.Uuid
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  movements StockMovement[]
+
+  @@map("restock_batches")
 }

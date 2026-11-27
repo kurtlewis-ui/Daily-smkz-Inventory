@@ -10,6 +10,7 @@ const ENTITY_CATEGORY: Record<string, string> = {
   Session: 'Authentications',
   Branch: 'Shops',
   Product: 'Products',
+  RestockBatch: 'Products',
   Brand: 'Brands',
   Sale: 'Reports',
   User: 'Users',

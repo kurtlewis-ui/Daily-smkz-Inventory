@@ -35,7 +35,8 @@ interface Props {
 }
 
 // Which movement types an owner may undo from the history.
-function isUndoable(m: { type: StockMovementType; description?: string | null }): boolean {
+function isUndoable(m: { type: StockMovementType; description?: string | null; restockBatchId?: string | null }): boolean {
+  if (m.restockBatchId) return false;
   if (m.type !== 'RESTOCK' && m.type !== 'ADJUSTMENT') return false;
   // A compensating "Undo:" entry is not itself undoable.
   if (m.description && m.description.startsWith('Undo:')) return false;
